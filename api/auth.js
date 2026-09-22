@@ -1,4 +1,4 @@
-import { ShopeeSDK, ShopeeRegion } from "@congminh1254/shopee-sdk";
+const { ShopeeSDK, ShopeeRegion } = require("@congminh1254/shopee-sdk");
 
 export default async function handler(req, res) {
   // 1. Masukkan kembali Custom Token Storage Google Sheets Anda di sini

@@ -30,11 +30,12 @@ export default async function handler(req, res) {
     const sdk = new ShopeeSDK({
       partner_id: Number(process.env.SHOPEE_PARTNER_ID),
       partner_key: process.env.SHOPEE_PARTNER_KEY,
-      // 2. Ganti ShopeeRegion.GLOBAL menjadi teks string langsung
-      region: "global", 
+      host: "https://partner.shopeemobile.com", // <-- URL server utama Shopee disuntikkan secara eksplisit
       shop_id: Number(process.env.SHOPEE_SHOP_ID),
       storage: googleSheetsStorage 
     });
+
+    const orders = await sdk.order.getOrderList({
 
     const orders = await sdk.order.getOrderList({
       time_range_field: "create_time",

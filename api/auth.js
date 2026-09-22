@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     // ----------------------------------------------------
     const partnerId = 1245374; // <-- Ganti dengan Partner ID Anda (angka)
     const partnerKey = "shpk6255595346667a52594b644f5564704752615272755775716e6f6a48794b"; // <-- Ganti dengan Partner Key Anda (string)
-    const shopId = 172040285; // <-- Ganti dengan Shop ID Anda (angka)
+    const shopId = 227924519; // <-- Ganti dengan Shop ID Anda (angka)
     // ----------------------------------------------------
 
     const host = "https://partner.shopeemobile.com";

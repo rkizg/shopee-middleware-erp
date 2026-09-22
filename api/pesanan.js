@@ -1,4 +1,3 @@
-// 1. Hapus ShopeeRegion dari baris import ini
 import { ShopeeSDK } from "@congminh1254/shopee-sdk";
 
 export default async function handler(req, res) {
@@ -30,12 +29,10 @@ export default async function handler(req, res) {
     const sdk = new ShopeeSDK({
       partner_id: Number(process.env.SHOPEE_PARTNER_ID),
       partner_key: process.env.SHOPEE_PARTNER_KEY,
-      host: "https://partner.shopeemobile.com", // <-- URL server utama Shopee disuntikkan secara eksplisit
+      host: "https://partner.shopeemobile.com",
       shop_id: Number(process.env.SHOPEE_SHOP_ID),
       storage: googleSheetsStorage 
     });
-
-    const orders = await sdk.order.getOrderList({
 
     const orders = await sdk.order.getOrderList({
       time_range_field: "create_time",

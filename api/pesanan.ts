@@ -1,6 +1,6 @@
 import { ShopeeSDK, ShopeeRegion } from "@congminh1254/shopee-sdk";
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Hanya menerima POST request' });
   }
@@ -8,7 +8,7 @@ export default async function handler(req: any, res: any) {
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRCqpdLRrHa90lRa2Ib9fSnqT0oe3EkeH7XHTiNLm6TF9Y-SNqFru4wYawmwMDJmGb/exec";
 
   const googleSheetsStorage = {
-    async getToken(shopId: number) {
+    async getToken(shopId) {
       try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=get`);
         return await response.json();
@@ -16,7 +16,7 @@ export default async function handler(req: any, res: any) {
         return null;
       }
     },
-    async saveToken(shopId: number, tokenData: any) {
+    async saveToken(shopId, tokenData) {
       await fetch(`${APPS_SCRIPT_URL}?action=save`, {
         method: 'POST',
         body: JSON.stringify(tokenData),
@@ -43,7 +43,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ status: "sukses", data: orders });
 
-  } catch (error: any) {
+  } catch (error) {
     return res.status(500).json({ error: error.message, stack: error.stack });
   }
 }

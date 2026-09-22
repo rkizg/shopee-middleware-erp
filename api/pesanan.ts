@@ -1,7 +1,6 @@
-// Memaksa Vercel membaca langsung dari file distribusi internal library
-const { ShopeeSDK, ShopeeRegion } = require("@congminh1254/shopee-sdk/dist/index.js");
-// Menggunakan module.exports alih-alih export default
-module.exports = async function handler(req, res) {
+import { ShopeeSDK, ShopeeRegion } from "@congminh1254/shopee-sdk";
+
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Hanya menerima POST request' });
   }
@@ -9,7 +8,7 @@ module.exports = async function handler(req, res) {
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRCqpdLRrHa90lRa2Ib9fSnqT0oe3EkeH7XHTiNLm6TF9Y-SNqFru4wYawmwMDJmGb/exec";
 
   const googleSheetsStorage = {
-    async getToken(shopId) {
+    async getToken(shopId: number) {
       try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=get`);
         return await response.json();
@@ -17,7 +16,7 @@ module.exports = async function handler(req, res) {
         return null;
       }
     },
-    async saveToken(shopId, tokenData) {
+    async saveToken(shopId: number, tokenData: any) {
       await fetch(`${APPS_SCRIPT_URL}?action=save`, {
         method: 'POST',
         body: JSON.stringify(tokenData),
@@ -44,7 +43,7 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({ status: "sukses", data: orders });
 
-  } catch (error) {
+  } catch (error: any) {
     return res.status(500).json({ error: error.message, stack: error.stack });
   }
-};
+}

@@ -1,16 +1,10 @@
 {
-  "name": "api",
+  "name": "shopee-middleware-erp",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "node -e \"const fs=require('fs'); const p='node_modules/@congminh1254/shopee-sdk/package.json'; const d=JSON.parse(fs.readFileSync(p)); delete d.exports; fs.writeFileSync(p, JSON.stringify(d));\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@congminh1254/shopee-sdk": "^2.6.0"
+    "@congminh1254/shopee-sdk": "latest"
   }
 }

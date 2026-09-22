@@ -22,14 +22,16 @@ export default async function handler(req, res) {
     }
   };
 
-  try {
+ try {
     const sdk = new ShopeeSDK({
       partner_id: Number(process.env.SHOPEE_PARTNER_ID),
       partner_key: process.env.SHOPEE_PARTNER_KEY,
-      region: "global",
+      host: "https://partner.shopeemobile.com", // <-- URL server utama Shopee disuntikkan secara eksplisit
       shop_id: Number(process.env.SHOPEE_SHOP_ID),
       storage: googleSheetsStorage 
     });
+
+    const orders = await sdk.order.getOrderList({
 
     // 2. URL Vercel ini sendiri, digunakan sebagai tujuan redirect setelah login Shopee
     // Ganti dengan URL Vercel utama Anda

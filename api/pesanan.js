@@ -1,6 +1,5 @@
-// Menggunakan sintaks require (CommonJS) alih-alih import
-const { ShopeeSDK, ShopeeRegion } = require("@congminh1254/shopee-sdk");
-
+// Memaksa Vercel membaca langsung dari file distribusi internal library
+const { ShopeeSDK, ShopeeRegion } = require("@congminh1254/shopee-sdk/dist/index.js");
 // Menggunakan module.exports alih-alih export default
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {

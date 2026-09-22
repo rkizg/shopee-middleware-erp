@@ -11,8 +11,14 @@ export default async function handler(req, res) {
     async getToken(shopId) {
       try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=get`);
-        return await response.json();
+        const data = await response.json();
+        // Memastikan data token dikembalikan dengan benar apakah berupa objek langsung atau string JSON
+        if (typeof data === 'string') {
+          return JSON.parse(data);
+        }
+        return data;
       } catch (e) {
+        console.error("Gagal mengambil token:", e);
         return null;
       }
     },
@@ -24,7 +30,6 @@ export default async function handler(req, res) {
       });
     }
   };
-
   try {
     const sdk = new ShopeeSDK({
       partner_id: Number(process.env.SHOPEE_PARTNER_ID),

@@ -27,9 +27,9 @@ export default async function handler(req, res) {
     // ----------------------------------------------------
     // MASUKKAN KREDENSIAL ASLI ANDA LANGSUNG DI SINI
     // ----------------------------------------------------
-    const partnerId = 1234567; // <-- Ganti dengan Partner ID Anda (angka)
-    const partnerKey = "masukkan_partner_key_anda_di_sini"; // <-- Ganti dengan Partner Key Anda (string)
-    const shopId = 123456789; // <-- Ganti dengan Shop ID Anda (angka)
+    const partnerId = 1245374; // <-- Ganti dengan Partner ID Anda (angka)
+    const partnerKey = "shpk6255595346667a52594b644f5564704752615272755775716e6f6a48794b"; // <-- Ganti dengan Partner Key Anda (string)
+    const shopId = 172040285; // <-- Ganti dengan Shop ID Anda (angka)
     // ----------------------------------------------------
 
     const host = "https://partner.shopeemobile.com";

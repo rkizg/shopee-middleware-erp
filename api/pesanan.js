@@ -1,4 +1,5 @@
-import { ShopeeSDK, ShopeeRegion } from "@congminh1254/shopee-sdk";
+// 1. Hapus ShopeeRegion dari baris import ini
+import { ShopeeSDK } from "@congminh1254/shopee-sdk";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,7 +30,8 @@ export default async function handler(req, res) {
     const sdk = new ShopeeSDK({
       partner_id: Number(process.env.SHOPEE_PARTNER_ID),
       partner_key: process.env.SHOPEE_PARTNER_KEY,
-      region: ShopeeRegion.GLOBAL, 
+      // 2. Ganti ShopeeRegion.GLOBAL menjadi teks string langsung
+      region: "global", 
       shop_id: Number(process.env.SHOPEE_SHOP_ID),
       storage: googleSheetsStorage 
     });

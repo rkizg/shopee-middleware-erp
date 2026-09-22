@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     const sdk = new ShopeeSDK({
       partner_id: Number(process.env.SHOPEE_PARTNER_ID),
       partner_key: process.env.SHOPEE_PARTNER_KEY,
-      region: ShopeeRegion.GLOBAL,
+      region: "global",
       shop_id: Number(process.env.SHOPEE_SHOP_ID),
       storage: googleSheetsStorage 
     });

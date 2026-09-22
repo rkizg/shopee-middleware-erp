@@ -1,26 +1,23 @@
-import { ShopeeSDK, ShopeeRegion } from "@congminh1254/shopee-sdk";
+// Menggunakan sintaks require (CommonJS) alih-alih import
+const { ShopeeSDK, ShopeeRegion } = require("@congminh1254/shopee-sdk");
 
-export default async function handler(req, res) {
+// Menggunakan module.exports alih-alih export default
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Hanya menerima POST request' });
   }
 
-  // Masukkan URL Web App Apps Script Anda di sini
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRCqpdLRrHa90lRa2Ib9fSnqT0oe3EkeH7XHTiNLm6TF9Y-SNqFru4wYawmwMDJmGb/exec";
 
-  // Membuat Custom Storage Adapter
   const googleSheetsStorage = {
-    // Fungsi untuk membaca token dari Google Sheets
     async getToken(shopId) {
       try {
         const response = await fetch(`${APPS_SCRIPT_URL}?action=get`);
-        const data = await response.json();
-        return data;
+        return await response.json();
       } catch (e) {
         return null;
       }
     },
-    // Fungsi untuk menyimpan token baru ke Google Sheets
     async saveToken(shopId, tokenData) {
       await fetch(`${APPS_SCRIPT_URL}?action=save`, {
         method: 'POST',
@@ -36,11 +33,9 @@ export default async function handler(req, res) {
       partner_key: process.env.SHOPEE_PARTNER_KEY,
       region: ShopeeRegion.GLOBAL, 
       shop_id: Number(process.env.SHOPEE_SHOP_ID),
-      // Menyuntikkan custom storage ke dalam SDK
       storage: googleSheetsStorage 
     });
 
-    // Simulasi penarikan pesanan (Pastikan toko sudah diotorisasi/login pertama kali)
     const orders = await sdk.order.getOrderList({
       time_range_field: "create_time",
       time_from: Math.floor(Date.now() / 1000) - 86400, 
@@ -53,4 +48,4 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ error: error.message, stack: error.stack });
   }
-}
+};

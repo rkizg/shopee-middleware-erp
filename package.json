@@ -1,16 +1,15 @@
 {
-  "name": "shopee-erp-middleware",
+  "name": "shopee-middleware-erp",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
   "dependencies": {
-    "@congminh1254/shopee-sdk": "^2.7.0"
+    "@congminh1254/shopee-sdk": "^1.0.0"
   }
 }

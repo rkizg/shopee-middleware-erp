@@ -1,0 +1,16 @@
+{
+  "name": "shopee-erp-middleware",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@congminh1254/shopee-sdk": "^2.7.0"
+  }
+}

@@ -1,8 +1,14 @@
 {
-    "crons": [
-      {
-        "path": "/api/orders/sync?shop_id=123456",
-        "schedule": "0 8 * * *"
-      }
-    ]
+  "version": 2,
+  "crons": [
+    {
+      "path": "/api/orders/sync?shop_id=123456",
+      "schedule": "0 8 * * *"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 60
+    }
   }
+}

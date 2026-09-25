@@ -1,0 +1,34 @@
+{
+  "name": "begood-shopee-erp-middleware",
+  "version": "1.0.0",
+  "description": "Serverless Middleware for Begood Shopee ERP Google Sheets Integration",
+  "type": "module",
+  "main": "api/index.ts",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "shopee",
+    "shopee-sdk",
+    "erp",
+    "google-sheets",
+    "vercel",
+    "serverless"
+  ],
+  "author": "Begood Bandung",
+  "license": "MIT",
+  "dependencies": {
+    "@congminh1254/shopee-sdk": "^2.7.0",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "@vercel/node": "^5.1.8",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

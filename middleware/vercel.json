@@ -2,19 +2,10 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
       "source": "/",
       "destination": "/api/index"
     }
   ],
-  "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 60
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",

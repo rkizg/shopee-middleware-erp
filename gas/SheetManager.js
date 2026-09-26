@@ -49,25 +49,38 @@ var SheetManager = (function() {
       // 1. Sheet Pesanan Masuk
       var orderSheet = getOrCreateSheet(SHEETS.ORDERS);
       var orderHeaders = [
-        'No. Pesanan',
-        'Tanggal Pesanan (WIB)',
-        'Status Shopee',
-        'Status Internal Begood',
-        'Nama Pembeli',
-        'Ringkasan Produk',
-        'Total Qty',
-        'Total Belanja (Rp)',
-        'Ongkir (Rp)',
-        'Ekspedisi / Kurir',
-        'No. Resi',
-        'Catatan Pembeli',
-        'Kota Tujuan',
-        'Waktu Sinkronisasi'
+        'No. Pesanan',              // 1 (A)
+        'Tanggal Pesanan (WIB)',    // 2 (B)
+        'Status Shopee',            // 3 (C)
+        'Status Internal Begood',   // 4 (D)
+        'Nama Pembeli',             // 5 (E)
+        'Ringkasan Produk',         // 6 (F)
+        'Nomor Referensi SKU',      // 7 (G)
+        'Nama Variasi',             // 8 (H)
+        'Total Qty',                // 9 (I)
+        'Total Belanja (Rp)',       // 10 (J)
+        'Ongkir (Rp)',              // 11 (K)
+        'Ekspedisi / Kurir',        // 12 (L)
+        'No. Resi',                 // 13 (M)
+        'Catatan Pembeli',          // 14 (N)
+        'Kota Tujuan',              // 15 (O)
+        'Waktu Sinkronisasi'        // 16 (P)
       ];
 
       if (orderSheet.getLastRow() === 0) {
         orderSheet.appendRow(orderHeaders);
       } else {
+        // Auto-migrasi jika sheet sudah ada tapi belum ada kolom 'Nomor Referensi SKU'
+        var currentCols = orderSheet.getLastColumn();
+        if (currentCols > 0) {
+          var existingHeaders = orderSheet.getRange(1, 1, 1, currentCols).getValues()[0];
+          if (existingHeaders.indexOf('Nomor Referensi SKU') === -1) {
+            var prodIdx = existingHeaders.indexOf('Ringkasan Produk');
+            if (prodIdx !== -1) {
+              orderSheet.insertColumnsAfter(prodIdx + 1, 2);
+            }
+          }
+        }
         orderSheet.getRange(1, 1, 1, orderHeaders.length).setValues([orderHeaders]);
       }
 
@@ -86,13 +99,14 @@ var SheetManager = (function() {
         .requireValueInList(STATUS_OPTIONS, true)
         .setAllowInvalid(true)
         .build();
-      orderSheet.getRange('D2:D1000').setDataValidation(rule);
+      orderSheet.getRange('D2:D5000').setDataValidation(rule);
 
-      // Format format mata uang Total Belanja (H) & Ongkir (I)
-      orderSheet.getRange('H2:I1000').setNumberFormat('Rp #,##0');
-      // Format Nomor Pesanan & Resi sebagai Plain Text (agar angka tidak berubah format eksponensial)
-      orderSheet.getRange('A2:A1000').setNumberFormat('@');
-      orderSheet.getRange('K2:K1000').setNumberFormat('@');
+      // Format format mata uang Total Belanja (J) & Ongkir (K)
+      orderSheet.getRange('J2:K5000').setNumberFormat('Rp #,##0');
+      // Format Nomor Pesanan, SKU & Resi sebagai Plain Text (agar angka tidak berubah format eksponensial)
+      orderSheet.getRange('A2:A5000').setNumberFormat('@');
+      orderSheet.getRange('G2:H5000').setNumberFormat('@');
+      orderSheet.getRange('M2:M5000').setNumberFormat('@');
 
       // 2. Sheet DB_Token
       var tokenSheet = getOrCreateSheet(SHEETS.TOKEN);
@@ -290,8 +304,28 @@ var SheetManager = (function() {
       }
 
       var sheet = getOrCreateSheet(SHEETS.ORDERS);
-      var lastRow = sheet.getLastRow();
       var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+
+      // Auto-migrasi kolom jika sheet masih 14 kolom
+      var currentCols = sheet.getLastColumn();
+      if (currentCols > 0) {
+        var existingHeaders = sheet.getRange(1, 1, 1, currentCols).getValues()[0];
+        if (existingHeaders.indexOf('Nomor Referensi SKU') === -1) {
+          var prodIdx = existingHeaders.indexOf('Ringkasan Produk');
+          if (prodIdx !== -1) {
+            sheet.insertColumnsAfter(prodIdx + 1, 2);
+          }
+          var orderHeaders = [
+            'No. Pesanan', 'Tanggal Pesanan (WIB)', 'Status Shopee', 'Status Internal Begood',
+            'Nama Pembeli', 'Ringkasan Produk', 'Nomor Referensi SKU', 'Nama Variasi',
+            'Total Qty', 'Total Belanja (Rp)', 'Ongkir (Rp)', 'Ekspedisi / Kurir',
+            'No. Resi', 'Catatan Pembeli', 'Kota Tujuan', 'Waktu Sinkronisasi'
+          ];
+          sheet.getRange(1, 1, 1, orderHeaders.length).setValues([orderHeaders]);
+        }
+      }
+
+      var lastRow = sheet.getLastRow();
 
       // Peta index pesanan yang sudah ada di sheet (Key: Order SN -> Row Index)
       var existingMap = {};
@@ -314,33 +348,40 @@ var SheetManager = (function() {
         var sn = String(ord.order_sn).trim();
 
         if (existingMap[sn]) {
-          // Baris sudah ada -> Update kolom status Shopee, ongkir, ekspedisi, resi, waktu sync
+          // Baris sudah ada -> Update kolom status Shopee, SKU, Variasi, Total Qty, ongkir, ekspedisi, resi, waktu sync
           var targetRow = existingMap[sn];
           
-          sheet.getRange(targetRow, 3).setValue(ord.order_status || ''); // Status Shopee
-          sheet.getRange(targetRow, 9).setValue(ord.actual_shipping_fee || ord.estimated_shipping_fee || 0); // Ongkir
-          sheet.getRange(targetRow, 10).setValue(ord.shipping_carrier || ''); // Ekspedisi
-          sheet.getRange(targetRow, 11).setValue(ord.tracking_number || ''); // Resi
-          sheet.getRange(targetRow, 14).setValue(nowWIB); // Waktu Sinkronisasi
+          sheet.getRange(targetRow, 3).setValue(ord.order_status || ''); // Status Shopee (3)
+          sheet.getRange(targetRow, 7).setValue(ord.sku_summary || '-'); // Nomor Referensi SKU (7)
+          sheet.getRange(targetRow, 8).setValue(ord.variation_summary || '-'); // Nama Variasi (8)
+          sheet.getRange(targetRow, 9).setValue(ord.total_items_count || 1); // Total Qty (9)
+          sheet.getRange(targetRow, 11).setValue(ord.actual_shipping_fee || ord.estimated_shipping_fee || 0); // Ongkir (11)
+          sheet.getRange(targetRow, 12).setValue(ord.shipping_carrier || ''); // Ekspedisi (12)
+          if (ord.tracking_number) {
+            sheet.getRange(targetRow, 13).setValue(ord.tracking_number); // No. Resi (13)
+          }
+          sheet.getRange(targetRow, 16).setValue(nowWIB); // Waktu Sinkronisasi (16)
           
           updatedCount++;
         } else {
-          // Baris baru -> Buat row baru
+          // Baris baru -> Buat row baru dengan 16 kolom
           var row = [
-            sn,
-            ord.create_time_formatted || '',
-            ord.order_status || '',
-            ord.internal_status || '[1] Siap Packing',
-            ord.buyer_username || ord.recipient_name || '',
-            ord.items_summary || '',
-            ord.total_items_count || 1,
-            ord.total_amount || 0,
-            ord.actual_shipping_fee || ord.estimated_shipping_fee || 0,
-            ord.shipping_carrier || '',
-            ord.tracking_number || '',
-            ord.note || '',
-            ord.recipient_city || '',
-            nowWIB
+            sn,                                                         // 1: No. Pesanan
+            ord.create_time_formatted || '',                            // 2: Tanggal Pesanan (WIB)
+            ord.order_status || '',                                     // 3: Status Shopee
+            ord.internal_status || '[1] Siap Packing',                  // 4: Status Internal Begood
+            ord.buyer_username || ord.recipient_name || '',             // 5: Nama Pembeli
+            ord.items_summary || '',                                    // 6: Ringkasan Produk
+            ord.sku_summary || '-',                                     // 7: Nomor Referensi SKU
+            ord.variation_summary || '-',                               // 8: Nama Variasi
+            ord.total_items_count || 1,                                 // 9: Total Qty
+            ord.total_amount || 0,                                      // 10: Total Belanja (Rp)
+            ord.actual_shipping_fee || ord.estimated_shipping_fee || 0,  // 11: Ongkir (Rp)
+            ord.shipping_carrier || '',                                 // 12: Ekspedisi / Kurir
+            ord.tracking_number || '',                                  // 13: No. Resi
+            ord.note || '',                                             // 14: Catatan Pembeli
+            ord.recipient_city || '',                                   // 15: Kota Tujuan
+            nowWIB                                                      // 16: Waktu Sinkronisasi
           ];
           newRows.push(row);
           addedCount++;
@@ -382,7 +423,8 @@ var SheetManager = (function() {
           var targetRow = i + 2;
           sheet.getRange(targetRow, 4).setValue(newStatus);
           var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
-          sheet.getRange(targetRow, 14).setValue(nowWIB);
+          var lastCol = sheet.getLastColumn();
+          sheet.getRange(targetRow, lastCol).setValue(nowWIB);
           return true;
         }
       }
@@ -410,8 +452,11 @@ var SheetManager = (function() {
 
       var ordersList = [];
       if (orderLastRow >= 2) {
-        var values = orderSheet.getRange(2, 1, orderLastRow - 1, 14).getValues();
+        var numCols = Math.max(orderSheet.getLastColumn(), 14);
+        var values = orderSheet.getRange(2, 1, orderLastRow - 1, numCols).getValues();
         stats.totalOrders = values.length;
+
+        var isNewLayout = numCols >= 16;
 
         for (var i = 0; i < values.length; i++) {
           var row = values[i];
@@ -421,10 +466,12 @@ var SheetManager = (function() {
           var internalStatus = String(row[3]);
           var buyer = String(row[4]);
           var items = String(row[5]);
-          var qty = Number(row[6]) || 0;
-          var totalAmount = Number(row[7]) || 0;
-          var courier = String(row[9]);
-          var resi = String(row[10]);
+          var sku = isNewLayout ? String(row[6] || '-') : '-';
+          var variation = isNewLayout ? String(row[7] || '-') : '-';
+          var qty = Number(isNewLayout ? row[8] : row[6]) || 0;
+          var totalAmount = Number(isNewLayout ? row[9] : row[7]) || 0;
+          var courier = String(isNewLayout ? row[11] : row[9]);
+          var resi = String(isNewLayout ? row[12] : row[10]);
 
           stats.totalRevenue += totalAmount;
 
@@ -447,6 +494,8 @@ var SheetManager = (function() {
               internalStatus: internalStatus,
               buyer: buyer,
               items: items,
+              sku: sku,
+              variation: variation,
               qty: qty,
               totalAmount: totalAmount,
               courier: courier,

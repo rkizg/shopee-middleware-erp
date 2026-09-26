@@ -552,12 +552,16 @@
             <td class="py-3 px-3 text-slate-200 truncate max-w-[140px]" title="${ord.buyer}">${ord.buyer || '-'}</td>
             <td class="py-3 px-3 text-slate-300 font-sans text-xs">
               <div class="line-clamp-2" title="${ord.items}">${ord.items || '-'}</div>
+              <div class="text-[11px] font-mono mt-0.5 flex flex-wrap gap-1">
+                ${ord.sku && ord.sku !== '-' ? `<span class="bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-400/20 text-[10px] font-semibold">SKU: ${ord.sku}</span>` : ''}
+                ${ord.variation && ord.variation !== '-' ? `<span class="bg-slate-700/50 text-slate-300 px-1.5 py-0.5 rounded border border-slate-600 text-[10px]">Var: ${ord.variation}</span>` : ''}
+              </div>
               <span class="text-[10px] text-slate-500 font-mono">Qty: ${ord.qty}</span>
             </td>
             <td class="py-3 px-3 text-emerald-400 font-semibold whitespace-nowrap">${amountStr}</td>
             <td class="py-3 px-3 text-slate-300 whitespace-nowrap text-[11px]">
-              <div>${ord.courier || '-'}</div>
-              <div class="text-[10px] text-slate-500">${ord.resi || '(Belum Ada Resi)'}</div>
+              <div class="font-semibold text-slate-200">${ord.courier || '-'}</div>
+              <div class="text-[11px] font-mono ${ord.resi && ord.resi !== '-' ? 'text-emerald-400' : 'text-slate-500'}">${ord.resi && ord.resi !== '-' ? ord.resi : '(Belum Ada Resi)'}</div>
             </td>
             <td class="py-3 px-3">
               <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${shopeeBadge}">${ord.shopeeStatus || '-'}</span>
@@ -609,6 +613,8 @@
           ord.orderSn.toLowerCase().includes(q) ||
           ord.buyer.toLowerCase().includes(q) ||
           ord.items.toLowerCase().includes(q) ||
+          (ord.sku && ord.sku.toLowerCase().includes(q)) ||
+          (ord.variation && ord.variation.toLowerCase().includes(q)) ||
           ord.resi.toLowerCase().includes(q) ||
           ord.courier.toLowerCase().includes(q);
 

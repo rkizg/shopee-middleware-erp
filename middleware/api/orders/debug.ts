@@ -113,6 +113,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }).catch((e: any) => ({ error: e.message })),
         ]);
 
+        // Also test tracking_number on shipped order
+        let trackingTest: any = null;
+        try {
+          const testShippedSn = '2609250U2XMU1C';
+          const rawDetail: any = await sdk.order.getOrderDetail({
+            order_sn_list: testShippedSn as any,
+            response_optional_fields: 'package_list,shipping_carrier,item_list',
+          });
+          const rawOrder = (rawDetail?.response?.order_list || [])[0] || {};
+          let trackingApiRes: any = null;
+          try {
+            trackingApiRes = await sdk.logistics.getTrackingNumber({ order_sn: testShippedSn });
+          } catch (e: any) {
+            trackingApiRes = { error: e.message };
+          }
+
+          let massTrackingRes: any = null;
+          try {
+            massTrackingRes = await sdk.logistics.getMassTrackingNumber({
+              package_list: [{ package_number: 'OFG244029092242209' }]
+            });
+          } catch (e: any) {
+            massTrackingRes = { error: e.message };
+          }
+
+          trackingTest = {
+            order_sn: testShippedSn,
+            raw_tracking_number: rawOrder.tracking_number ?? null,
+            raw_package_list: rawOrder.package_list ?? null,
+            logistics_api_result: trackingApiRes,
+            mass_tracking_result: massTrackingRes,
+          };
+        } catch (e: any) {
+          trackingTest = { error: e.message };
+        }
+
         detailTestResult = {
           sample_sns_count: sampleSns.length,
           sample_sns: sampleSns,
@@ -124,6 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             returned_count: (resString as any)?.response?.order_list?.length ?? null,
             error: (resString as any)?.error ?? null,
           },
+          tracking_test: trackingTest,
         };
       } catch (err: any) {
         detailTestResult = { error: err.message };

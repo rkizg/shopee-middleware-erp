@@ -304,11 +304,55 @@ export class OrderService {
       }
     }, 3);
 
+    // 2.5 Fetch tracking numbers (Nomor Resi) for packages using getMassTrackingNumber
+    const trackingNumberMap = new Map<string, string>();
+    const packageNumberToOrderSn = new Map<string, string>();
+    const packageNumbers: string[] = [];
+
+    for (const raw of detailedOrders) {
+      const pkgList = Array.isArray(raw.package_list) ? raw.package_list : [];
+      for (const pkg of pkgList) {
+        if (pkg.package_number) {
+          packageNumbers.push(pkg.package_number);
+          packageNumberToOrderSn.set(pkg.package_number, raw.order_sn);
+        }
+      }
+    }
+
+    if (packageNumbers.length > 0) {
+      const pkgBatches: string[][] = [];
+      const PKG_BATCH_SIZE = 50;
+      for (let i = 0; i < packageNumbers.length; i += PKG_BATCH_SIZE) {
+        pkgBatches.push(packageNumbers.slice(i, i + PKG_BATCH_SIZE));
+      }
+
+      console.log(`[OrderService] Fetching tracking numbers for ${packageNumbers.length} packages in ${pkgBatches.length} batches`);
+
+      await asyncPool(pkgBatches, async (batch) => {
+        try {
+          const massRes: any = await sdk.logistics.getMassTrackingNumber({
+            package_list: batch.map((pkgNum) => ({ package_number: pkgNum })),
+          });
+          const data = massRes?.response || massRes?.result || massRes;
+          const successList = data?.success_list || [];
+          for (const item of successList) {
+            if (item.tracking_number && item.package_number) {
+              const sn = packageNumberToOrderSn.get(item.package_number);
+              if (sn && !trackingNumberMap.has(sn)) {
+                trackingNumberMap.set(sn, item.tracking_number);
+              }
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[OrderService] getMassTrackingNumber batch failed:`, err.message || err);
+        }
+      }, 3);
+    }
+
     // 3. Normalize into ERPOrder structure
     const erpOrders: ERPOrder[] = detailedOrders.map((raw) => {
       const recipient = raw.recipient_address || {};
-      const packageList = Array.isArray(raw.package_list) ? raw.package_list : [];
-      const trackingNumber = packageList[0]?.tracking_number || raw.tracking_number || '';
+      const trackingNumber = trackingNumberMap.get(raw.order_sn) || raw.tracking_number || '';
 
       const items: ERPOrderItem[] = (raw.item_list || []).map((it: any) => ({
         item_id: it.item_id,
@@ -328,6 +372,26 @@ export class OrderService {
           return `${it.item_name}${varText} x${it.model_quantity_purchased}`;
         })
         .join('; ');
+
+      // SKU summary: "SARKUR 120/5; BGD-TSHIRT (x2)"
+      const skuSummary = items
+        .map((it) => {
+          const sku = String(it.model_sku || '').trim();
+          if (!sku) return '';
+          return it.model_quantity_purchased > 1 ? `${sku} (x${it.model_quantity_purchased})` : sku;
+        })
+        .filter(Boolean)
+        .join('; ') || '-';
+
+      // Variation summary: "Coffee,120x200x5; Hitam - L (x2)"
+      const variationSummary = items
+        .map((it) => {
+          const v = String(it.model_name || '').trim();
+          if (!v) return '';
+          return it.model_quantity_purchased > 1 ? `${v} (x${it.model_quantity_purchased})` : v;
+        })
+        .filter(Boolean)
+        .join('; ') || '-';
 
       const totalItemsCount = items.reduce((acc, it) => acc + it.model_quantity_purchased, 0);
 
@@ -364,6 +428,8 @@ export class OrderService {
         actual_shipping_fee: Number(raw.actual_shipping_fee || 0),
         payment_method: String(raw.payment_method || ''),
         items_summary: itemsSummary,
+        sku_summary: skuSummary,
+        variation_summary: variationSummary,
         total_items_count: totalItemsCount,
         note: String(raw.note || raw.message_to_seller || ''),
         items,

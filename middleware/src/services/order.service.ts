@@ -25,6 +25,9 @@ export interface FetchOrdersResult {
     order_sns_found: number;
     errors?: string[];
     direct_sn_lookup: boolean;
+    time_from_wib?: string;
+    time_to_wib?: string;
+    chunk_results?: Array<{ from_wib: string; to_wib: string; field: string; found: number; more: boolean; error?: string }>;
   };
 }
 
@@ -133,6 +136,7 @@ export class OrderService {
 
     const orderSnSet = new Set<string>();
     const diagnosticsErrors: string[] = [];
+    const chunkResults: Array<{ from_wib: string; to_wib: string; field: string; found: number; more: boolean; error?: string }> = [];
     let isDirectLookup = false;
 
     // Check if direct Order SN lookup was requested
@@ -157,12 +161,13 @@ export class OrderService {
 
       console.log(`[OrderService] Querying ${chunks.length} chunks from ${formatWIB(timeFrom)} to ${formatWIB(timeTo)}`);
 
-      // Worker function to query a single chunk
+      // Worker function to query a single chunk — returns summary for diagnostics
       const queryChunk = async (chunk: { from: number; to: number }, timeRangeField: 'create_time' | 'update_time') => {
         let cursor = '';
         let hasMore = true;
         let pageCount = 0;
         const MAX_PAGES = 10;
+        let chunkFound = 0;
 
         while (hasMore && pageCount < MAX_PAGES) {
           pageCount++;
@@ -193,9 +198,12 @@ export class OrderService {
               const errMsg = `Shopee API error (${listRes.error}): ${listRes.message || 'unknown'}`;
               console.warn(`[OrderService] ${errMsg}`);
               diagnosticsErrors.push(errMsg);
+              chunkResults.push({ from_wib: formatWIB(chunk.from), to_wib: formatWIB(chunk.to), field: timeRangeField, found: chunkFound, more: false, error: errMsg });
+              return;
             }
 
             const orders = data?.order_list || [];
+            chunkFound += orders.length;
             for (const item of orders) {
               if (item.order_sn) {
                 orderSnSet.add(item.order_sn);
@@ -208,9 +216,13 @@ export class OrderService {
             const errMsg = `Chunk [${formatWIB(chunk.from)} - ${formatWIB(chunk.to)}] (${timeRangeField}) error: ${err.message || String(err)}`;
             console.error(`[OrderService] ${errMsg}`);
             diagnosticsErrors.push(errMsg);
+            chunkResults.push({ from_wib: formatWIB(chunk.from), to_wib: formatWIB(chunk.to), field: timeRangeField, found: chunkFound, more: false, error: err.message || String(err) });
             hasMore = false;
+            return;
           }
         }
+
+        chunkResults.push({ from_wib: formatWIB(chunk.from), to_wib: formatWIB(chunk.to), field: timeRangeField, found: chunkFound, more: hasMore });
       };
 
       // Query create_time chunks concurrently (concurrency = 3)
@@ -237,20 +249,20 @@ export class OrderService {
           order_sns_found: 0,
           errors: diagnosticsErrors.length > 0 ? diagnosticsErrors : undefined,
           direct_sn_lookup: isDirectLookup,
+          time_from_wib: formatWIB(timeFrom),
+          time_to_wib: formatWIB(timeTo),
+          chunk_results: chunkResults.length > 0 ? chunkResults : undefined,
         },
       };
     }
 
-    // 2. Fetch order details in batches of 50
+    // 2. Fetch order details in batches of 50, concurrently (max 3 at a time)
     const detailedOrders: any[] = [];
     const BATCH_SIZE = 50;
 
     const optionalFields = [
-      'buyer_user_id',
       'buyer_username',
-      'estimated_shipping_fee',
       'recipient_address',
-      'actual_shipping_fee',
       'note',
       'item_list',
       'pay_time',
@@ -260,22 +272,37 @@ export class OrderService {
       'total_amount',
     ].join(',');
 
+    // Build batch array
+    const detailBatches: string[][] = [];
     for (let i = 0; i < orderSnList.length; i += BATCH_SIZE) {
-      const batch = orderSnList.slice(i, i + BATCH_SIZE);
+      detailBatches.push(orderSnList.slice(i, i + BATCH_SIZE));
+    }
+
+    console.log(`[OrderService] Fetching details for ${orderSnList.length} orders in ${detailBatches.length} batches (concurrency=3)`);
+
+    await asyncPool(detailBatches, async (batch) => {
       try {
+        // Shopee API v2 requires order_sn_list to be a comma-separated string (limit 50).
+        // Passing an array causes the SDK to append multiple order_sn_list query params,
+        // which makes Shopee return only 1 order per batch!
         const detailRes: any = await sdk.order.getOrderDetail({
-          order_sn_list: batch,
+          order_sn_list: (batch.join(',') as unknown as string[]),
           response_optional_fields: optionalFields,
         });
 
         const detailData = detailRes?.response || detailRes?.result || detailRes;
         const batchOrders = detailData?.order_list || [];
+        console.log(`[OrderService] Batch requested ${batch.length} SNs, received ${batchOrders.length} orders`);
         detailedOrders.push(...batchOrders);
+
+        if (detailRes?.error) {
+          diagnosticsErrors.push(`getOrderDetail error: ${detailRes.error} - ${detailRes.message || ''}`);
+        }
       } catch (err: any) {
-        console.error(`[OrderService] getOrderDetail batch [${i}..${i + BATCH_SIZE}] failed:`, err.message || err);
+        console.error(`[OrderService] getOrderDetail batch failed:`, err.message || err);
         diagnosticsErrors.push(`getOrderDetail batch error: ${err.message || String(err)}`);
       }
-    }
+    }, 3);
 
     // 3. Normalize into ERPOrder structure
     const erpOrders: ERPOrder[] = detailedOrders.map((raw) => {
@@ -355,6 +382,9 @@ export class OrderService {
         order_sns_found: orderSnList.length,
         errors: diagnosticsErrors.length > 0 ? diagnosticsErrors : undefined,
         direct_sn_lookup: isDirectLookup,
+        time_from_wib: formatWIB(timeFrom),
+        time_to_wib: formatWIB(timeTo),
+        chunk_results: chunkResults.length > 0 ? chunkResults : undefined,
       },
     };
   }

@@ -47,6 +47,12 @@ var ShopeeApi = (function() {
         if (payload.shop_id) {
           options.headers['x-shopee-shop-id'] = String(payload.shop_id);
         }
+        if (payload.time_from) {
+          options.headers['x-shopee-time-from'] = String(payload.time_from);
+        }
+        if (payload.time_to) {
+          options.headers['x-shopee-time-to'] = String(payload.time_to);
+        }
       }
     }
 
@@ -118,7 +124,11 @@ var ShopeeApi = (function() {
      * Mengambil daftar pesanan dari Shopee melalui middleware
      */
     fetchDailyOrders: function(params) {
-      return request('/api/orders/daily', 'POST', params);
+      var query = '';
+      if (params && params.time_from && params.time_to) {
+        query = '?time_from=' + params.time_from + '&time_to=' + params.time_to;
+      }
+      return request('/api/orders/daily' + query, 'POST', params);
     },
 
     /**

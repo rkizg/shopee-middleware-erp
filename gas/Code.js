@@ -241,6 +241,26 @@ function syncOrdersCore(days, isBackground) {
     if (ui) {
       var alertDetails = '✅ ' + logMsg;
       var diag = apiRes.data.diagnostics || {};
+
+      // Show the actual date range that was queried
+      if (diag.time_from_wib && diag.time_to_wib) {
+        alertDetails += '\n\n📅 Rentang: ' + diag.time_from_wib + ' → ' + diag.time_to_wib;
+        alertDetails += '\n📦 Chunks: ' + (diag.chunks_total || 0) + ' periode (masing-masing ≤14 hari)';
+        alertDetails += '\n🔍 Total SN ditemukan: ' + (diag.order_sns_found || orders.length);
+      }
+
+      // Show per-chunk breakdown if available (max 5 chunks shown)
+      if (diag.chunk_results && diag.chunk_results.length > 0) {
+        var nonZeroChunks = diag.chunk_results.filter(function(c) { return c.found > 0; });
+        alertDetails += '\n\n📊 Chunk dengan data (' + nonZeroChunks.length + ' dari ' + diag.chunk_results.length + '):';
+        nonZeroChunks.slice(0, 5).forEach(function(c) {
+          alertDetails += '\n  • [' + c.field + '] ' + c.from_wib.substring(0, 10) + ': ' + c.found + ' pesanan';
+        });
+        if (nonZeroChunks.length === 0) {
+          alertDetails += '\n  (Tidak ada chunk yang menghasilkan pesanan — kemungkinan pesanan berada di luar rentang tanggal ini)';
+        }
+      }
+
       if (diag.errors && diag.errors.length > 0) {
         alertDetails += '\n\n⚠️ Catatan API:\n' + diag.errors.slice(0, 3).join('\n');
       }

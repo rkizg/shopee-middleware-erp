@@ -64,8 +64,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payload = req.query || {};
     }
 
-    const timeFrom = payload?.time_from ? Number(payload.time_from) : (req.query?.time_from ? Number(req.query.time_from) : undefined);
-    const timeTo = payload?.time_to ? Number(payload.time_to) : (req.query?.time_to ? Number(req.query.time_to) : undefined);
+    const rawTimeFrom = payload?.time_from || req.headers['x-shopee-time-from'] || req.query?.time_from;
+    const timeFrom = (rawTimeFrom !== undefined && rawTimeFrom !== null && !isNaN(Number(rawTimeFrom))) ? Number(rawTimeFrom) : undefined;
+
+    const rawTimeTo = payload?.time_to || req.headers['x-shopee-time-to'] || req.query?.time_to;
+    const timeTo = (rawTimeTo !== undefined && rawTimeTo !== null && !isNaN(Number(rawTimeTo))) ? Number(rawTimeTo) : undefined;
+
     const orderStatus = (payload?.order_status || req.query?.order_status) ? String(payload?.order_status || req.query?.order_status) : undefined;
     
     // Support direct Order SN list lookup

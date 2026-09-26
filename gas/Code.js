@@ -11,8 +11,9 @@
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('📦 ERP Begood')
-    .addItem('📊 Buka Web Dashboard (Sidebar)', 'openDashboardSidebar')
+    .addItem('🌐 Buka Web Dashboard (Tab Baru)', 'openDashboardNewTab')
     .addItem('🚀 Buka Web Dashboard (Layar Penuh)', 'openDashboardModal')
+    .addItem('📊 Buka Web Dashboard (Sidebar)', 'openDashboardSidebar')
     .addSeparator()
     .addItem('🔄 Tarik Pesanan Masuk (Hari Ini / 3 Hari)', 'syncOrdersDefault')
     .addItem('📅 Tarik Pesanan Masuk (Pilih Rentang Hari)', 'syncOrdersCustomDays')
@@ -598,6 +599,58 @@ function doGet(e) {
 }
 
 /**
+ * Buka Dashboard di Tab Baru Peramban (Full Standalone Website)
+ */
+function openDashboardNewTab() {
+  var ui = SpreadsheetApp.getUi();
+  var webAppUrl = '';
+  try {
+    webAppUrl = ScriptApp.getService().getUrl();
+  } catch (e) {}
+
+  if (!webAppUrl) {
+    ui.alert(
+      'Web App Belum Di-Deploy',
+      'Untuk membuka dashboard di tab baru secara mandiri:\n\n' +
+      '1. Buka editor Apps Script (Ekstensi > Apps Script).\n' +
+      '2. Klik tombol "Deploy" di kanan atas > "New deployment".\n' +
+      '3. Pilih type "Web app".\n' +
+      '4. Set "Execute as: Me" dan "Who has access: Anyone with Google account".\n' +
+      '5. Klik "Deploy", lalu buka URL Web App di tab baru!\n\n' +
+      'Sementara itu, Anda tetap dapat menggunakan menu "🚀 Buka Web Dashboard (Layar Penuh)".',
+      ui.ButtonSet.OK
+    );
+    return;
+  }
+
+  var html = '<!DOCTYPE html><html><head><base target="_blank">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<script>' +
+    'window.onload = function() {' +
+    '  window.open("' + webAppUrl + '", "_blank");' +
+    '  setTimeout(function() { google.script.host.close(); }, 1500);' +
+    '};' +
+    '</script>' +
+    '<style>' +
+    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; text-align: center; background: #0f172a; color: #f8fafc; }' +
+    '.btn { display: inline-block; padding: 12px 24px; background: #ea580c; color: white !important; font-weight: 600; text-decoration: none; border-radius: 8px; margin-top: 16px; box-shadow: 0 4px 12px rgba(234,88,12,0.3); }' +
+    '.note { font-size: 11px; color: #94a3b8; margin-top: 14px; word-break: break-all; }' +
+    '</style></head><body>' +
+    '<h3>🚀 Membuka Web Dashboard ERP Begood...</h3>' +
+    '<p style="font-size: 13px; color: #cbd5e1;">Tab baru sedang dibuka. Jika jendela pop-up diblokir oleh browser, klik tombol di bawah:</p>' +
+    '<a href="' + webAppUrl + '" target="_blank" class="btn">🌐 Buka Dashboard di Tab Baru</a>' +
+    '<div class="note">URL: ' + webAppUrl + '</div>' +
+    '</body></html>';
+
+  var output = HtmlService.createHtmlOutput(html)
+    .setWidth(480)
+    .setHeight(240)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+
+  ui.showModalDialog(output, 'ERP Begood Web Dashboard');
+}
+
+/**
  * Buka Dashboard di Sidebar kanan Google Sheets
  */
 function openDashboardSidebar() {
@@ -640,6 +693,23 @@ function updateOrderStatusInternal(orderSn, newStatus) {
 
   SheetManager.logActivity('UPDATE_STATUS', 1, 'SUKSES', 'Status pesanan ' + orderSn + ' diubah menjadi "' + newStatus + '" via Dashboard.');
   return { success: true };
+}
+
+/**
+ * RPC: Memperbarui Status Internal Begood untuk banyak pesanan sekaligus (Batch)
+ */
+function updateBatchOrderStatusInternal(orderSnList, newStatus) {
+  if (!orderSnList || !orderSnList.length || !newStatus) {
+    throw new Error('Daftar nomor pesanan atau status baru tidak valid.');
+  }
+
+  var ok = SheetManager.updateBatchInternalStatus(orderSnList, newStatus);
+  if (!ok) {
+    throw new Error('Gagal memperbarui status pesanan terpilih.');
+  }
+
+  SheetManager.logActivity('UPDATE_STATUS_BATCH', orderSnList.length, 'SUKSES', 'Status ' + orderSnList.length + ' pesanan diubah menjadi "' + newStatus + '" via Dashboard.');
+  return { success: true, count: orderSnList.length };
 }
 
 /**

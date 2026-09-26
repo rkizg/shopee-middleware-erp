@@ -522,22 +522,44 @@ var SheetManager = (function() {
 
     /**
      * Memperbarui Status Internal Begood per pesanan dari Web Dashboard
+     * (Memperbarui seluruh baris produk jika pesanan multi-item)
      */
     updateInternalStatus: function(orderSn, newStatus) {
+      return this.updateBatchInternalStatus([orderSn], newStatus);
+    },
+
+    /**
+     * Memperbarui Status Internal Begood untuk banyak pesanan sekaligus (Batch)
+     */
+    updateBatchInternalStatus: function(orderSnList, newStatus) {
+      if (!orderSnList || orderSnList.length === 0 || !newStatus) return false;
       var sheet = getOrCreateSheet(SHEETS.ORDERS);
       var lastRow = sheet.getLastRow();
       if (lastRow < 2) return false;
 
-      var orderSnList = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-      for (var i = 0; i < orderSnList.length; i++) {
-        if (String(orderSnList[i][0]).trim() === String(orderSn).trim()) {
-          var targetRow = i + 2;
-          sheet.getRange(targetRow, 4).setValue(newStatus);
-          var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
-          var lastCol = sheet.getLastColumn();
-          sheet.getRange(targetRow, lastCol).setValue(nowWIB);
-          return true;
+      var numCols = Math.max(sheet.getLastColumn(), 16);
+      var snSet = {};
+      for (var s = 0; s < orderSnList.length; s++) {
+        snSet[String(orderSnList[s]).trim()] = true;
+      }
+
+      var dataRange = sheet.getRange(2, 1, lastRow - 1, numCols);
+      var values = dataRange.getValues();
+      var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+      var updated = false;
+
+      for (var i = 0; i < values.length; i++) {
+        var currentSn = String(values[i][0]).trim();
+        if (snSet[currentSn]) {
+          values[i][3] = newStatus;
+          values[i][numCols - 1] = nowWIB;
+          updated = true;
         }
+      }
+
+      if (updated) {
+        dataRange.setValues(values);
+        return true;
       }
       return false;
     },
@@ -562,6 +584,9 @@ var SheetManager = (function() {
       };
 
       var ordersList = [];
+      var courierCounts = {};
+      var skuCounts = {};
+
       if (orderLastRow >= 2) {
         var numCols = Math.max(orderSheet.getLastColumn(), 14);
         var values = orderSheet.getRange(2, 1, orderLastRow - 1, numCols).getValues();
@@ -570,7 +595,8 @@ var SheetManager = (function() {
         var uniqueOrdersSeen = {};
         var uniqueOrdersCount = 0;
 
-        for (var i = 0; i < values.length; i++) {
+        // Loop dari bawah ke atas (data terbaru terlebih dahulu)
+        for (var i = values.length - 1; i >= 0; i--) {
           var row = values[i];
           var sn = String(row[0]);
           var dateStr = String(row[1]);
@@ -582,10 +608,14 @@ var SheetManager = (function() {
           var variation = isNewLayout ? String(row[7] || '-') : '-';
           var qty = Number(isNewLayout ? row[8] : row[6]) || 0;
           var totalAmount = Number(isNewLayout ? row[9] : row[7]) || 0;
-          var courier = String(isNewLayout ? row[11] : row[9]);
+          var shippingFee = Number(isNewLayout ? row[10] : row[8]) || 0;
+          var courier = String(isNewLayout ? row[11] : row[9]).trim() || 'Lainnya';
           var resi = String(isNewLayout ? row[12] : row[10]);
+          var note = isNewLayout ? String(row[13] || '') : String(row[11] || '');
+          var city = isNewLayout ? String(row[14] || '') : String(row[12] || '');
+          var syncTime = isNewLayout ? String(row[15] || '') : String(row[13] || '');
 
-          // Hindari penghitungan ganda omzet & status jika satu pesanan memiliki beberapa baris produk
+          // Hitung statistik pesanan unik
           if (!uniqueOrdersSeen[sn]) {
             uniqueOrdersSeen[sn] = true;
             uniqueOrdersCount++;
@@ -600,11 +630,19 @@ var SheetManager = (function() {
             else if (internalStatus.indexOf('Dikirim') !== -1) stats.sedangDikirim++;
             else if (internalStatus.indexOf('Selesai') !== -1) stats.selesai++;
             else if (internalStatus.indexOf('Batal') !== -1) stats.batal++;
+
+            // Hitung distribusi kurir (berdasarkan pesanan unik)
+            courierCounts[courier] = (courierCounts[courier] || 0) + 1;
           }
 
-          // Simpan maksimal 60 pesanan terbaru untuk tabel dashboard (urutan terbalik)
-          if (ordersList.length < 60) {
-            ordersList.unshift({
+          // Hitung SKU terlaris
+          if (sku && sku !== '-') {
+            skuCounts[sku] = (skuCounts[sku] || 0) + (qty || 1);
+          }
+
+          // Simpan hingga 300 baris pesanan terbaru untuk tabel dashboard
+          if (ordersList.length < 300) {
+            ordersList.push({
               orderSn: sn,
               date: dateStr,
               shopeeStatus: shopeeStatus,
@@ -615,13 +653,25 @@ var SheetManager = (function() {
               variation: variation,
               qty: qty,
               totalAmount: totalAmount,
+              shippingFee: shippingFee,
               courier: courier,
-              resi: resi
+              resi: resi,
+              note: note,
+              city: city,
+              syncTime: syncTime
             });
           }
         }
         stats.totalOrders = uniqueOrdersCount;
       }
+
+      // Format Top 5 SKU
+      var topSkusList = [];
+      for (var k in skuCounts) {
+        topSkusList.push({ sku: k, qty: skuCounts[k] });
+      }
+      topSkusList.sort(function(a, b) { return b.qty - a.qty; });
+      var topSkus = topSkusList.slice(0, 5);
 
       // Token Record
       var tokenRec = this.getTokenRecord();
@@ -630,7 +680,8 @@ var SheetManager = (function() {
         shopId: tokenRec ? tokenRec.shop_id : '-',
         expiredAtWIB: tokenRec ? tokenRec.expired_at_wib : '-',
         statusText: 'BELUM ADA TOKEN',
-        isExpired: true
+        isExpired: true,
+        remainingMinutes: 0
       };
 
       if (tokenRec && tokenRec.expired_at) {
@@ -638,6 +689,7 @@ var SheetManager = (function() {
         var expMs = Number(tokenRec.expired_at);
         if (expMs < 10000000000) expMs = expMs * 1000;
         var diffMin = Math.floor((expMs - nowMs) / 60000);
+        tokenStatus.remainingMinutes = diffMin;
         if (diffMin > 0) {
           tokenStatus.isExpired = false;
           var h = Math.floor(diffMin / 60);
@@ -678,15 +730,22 @@ var SheetManager = (function() {
       }
 
       var config = this.getConfig();
+      var webAppUrl = '';
+      try {
+        webAppUrl = ScriptApp.getService().getUrl() || '';
+      } catch (e) {}
 
       return {
         stats: stats,
         orders: ordersList,
+        courierStats: courierCounts,
+        topSkus: topSkus,
         token: tokenStatus,
         logs: logs,
         config: config,
         isTriggerActive: isTriggerActive,
         statusOptions: STATUS_OPTIONS,
+        webAppUrl: webAppUrl,
         nowWIB: Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss')
       };
     }

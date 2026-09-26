@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERP Begood - Dashboard Kontrol Operasional Shopee</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen custom-scrollbar flex flex-col">
+
+  <!-- ================= TOP NAVIGATION BAR ================= -->
+  <header class="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand & Store Title -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-600/30 font-bold text-xl">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg text-slate-100 leading-none">ERP Begood</h1>
+            <span class="px-2 py-0.5 text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/30 rounded-full">Shopee ID</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Toko: <strong class="text-slate-200">b e g o o d . b d g</strong></p>
+        </div>
+      </div>
+
+      <!-- Quick Status Badges & Controls -->
+      <div class="flex items-center flex-wrap gap-2.5">
+        <!-- Token Status Pill -->
+        <div id="badge-token" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+          <span>Memeriksa Token...</span>
+        </div>
+
+        <!-- Trigger Status Pill -->
+        <div id="badge-trigger" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 border border-slate-700 text-slate-300">
+          <i class="fa-solid fa-clock text-slate-400 text-[10px]"></i>
+          <span id="trigger-text">Trigger: Cek...</span>
+        </div>
+
+        <!-- Refresh Dashboard Button -->
+        <button onclick="loadDashboard(true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700 text-xs flex items-center gap-1.5" title="Muat Ulang Data">
+          <i id="refresh-icon" class="fa-solid fa-rotate"></i>
+          <span class="hidden sm:inline">Refresh</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto w-full p-4 sm:p-6 flex-1 space-y-6">
+
+    <!-- KPI STATS CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      
+      <!-- Total Pesanan -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+        <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Total Pesanan</div>
+        <div class="text-2xl font-bold text-white mt-1" id="stat-total-orders">0</div>
+        <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+          <span class="text-emerald-400 font-semibold" id="stat-orders-today">+0</span> hari ini
+        </div>
+        <div class="absolute right-3 top-3 text-slate-800 text-3xl pointer-events-none">
+          <i class="fa-solid fa-cart-shopping"></i>
+        </div>
+      </div>
+
+      <!-- Siap Packing -->
+      <div class="bg-slate-900 border border-orange-950/60 rounded-xl p-4 shadow-sm relative overflow-hidden">
+        <div class="text-orange-400 text-xs font-medium uppercase tracking-wider flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping"></span>
+          Siap Packing
+        </div>
+        <div class="text-2xl font-bold text-orange-400 mt-1" id="stat-siap-packing">0</div>
+        <div class="text-[11px] text-slate-400 mt-1">Perlu disiapkan gudang</div>
+        <div class="absolute right-3 top-3 text-orange-950/40 text-3xl pointer-events-none">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+      </div>
+
+      <!-- Menunggu Pickup / Dikirim -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+        <div class="text-blue-400 text-xs font-medium uppercase tracking-wider">Dikirim / Pickup</div>
+        <div class="text-2xl font-bold text-blue-400 mt-1" id="stat-dikirim">0</div>
+        <div class="text-[11px] text-slate-400 mt-1">Sedang dalam perjalanan</div>
+        <div class="absolute right-3 top-3 text-slate-800 text-3xl pointer-events-none">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+      </div>
+
+      <!-- Selesai -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden">
+        <div class="text-emerald-400 text-xs font-medium uppercase tracking-wider">Pesanan Selesai</div>
+        <div class="text-2xl font-bold text-emerald-400 mt-1" id="stat-selesai">0</div>
+        <div class="text-[11px] text-slate-400 mt-1">Transaksi sukses</div>
+        <div class="absolute right-3 top-3 text-slate-800 text-3xl pointer-events-none">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+      </div>
+
+      <!-- Total Omset -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative overflow-hidden col-span-2 sm:col-span-1">
+        <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Total Penjualan</div>
+        <div class="text-lg font-bold text-emerald-400 mt-1 truncate" id="stat-revenue">Rp 0</div>
+        <div class="text-[11px] text-slate-400 mt-1">Akumulasi di spreadsheet</div>
+        <div class="absolute right-3 top-3 text-slate-800 text-3xl pointer-events-none">
+          <i class="fa-solid fa-rupiah-sign"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= ACTION CONTROL PANEL ================= -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-orange-500"></i> Panel Kontrol Cepat
+        </h2>
+        <p class="text-xs text-slate-400 mt-0.5">Eksekusi sinkronisasi pesanan Shopee dan kelola integrasi langsung dari sini.</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Tarik Pesanan Group -->
+        <div class="flex items-center rounded-lg bg-orange-600 hover:bg-orange-700 transition shadow-sm overflow-hidden text-xs">
+          <button onclick="triggerSync(3)" class="px-3.5 py-2.5 text-white font-semibold flex items-center gap-1.5" id="btn-sync-default">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>Tarik Pesanan (3 Hari)</span>
+          </button>
+          <select id="select-sync-days" onchange="handleSyncChange(this.value)" class="bg-orange-700 text-white font-semibold px-2 py-2.5 outline-none border-l border-orange-500 cursor-pointer">
+            <option value="1">1 Hari</option>
+            <option value="3" selected>3 Hari</option>
+            <option value="7">7 Hari</option>
+            <option value="14">14 Hari</option>
+            <option value="30">30 Hari</option>
+            <option value="60">60 Hari</option>
+            <option value="90">90 Hari (3 Bulan)</option>
+            <option value="180">180 Hari (6 Bulan)</option>
+            <option value="365">365 Hari (1 Tahun)</option>
+            <option value="custom">Kustom Hari...</option>
+          </select>
+        </div>
+
+        <!-- Tombol Cari Order SN -->
+        <button onclick="promptSyncBySn()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5" title="Tarik pesanan spesifik berdasarkan Order SN">
+          <i class="fa-solid fa-magnifying-glass text-cyan-400"></i>
+          <span>Cari Order SN</span>
+        </button>
+
+        <!-- Tombol Otorisasi -->
+        <button onclick="openAuthModal()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+          <i class="fa-solid fa-key text-amber-400"></i>
+          <span>Otorisasi Shopee</span>
+        </button>
+
+        <!-- Tombol Refresh Token -->
+        <button onclick="triggerRefreshToken()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+          <i class="fa-solid fa-arrows-rotate text-emerald-400"></i>
+          <span>Refresh Token</span>
+        </button>
+
+        <!-- Toggle Auto-Sync Trigger -->
+        <button onclick="toggleTriggerState()" id="btn-toggle-trigger" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+          <i class="fa-solid fa-power-off text-slate-400" id="icon-trigger-toggle"></i>
+          <span id="text-trigger-toggle">Auto-Sync (1 Jam)</span>
+        </button>
+
+        <!-- Cek Ping Middleware -->
+        <button onclick="checkPing()" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition" title="Tes Koneksi Vercel">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= TABS NAVIGATION ================= -->
+    <div class="border-b border-slate-800 flex items-center gap-6 text-sm font-medium">
+      <button onclick="switchTab('orders')" id="tab-orders" class="pb-3 text-orange-500 border-b-2 border-orange-500 flex items-center gap-2 transition">
+        <i class="fa-solid fa-table-list"></i>
+        <span>Daftar Pesanan Masuk</span>
+        <span id="tab-count-orders" class="px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">0</span>
+      </button>
+
+      <button onclick="switchTab('token')" id="tab-token" class="pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Status Token & Konfigurasi</span>
+      </button>
+
+      <button onclick="switchTab('logs')" id="tab-logs" class="pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+        <i class="fa-solid fa-receipt"></i>
+        <span>Log Aktivitas Sistem</span>
+      </button>
+    </div>
+
+    <!-- ================= TAB CONTENT 1: DAFTAR PESANAN ================= -->
+    <div id="content-orders" class="space-y-4">
+      
+      <!-- Filter & Search Controls -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="relative flex-1 min-w-[240px] max-w-md">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+          <input type="text" id="order-search" oninput="filterOrdersTable()" placeholder="Cari nomor pesanan, pembeli, produk, atau resi..." class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 transition">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Filter Status:</span>
+          <select id="filter-status" onchange="filterOrdersTable()" class="px-2.5 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-orange-500">
+            <option value="ALL">Semua Status</option>
+            <option value="Siap Packing">Siap Packing</option>
+            <option value="Pickup">Menunggu Pickup</option>
+            <option value="Dikirim">Sedang Dikirim</option>
+            <option value="Selesai">Selesai</option>
+            <option value="Batal">Dibatalkan</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/60 text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-3.5">No. Pesanan</th>
+                <th class="py-3 px-3">Tanggal (WIB)</th>
+                <th class="py-3 px-3">Pembeli</th>
+                <th class="py-3 px-3 min-w-[220px]">Ringkasan Produk</th>
+                <th class="py-3 px-3">Total (Rp)</th>
+                <th class="py-3 px-3">Ekspedisi / Resi</th>
+                <th class="py-3 px-3">Status Shopee</th>
+                <th class="py-3 px-3.5 min-w-[180px]">Status Internal Begood</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody" class="divide-y divide-slate-800/60 font-mono text-xs">
+              <tr>
+                <td colspan="8" class="text-center py-10 text-slate-500 font-sans">
+                  <i class="fa-solid fa-spinner fa-spin text-lg mb-2"></i><br>
+                  Memuat data pesanan dari spreadsheet...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+        <span id="table-entries-info">Menampilkan 0 pesanan</span>
+        <span>Perubahan Status Internal otomatis tersimpan langsung ke Google Sheets.</span>
+      </div>
+
+    </div>
+
+    <!-- ================= TAB CONTENT 2: TOKEN & KONFIGURASI ================= -->
+    <div id="content-token" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Token Details Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
+          <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-key text-amber-400"></i> Informasi Token Otorisasi Shopee
+          </h3>
+          <div class="space-y-2.5 text-xs">
+            <div class="flex justify-between py-2 border-b border-slate-800">
+              <span class="text-slate-400">Shop ID:</span>
+              <span class="font-mono text-slate-200" id="info-shop-id">-</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-800">
+              <span class="text-slate-400">Status Otorisasi:</span>
+              <span class="font-semibold" id="info-token-status">-</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-800">
+              <span class="text-slate-400">Kedaluwarsa (Access Token):</span>
+              <span class="text-slate-200" id="info-token-expired">-</span>
+            </div>
+            <div class="flex justify-between py-2">
+              <span class="text-slate-400">Refresh Token:</span>
+              <span class="text-slate-300">Masa aktif ~30 hari (Self-Healing aktif)</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex gap-2">
+            <button onclick="triggerRefreshToken()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition">
+              <i class="fa-solid fa-rotate mr-1"></i> Refresh Token Sekarang
+            </button>
+            <button onclick="openAuthModal()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold transition">
+              <i class="fa-solid fa-link mr-1"></i> Otorisasi Baru
+            </button>
+          </div>
+        </div>
+
+        <!-- Direct Paste Token Box -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
+          <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-paste text-orange-400"></i> Tempel Token Manual
+          </h3>
+          <p class="text-xs text-slate-400">Jika Anda baru saja menyelesaikan otorisasi dari Shopee/Vercel, tempelkan data token JSON di sini:</p>
+          
+          <textarea id="paste-token-input" rows="4" placeholder='{"shop_id": 227924519, "access_token": "...", "refresh_token": "..."}' class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg font-mono text-xs text-slate-300 focus:outline-none focus:border-orange-500"></textarea>
+
+          <button onclick="savePastedToken()" class="w-full py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg text-xs transition">
+            Simpan Token ke DB_Token
+          </button>
+        </div>
+
+        <!-- Middleware Config Info -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3 md:col-span-2">
+          <h3 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-server text-blue-400"></i> Konfigurasi Endpoint Middleware
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div class="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span class="text-slate-500 block">Vercel Middleware URL:</span>
+              <span class="font-mono text-slate-200 break-all" id="info-vercel-url">-</span>
+            </div>
+            <div class="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span class="text-slate-500 block">Status Keamanan (Secret Key):</span>
+              <span class="font-semibold text-emerald-400" id="info-secret-status">✅ Aktif & Terlindungi</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= TAB CONTENT 3: LOG AKTIVITAS ================= -->
+    <div id="content-logs" class="space-y-4 hidden">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/60 text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-3.5">Waktu (WIB)</th>
+                <th class="py-3 px-3">Tipe Aksi</th>
+                <th class="py-3 px-3">Jumlah</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3.5">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody id="logs-tbody" class="divide-y divide-slate-800/60 font-mono text-xs">
+              <tr>
+                <td colspan="5" class="text-center py-6 text-slate-500 font-sans">Belum ada riwayat aktivitas.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= AUTH MODAL DIALOG ================= -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-200">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-base text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-link text-orange-500"></i> Otorisasi Toko Shopee
+        </h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-400 leading-relaxed">
+        Klik tautan di bawah ini untuk membuka halaman resmi Shopee Seller dan memberikan izin akses aplikasi ke toko <strong>b e g o o d . b d g</strong>:
+      </p>
+
+      <div class="p-3 bg-slate-950 border border-slate-800 rounded-lg text-xs break-all font-mono" id="auth-modal-url-box">
+        Membuat URL otorisasi...
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="copyModalUrl()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition">
+          <i class="fa-regular fa-copy mr-1"></i> Salin URL
+        </button>
+        <a id="auth-modal-btn-open" href="#" target="_blank" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+          <span>Buka di Tab Baru</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FLOATING TOAST NOTIFICATION ================= -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div id="toast-inner" class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium bg-slate-900 text-slate-100 border border-slate-700">
+      <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+      <span id="toast-message">Pesan notifikasi</span>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT LOGIC ================= -->
+  <script>
+    let globalData = null;
+    let statusOptionsList = [];
+
+    // On Load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDashboard(false);
+    });
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const inner = document.getElementById('toast-inner');
+      const msg = document.getElementById('toast-message');
+      const icon = document.getElementById('toast-icon');
+
+      msg.innerText = message;
+      if (type === 'success') {
+        inner.className = 'flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium bg-slate-900 text-emerald-300 border border-emerald-500/40';
+        icon.className = 'fa-solid fa-circle-check text-emerald-400 text-sm';
+      } else if (type === 'error') {
+        inner.className = 'flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium bg-slate-900 text-red-300 border border-red-500/40';
+        icon.className = 'fa-solid fa-triangle-exclamation text-red-400 text-sm';
+      } else {
+        inner.className = 'flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium bg-slate-900 text-orange-300 border border-orange-500/40';
+        icon.className = 'fa-solid fa-spinner fa-spin text-orange-400 text-sm';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (type !== 'loading') {
+        setTimeout(() => {
+          toast.classList.remove('translate-y-0', 'opacity-100');
+          toast.classList.add('translate-y-20', 'opacity-0');
+        }, 4000);
+      }
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+      toast.classList.add('translate-y-20', 'opacity-0');
+    }
+
+    function loadDashboard(isManualRefresh = false) {
+      const icon = document.getElementById('refresh-icon');
+      icon.classList.add('fa-spin');
+      if (isManualRefresh) showToast('Memuat data terbaru dari Google Sheets...', 'loading');
+
+      google.script.run
+        .withSuccessHandler((data) => {
+          icon.classList.remove('fa-spin');
+          if (isManualRefresh) hideToast();
+          globalData = data;
+          statusOptionsList = data.statusOptions || [];
+          renderDashboard(data);
+          if (isManualRefresh) showToast('Dashboard berhasil dimuat ulang!');
+        })
+        .withFailureHandler((err) => {
+          icon.classList.remove('fa-spin');
+          showToast('Gagal memuat dashboard: ' + (err.message || err), 'error');
+        })
+        .getDashboardData();
+    }
+
+    function renderDashboard(data) {
+      // 1. Stats KPI
+      document.getElementById('stat-total-orders').innerText = Number(data.stats.totalOrders || 0).toLocaleString();
+      document.getElementById('stat-orders-today').innerText = '+' + Number(data.stats.ordersToday || 0);
+      document.getElementById('stat-siap-packing').innerText = Number(data.stats.siapPacking || 0).toLocaleString();
+      document.getElementById('stat-dikirim').innerText = Number((data.stats.menungguPickup || 0) + (data.stats.sedangDikirim || 0)).toLocaleString();
+      document.getElementById('stat-selesai').innerText = Number(data.stats.selesai || 0).toLocaleString();
+      document.getElementById('stat-revenue').innerText = 'Rp ' + Number(data.stats.totalRevenue || 0).toLocaleString('id-ID');
+
+      // 2. Token Status Pill
+      const tokenPill = document.getElementById('badge-token');
+      if (!data.token.hasToken) {
+        tokenPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-slate-500"></span><span>Token: Belum Ada</span>';
+        tokenPill.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 border border-slate-700 text-slate-400';
+      } else if (data.token.isExpired) {
+        tokenPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span><span>Token: KADALUARSA</span>';
+        tokenPill.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-red-950/60 border border-red-800/80 text-red-300';
+      } else {
+        tokenPill.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>Token: ' + data.token.statusText + '</span>';
+        tokenPill.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/60 border border-emerald-800/80 text-emerald-300';
+      }
+
+      // 3. Trigger Status Pill
+      const triggerPill = document.getElementById('badge-trigger');
+      const triggerText = document.getElementById('trigger-text');
+      const btnToggle = document.getElementById('btn-toggle-trigger');
+      const iconToggle = document.getElementById('icon-trigger-toggle');
+      const textToggle = document.getElementById('text-trigger-toggle');
+
+      if (data.isTriggerActive) {
+        triggerText.innerText = 'Auto-Sync: Aktif (1 Jam)';
+        triggerPill.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-950/60 border border-blue-800/80 text-blue-300';
+        iconToggle.className = 'fa-solid fa-power-off text-emerald-400';
+        textToggle.innerText = 'Matikan Auto-Sync';
+      } else {
+        triggerText.innerText = 'Auto-Sync: Nonaktif';
+        triggerPill.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 border border-slate-700 text-slate-400';
+        iconToggle.className = 'fa-solid fa-power-off text-slate-400';
+        textToggle.innerText = 'Aktifkan Auto-Sync';
+      }
+
+      // 4. Token & Config Tab
+      document.getElementById('info-shop-id').innerText = data.token.shopId || '-';
+      document.getElementById('info-token-status').innerText = data.token.statusText;
+      document.getElementById('info-token-status').className = data.token.isExpired ? 'text-red-400 font-semibold' : 'text-emerald-400 font-semibold';
+      document.getElementById('info-token-expired').innerText = data.token.expiredAtWIB || '-';
+      document.getElementById('info-vercel-url').innerText = (data.config && data.config.VERCEL_MIDDLEWARE_URL) || '-';
+
+      // 5. Orders Table
+      renderOrdersTable(data.orders || []);
+      document.getElementById('tab-count-orders').innerText = (data.orders || []).length;
+
+      // 6. Logs Table
+      renderLogsTable(data.logs || []);
+    }
+
+    function renderOrdersTable(orders) {
+      const tbody = document.getElementById('orders-tbody');
+      if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-500 font-sans">Belum ada data pesanan di sheet "Pesanan Masuk". Klik tombol <strong>Tarik Pesanan</strong> untuk mulai mengambil data dari Shopee.</td></tr>';
+        document.getElementById('table-entries-info').innerText = 'Menampilkan 0 pesanan';
+        return;
+      }
+
+      let html = '';
+      for (let i = 0; i < orders.length; i++) {
+        const ord = orders[i];
+        const amountStr = 'Rp ' + Number(ord.totalAmount || 0).toLocaleString('id-ID');
+
+        // Status Badge Style
+        let shopeeBadge = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (ord.shopeeStatus === 'READY_TO_SHIP') shopeeBadge = 'bg-orange-500/20 text-orange-400 border-orange-500/40';
+        else if (ord.shopeeStatus === 'SHIPPED') shopeeBadge = 'bg-blue-500/20 text-blue-400 border-blue-500/40';
+        else if (ord.shopeeStatus === 'COMPLETED') shopeeBadge = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
+        else if (ord.shopeeStatus === 'CANCELLED') shopeeBadge = 'bg-red-500/20 text-red-400 border-red-500/40';
+
+        // Options dropdown for internal status
+        let optionsHtml = '';
+        for (let s = 0; s < statusOptionsList.length; s++) {
+          const opt = statusOptionsList[s];
+          const selected = ord.internalStatus === opt ? 'selected' : '';
+          optionsHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+        }
+
+        html += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-3.5 font-bold text-slate-100">${ord.orderSn}</td>
+            <td class="py-3 px-3 text-slate-400 whitespace-nowrap text-[11px]">${ord.date || '-'}</td>
+            <td class="py-3 px-3 text-slate-200 truncate max-w-[140px]" title="${ord.buyer}">${ord.buyer || '-'}</td>
+            <td class="py-3 px-3 text-slate-300 font-sans text-xs">
+              <div class="line-clamp-2" title="${ord.items}">${ord.items || '-'}</div>
+              <span class="text-[10px] text-slate-500 font-mono">Qty: ${ord.qty}</span>
+            </td>
+            <td class="py-3 px-3 text-emerald-400 font-semibold whitespace-nowrap">${amountStr}</td>
+            <td class="py-3 px-3 text-slate-300 whitespace-nowrap text-[11px]">
+              <div>${ord.courier || '-'}</div>
+              <div class="text-[10px] text-slate-500">${ord.resi || '(Belum Ada Resi)'}</div>
+            </td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${shopeeBadge}">${ord.shopeeStatus || '-'}</span>
+            </td>
+            <td class="py-3 px-3.5">
+              <select onchange="changeInternalStatus('${ord.orderSn}', this.value)" class="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-2 py-1.5 focus:border-orange-500 focus:outline-none">
+                ${optionsHtml}
+              </select>
+            </td>
+          </tr>
+        `;
+      }
+
+      tbody.innerHTML = html;
+      document.getElementById('table-entries-info').innerText = `Menampilkan ${orders.length} pesanan terbaru`;
+    }
+
+    function renderLogsTable(logs) {
+      const tbody = document.getElementById('logs-tbody');
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-slate-500 font-sans">Belum ada riwayat aktivitas sistem.</td></tr>';
+        return;
+      }
+
+      let html = '';
+      for (let i = 0; i < logs.length; i++) {
+        const l = logs[i];
+        let statusBadge = l.status === 'SUKSES' ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10';
+        html += `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-2.5 px-3.5 text-slate-400 whitespace-nowrap text-[11px]">${l.time || '-'}</td>
+            <td class="py-2.5 px-3 text-slate-200 font-semibold">${l.action || '-'}</td>
+            <td class="py-2.5 px-3 text-slate-300">${l.count || 0}</td>
+            <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge}">${l.status}</span></td>
+            <td class="py-2.5 px-3.5 text-slate-400 font-sans text-xs">${l.detail || '-'}</td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    }
+
+    function filterOrdersTable() {
+      if (!globalData || !globalData.orders) return;
+      const q = document.getElementById('order-search').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('filter-status').value;
+
+      const filtered = globalData.orders.filter(ord => {
+        const matchQuery = !q ||
+          ord.orderSn.toLowerCase().includes(q) ||
+          ord.buyer.toLowerCase().includes(q) ||
+          ord.items.toLowerCase().includes(q) ||
+          ord.resi.toLowerCase().includes(q) ||
+          ord.courier.toLowerCase().includes(q);
+
+        const matchStatus = statusFilter === 'ALL' || (ord.internalStatus && ord.internalStatus.includes(statusFilter));
+
+        return matchQuery && matchStatus;
+      });
+
+      renderOrdersTable(filtered);
+    }
+
+    function switchTab(tabName) {
+      document.getElementById('content-orders').classList.add('hidden');
+      document.getElementById('content-token').classList.add('hidden');
+      document.getElementById('content-logs').classList.add('hidden');
+
+      document.getElementById('tab-orders').className = 'pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 transition';
+      document.getElementById('tab-token').className = 'pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 transition';
+      document.getElementById('tab-logs').className = 'pb-3 text-slate-400 hover:text-slate-200 flex items-center gap-2 transition';
+
+      if (tabName === 'orders') {
+        document.getElementById('content-orders').classList.remove('hidden');
+        document.getElementById('tab-orders').className = 'pb-3 text-orange-500 border-b-2 border-orange-500 flex items-center gap-2 transition';
+      } else if (tabName === 'token') {
+        document.getElementById('content-token').classList.remove('hidden');
+        document.getElementById('tab-token').className = 'pb-3 text-orange-500 border-b-2 border-orange-500 flex items-center gap-2 transition';
+      } else if (tabName === 'logs') {
+        document.getElementById('content-logs').classList.remove('hidden');
+        document.getElementById('tab-logs').className = 'pb-3 text-orange-500 border-b-2 border-orange-500 flex items-center gap-2 transition';
+      }
+    }
+
+    // ================= ACTIONS =================
+    function handleSyncChange(val) {
+      if (val === 'custom') {
+        const input = prompt('Masukkan jumlah hari ke belakang (1 - 365 hari):', '90');
+        if (input && input.trim()) {
+          const days = parseInt(input.trim(), 10);
+          if (!isNaN(days) && days >= 1 && days <= 365) {
+            triggerSync(days);
+          } else {
+            showToast('Jumlah hari harus berupa angka 1 sampai 365!', 'error');
+          }
+        }
+        document.getElementById('select-sync-days').value = '3';
+      } else {
+        triggerSync(val);
+      }
+    }
+
+    function promptSyncBySn() {
+      const sn = prompt('Masukkan Nomor Pesanan (Order SN) dari Shopee Seller Center:\n(Contoh: 240925ABCDEF)');
+      if (sn && sn.trim()) {
+        showToast(`Mencari pesanan ${sn.trim()} di Shopee API...`, 'loading');
+        google.script.run
+          .withSuccessHandler((res) => {
+            showToast(res.message || 'Pesanan berhasil ditarik!');
+            loadDashboard(false);
+          })
+          .withFailureHandler((err) => {
+            showToast('Gagal menarik pesanan: ' + (err.message || err), 'error');
+          })
+          .triggerSyncBySn(sn.trim());
+      }
+    }
+
+    function triggerSync(days) {
+      showToast(`Menarik data pesanan Shopee (${days} hari)...`, 'loading');
+      google.script.run
+        .withSuccessHandler((res) => {
+          showToast(res.message || 'Sinkronisasi selesai!');
+          loadDashboard(false);
+        })
+        .withFailureHandler((err) => {
+          showToast('Sinkronisasi gagal: ' + (err.message || err), 'error');
+        })
+        .triggerSyncOrders(Number(days));
+    }
+
+    function changeInternalStatus(orderSn, newStatus) {
+      showToast(`Memperbarui status pesanan ${orderSn}...`, 'loading');
+      google.script.run
+        .withSuccessHandler(() => {
+          showToast(`Status ${orderSn} diubah menjadi "${newStatus}"!`);
+        })
+        .withFailureHandler((err) => {
+          showToast('Gagal mengubah status: ' + err.message, 'error');
+          loadDashboard(false);
+        })
+        .updateOrderStatusInternal(orderSn, newStatus);
+    }
+
+    function triggerRefreshToken() {
+      showToast('Memperbarui token Shopee...', 'loading');
+      google.script.run
+        .withSuccessHandler((res) => {
+          showToast(res.message || 'Token berhasil diperbarui!');
+          loadDashboard(false);
+        })
+        .withFailureHandler((err) => {
+          showToast('Gagal refresh token: ' + (err.message || err), 'error');
+        })
+        .refreshTokenFromDashboard();
+    }
+
+    function toggleTriggerState() {
+      const currentState = globalData ? globalData.isTriggerActive : false;
+      const targetState = !currentState;
+      showToast(targetState ? 'Mengaktifkan trigger 1 jam...' : 'Mematikan trigger...', 'loading');
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          showToast(res.message);
+          loadDashboard(false);
+        })
+        .withFailureHandler((err) => {
+          showToast('Gagal mengubah trigger: ' + (err.message || err), 'error');
+        })
+        .toggleTrigger(targetState);
+    }
+
+    function savePastedToken() {
+      const val = document.getElementById('paste-token-input').value.trim();
+      if (!val) {
+        showToast('Tempelkan teks token JSON terlebih dahulu.', 'error');
+        return;
+      }
+      showToast('Menyimpan token...', 'loading');
+      google.script.run
+        .withSuccessHandler((res) => {
+          showToast(res.message || 'Token berhasil disimpan!');
+          document.getElementById('paste-token-input').value = '';
+          loadDashboard(false);
+        })
+        .withFailureHandler((err) => {
+          showToast('Gagal menyimpan token: ' + (err.message || err), 'error');
+        })
+        .saveTokenFromDashboard(val);
+    }
+
+    function checkPing() {
+      showToast('Menghubungi middleware Vercel...', 'loading');
+      google.script.run
+        .withSuccessHandler((res) => {
+          showToast('Status Middleware: ' + res.status + ' (' + res.message + ')');
+        })
+        .withFailureHandler((err) => {
+          showToast('Koneksi Vercel gagal: ' + err.message, 'error');
+        })
+        .pingMiddleware();
+    }
+
+    let currentAuthUrl = '';
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('auth-modal-url-box').innerText = 'Membuat tautan otorisasi Shopee...';
+      document.getElementById('auth-modal-btn-open').href = '#';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          currentAuthUrl = res.url;
+          document.getElementById('auth-modal-url-box').innerText = res.url;
+          document.getElementById('auth-modal-btn-open').href = res.url;
+        })
+        .withFailureHandler((err) => {
+          document.getElementById('auth-modal-url-box').innerText = 'Gagal membuat URL: ' + err.message;
+        })
+        .getAuthUrlFromDashboard();
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+    }
+
+    function copyModalUrl() {
+      if (!currentAuthUrl) return;
+      navigator.clipboard.writeText(currentAuthUrl).then(() => {
+        showToast('Tautan otorisasi berhasil disalin ke clipboard!');
+      });
+    }
+  </script>
+</body>
+</html>

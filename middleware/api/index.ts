@@ -1,6 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  // Jika Shopee mengarahkan callback ke domain dasar (root /) dengan kode otorisasi
+  if (req.query.code) {
+    const query = new URLSearchParams(req.query as Record<string, string>).toString();
+    return res.redirect(307, `/api/auth/callback?${query}`);
+  }
+
   res.status(200).json({
     service: 'Begood Shopee ERP Middleware',
     version: '1.0.0',

@@ -194,11 +194,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               </div>
             </div>
 
-            <div>
-              <button class="btn" id="copyBtn" onclick="copyToken()">Salin Data Token untuk DB_Token</button>
-              <button class="btn btn-outline" onclick="window.close()">Tutup Jendela Ini</button>
+            <div style="background: #090d16; border: 1px dashed #38bdf8; border-radius: 8px; padding: 12px; margin-bottom: 20px; text-align: left;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; color: #38bdf8;">📋 Langkah Terakhir:</p>
+              <ol style="margin: 0; padding-left: 20px; font-size: 12px; color: #cbd5e1; line-height: 1.6;">
+                <li>Klik tombol <strong>"📋 Salin Data Token"</strong> di bawah ini.</li>
+                <li>Buka Google Spreadsheet ERP Begood Anda.</li>
+                <li>Klik menu <strong>📦 ERP Begood</strong> &gt; <strong>🔑 Tempel Token Hasil Otorisasi (Paste)</strong>.</li>
+                <li>Tempel (Paste) lalu klik <strong>OK</strong>. Selesai!</li>
+              </ol>
             </div>
-            <div id="toast" class="toast">✓ Data token berhasil disalin ke clipboard! Masukkan ke sheet DB_Token jika belum tersinkron otomatis.</div>
+
+            <div>
+              <button class="btn" id="copyBtn" onclick="copyToken()" style="padding: 14px 28px; font-size: 15px;">📋 Salin Data Token</button>
+              <button class="btn btn-outline" onclick="window.close()">Tutup Jendela</button>
+            </div>
+            <div id="toast" class="toast" style="font-weight: 600; margin-top: 16px;">✅ Data token berhasil disalin ke clipboard! Sekarang buka Google Sheets dan pilih menu Tempel Token.</div>
           </div>
 
           <script>

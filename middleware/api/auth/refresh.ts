@@ -12,8 +12,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const refreshToken = (req.body?.refresh_token || req.query?.refresh_token) as string;
-  const shopIdParam = req.body?.shop_id || req.query?.shop_id;
+  let payload = req.method === 'POST' ? req.body : req.query;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch (e) {
+      console.warn('Failed to parse string body in refresh.ts:', e);
+    }
+  }
+  if (!payload || typeof payload !== 'object') {
+    payload = req.query || {};
+  }
+
+  const refreshToken = (payload?.refresh_token || req.headers['x-shopee-refresh-token']) as string;
+  const shopIdParam = payload?.shop_id;
   const shopId = shopIdParam ? Number(shopIdParam) : Number(process.env.SHOPEE_SHOP_ID || 0);
 
   if (!refreshToken) {

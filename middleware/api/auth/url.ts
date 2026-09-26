@@ -13,7 +13,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const customRedirect = (req.query?.redirect_uri || req.body?.redirect_uri) as string | undefined;
+    const host = (req.headers['x-forwarded-host'] || req.headers.host) as string;
+    const proto = (req.headers['x-forwarded-proto'] || 'https') as string;
+    const autoRedirect = host ? `${proto}://${host}/api/auth/callback` : undefined;
+
+    const customRedirect = (req.query?.redirect_uri || req.body?.redirect_uri || process.env.SHOPEE_REDIRECT_URI || autoRedirect) as string | undefined;
+
+    const partnerId = process.env.SHOPEE_PARTNER_ID;
+    const partnerKey = process.env.SHOPEE_PARTNER_KEY;
+    if (!partnerId || !partnerKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'Variabel lingkungan SHOPEE_PARTNER_ID atau SHOPEE_PARTNER_KEY belum disetel di Vercel Settings > Environment Variables.',
+        error: 'CREDENTIALS_MISSING',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const authUrl = TokenService.getAuthorizationUrl(customRedirect);
 
     return res.status(200).json({
@@ -21,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: 'Authorization URL generated successfully',
       data: {
         auth_url: authUrl,
-        redirect_uri: customRedirect || process.env.SHOPEE_REDIRECT_URI,
+        redirect_uri: customRedirect,
       },
       timestamp: new Date().toISOString(),
     });
@@ -29,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Error generating auth url:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to generate authorization URL',
+      message: 'Gagal membuat URL otorisasi: ' + (error.message || String(error)),
       error: error.message || String(error),
       timestamp: new Date().toISOString(),
     });

@@ -271,6 +271,8 @@ function syncOrdersCore(days, isBackground) {
       ui.alert('Sinkronisasi Selesai', alertDetails, ui.ButtonSet.OK);
     }
 
+    invalidateDashboardCache();
+
     return {
       success: true,
       count: orders.length,
@@ -517,6 +519,7 @@ function setupHourlyTrigger() {
       .everyHours(1)
       .create();
 
+    PropertiesService.getScriptProperties().setProperty('IS_TRIGGER_ACTIVE', 'true');
     SheetManager.logActivity('TRIGGER_SETUP', 0, 'SUKSES', 'Trigger otomatis sinkronisasi 1 jam berhasil diaktifkan.');
     ui.alert(
       'Trigger Aktif',
@@ -538,6 +541,7 @@ function removeTriggers() {
       ScriptApp.deleteTrigger(triggers[i]);
     }
   }
+  PropertiesService.getScriptProperties().setProperty('IS_TRIGGER_ACTIVE', 'false');
 }
 
 /**
@@ -673,9 +677,40 @@ function openDashboardModal() {
 
 /**
  * RPC: Mengambil seluruh ringkasan metrik, pesanan, token, dan log untuk dashboard
+ * Terlindungi dengan CacheService berkecepatan milidetik
  */
-function getDashboardData() {
-  return SheetManager.getDashboardSummary();
+function getDashboardData(forceRefresh) {
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'ERP_DASHBOARD_DATA_CACHE';
+
+  if (!forceRefresh) {
+    var cached = cache.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+  }
+
+  var data = SheetManager.getDashboardSummary();
+  if (data) {
+    try {
+      var jsonStr = JSON.stringify(data);
+      if (jsonStr.length < 95000) {
+        cache.put(cacheKey, jsonStr, 180); // Cache 3 menit
+      }
+    } catch (e) {}
+  }
+  return data;
+}
+
+/**
+ * Membersihkan cache dashboard agar panggilan berikutnya mendapatkan data terbaru
+ */
+function invalidateDashboardCache() {
+  try {
+    CacheService.getScriptCache().remove('ERP_DASHBOARD_DATA_CACHE');
+  } catch (e) {}
 }
 
 /**
@@ -692,6 +727,7 @@ function updateOrderStatusInternal(orderSn, newStatus) {
   }
 
   SheetManager.logActivity('UPDATE_STATUS', 1, 'SUKSES', 'Status pesanan ' + orderSn + ' diubah menjadi "' + newStatus + '" via Dashboard.');
+  invalidateDashboardCache();
   return { success: true };
 }
 
@@ -709,6 +745,7 @@ function updateBatchOrderStatusInternal(orderSnList, newStatus) {
   }
 
   SheetManager.logActivity('UPDATE_STATUS_BATCH', orderSnList.length, 'SUKSES', 'Status ' + orderSnList.length + ' pesanan diubah menjadi "' + newStatus + '" via Dashboard.');
+  invalidateDashboardCache();
   return { success: true, count: orderSnList.length };
 }
 
@@ -718,6 +755,7 @@ function updateBatchOrderStatusInternal(orderSnList, newStatus) {
 function triggerSyncOrders(days) {
   var syncDays = Number(days) || 3;
   var res = syncOrdersCore(syncDays, true);
+  invalidateDashboardCache();
   return {
     success: true,
     message: res.message || ('Sinkronisasi pesanan (' + syncDays + ' hari) berhasil!')
@@ -732,6 +770,7 @@ function triggerSyncBySn(orderSn) {
     throw new Error('Nomor Pesanan (Order SN) tidak boleh kosong.');
   }
   var res = syncOrdersBySnCore(orderSn.trim(), true);
+  invalidateDashboardCache();
   return {
     success: true,
     message: res.message
@@ -757,6 +796,7 @@ function refreshTokenFromDashboard() {
       expired_at: res.data.expired_at
     });
 
+    invalidateDashboardCache();
     SheetManager.logActivity('MANUAL_REFRESH_TOKEN', 0, 'SUKSES', 'Token diperbarui melalui Web Dashboard.');
     return {
       success: true,
@@ -791,6 +831,7 @@ function saveTokenFromDashboard(jsonString) {
     expired_at: tokenData.expired_at || (Date.now() + (tokenData.expire_in || 14400) * 1000)
   });
 
+  invalidateDashboardCache();
   SheetManager.logActivity('MANUAL_PASTE_TOKEN', 0, 'SUKSES', 'Token berhasil disimpan via Web Dashboard.');
   return {
     success: true,
@@ -803,12 +844,15 @@ function saveTokenFromDashboard(jsonString) {
  */
 function toggleTrigger(enable) {
   removeTriggers();
+  var props = PropertiesService.getScriptProperties();
   if (enable) {
     ScriptApp.newTrigger('automatedSyncTrigger')
       .timeBased()
       .everyHours(1)
       .create();
 
+    props.setProperty('IS_TRIGGER_ACTIVE', 'true');
+    invalidateDashboardCache();
     SheetManager.logActivity('TRIGGER_TOGGLE', 0, 'SUKSES', 'Trigger otomatis diaktifkan via Web Dashboard.');
     return {
       success: true,
@@ -816,6 +860,8 @@ function toggleTrigger(enable) {
       message: 'Trigger otomatis (setiap 1 jam) berhasil diaktifkan!'
     };
   } else {
+    props.setProperty('IS_TRIGGER_ACTIVE', 'false');
+    invalidateDashboardCache();
     SheetManager.logActivity('TRIGGER_TOGGLE', 0, 'SUKSES', 'Trigger otomatis dinonaktifkan via Web Dashboard.');
     return {
       success: true,

@@ -565,10 +565,13 @@ var SheetManager = (function() {
     },
 
     /**
-     * Mengambil ringkasan metrik & data untuk Web Dashboard
+     * Mengambil ringkasan metrik & data untuk Web Dashboard (Super Cepat & Teroptimasi)
      */
     getDashboardSummary: function() {
-      var orderSheet = getOrCreateSheet(SHEETS.ORDERS);
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var orderSheet = ss.getSheetByName(SHEETS.ORDERS);
+      if (!orderSheet) return null;
+
       var orderLastRow = orderSheet.getLastRow();
       var todayStr = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd');
 
@@ -588,32 +591,25 @@ var SheetManager = (function() {
       var skuCounts = {};
 
       if (orderLastRow >= 2) {
-        var numCols = Math.max(orderSheet.getLastColumn(), 14);
-        var values = orderSheet.getRange(2, 1, orderLastRow - 1, numCols).getValues();
-
-        var isNewLayout = numCols >= 16;
+        var numRows = orderLastRow - 1;
+        // Baca data tabel pesanan sekaligus dalam 1 API call
+        var values = orderSheet.getRange(2, 1, numRows, 16).getValues();
         var uniqueOrdersSeen = {};
         var uniqueOrdersCount = 0;
 
         // Loop dari bawah ke atas (data terbaru terlebih dahulu)
         for (var i = values.length - 1; i >= 0; i--) {
           var row = values[i];
-          var sn = String(row[0]);
-          var dateStr = String(row[1]);
-          var shopeeStatus = String(row[2]);
-          var internalStatus = String(row[3]);
-          var buyer = String(row[4]);
-          var items = String(row[5]);
-          var sku = isNewLayout ? String(row[6] || '-') : '-';
-          var variation = isNewLayout ? String(row[7] || '-') : '-';
-          var qty = Number(isNewLayout ? row[8] : row[6]) || 0;
-          var totalAmount = Number(isNewLayout ? row[9] : row[7]) || 0;
-          var shippingFee = Number(isNewLayout ? row[10] : row[8]) || 0;
-          var courier = String(isNewLayout ? row[11] : row[9]).trim() || 'Lainnya';
-          var resi = String(isNewLayout ? row[12] : row[10]);
-          var note = isNewLayout ? String(row[13] || '') : String(row[11] || '');
-          var city = isNewLayout ? String(row[14] || '') : String(row[12] || '');
-          var syncTime = isNewLayout ? String(row[15] || '') : String(row[13] || '');
+          var sn = String(row[0] || '').trim();
+          if (!sn) continue;
+
+          var dateStr = String(row[1] || '');
+          var shopeeStatus = String(row[2] || '');
+          var internalStatus = String(row[3] || '');
+          var totalAmount = Number(row[9]) || 0;
+          var courier = String(row[11] || '').trim() || 'Lainnya';
+          var sku = String(row[6] || '').trim();
+          var qty = Number(row[8]) || 1;
 
           // Hitung statistik pesanan unik
           if (!uniqueOrdersSeen[sn]) {
@@ -631,34 +627,33 @@ var SheetManager = (function() {
             else if (internalStatus.indexOf('Selesai') !== -1) stats.selesai++;
             else if (internalStatus.indexOf('Batal') !== -1) stats.batal++;
 
-            // Hitung distribusi kurir (berdasarkan pesanan unik)
             courierCounts[courier] = (courierCounts[courier] || 0) + 1;
           }
 
           // Hitung SKU terlaris
           if (sku && sku !== '-') {
-            skuCounts[sku] = (skuCounts[sku] || 0) + (qty || 1);
+            skuCounts[sku] = (skuCounts[sku] || 0) + qty;
           }
 
-          // Simpan hingga 300 baris pesanan terbaru untuk tabel dashboard
-          if (ordersList.length < 300) {
+          // Simpan hingga 80 baris pesanan terbaru (optimal untuk kecepatan transfer payload RPC)
+          if (ordersList.length < 80) {
             ordersList.push({
               orderSn: sn,
               date: dateStr,
               shopeeStatus: shopeeStatus,
               internalStatus: internalStatus,
-              buyer: buyer,
-              items: items,
-              sku: sku,
-              variation: variation,
+              buyer: String(row[4] || ''),
+              items: String(row[5] || ''),
+              sku: sku || '-',
+              variation: String(row[7] || '-') || '-',
               qty: qty,
               totalAmount: totalAmount,
-              shippingFee: shippingFee,
+              shippingFee: Number(row[10]) || 0,
               courier: courier,
-              resi: resi,
-              note: note,
-              city: city,
-              syncTime: syncTime
+              resi: String(row[12] || '-'),
+              note: String(row[13] || ''),
+              city: String(row[14] || ''),
+              syncTime: String(row[15] || '')
             });
           }
         }
@@ -673,8 +668,22 @@ var SheetManager = (function() {
       topSkusList.sort(function(a, b) { return b.qty - a.qty; });
       var topSkus = topSkusList.slice(0, 5);
 
-      // Token Record
-      var tokenRec = this.getTokenRecord();
+      // Baca Token Record langsung dari ss dalam 1 API call
+      var tokenSheet = ss.getSheetByName(SHEETS.TOKEN);
+      var tokenRec = null;
+      if (tokenSheet && tokenSheet.getLastRow() >= 2) {
+        var tRow = tokenSheet.getRange(2, 1, 1, 8).getValues()[0];
+        tokenRec = {
+          shop_id: String(tRow[0] || '').trim(),
+          partner_id: String(tRow[1] || '').trim(),
+          access_token: String(tRow[2] || '').trim(),
+          refresh_token: String(tRow[3] || '').trim(),
+          expired_at: Number(tRow[4]) || 0,
+          expired_at_wib: String(tRow[5] || ''),
+          status: String(tRow[7] || '')
+        };
+      }
+
       var tokenStatus = {
         hasToken: Boolean(tokenRec && tokenRec.access_token),
         shopId: tokenRec ? tokenRec.shop_id : '-',
@@ -686,7 +695,7 @@ var SheetManager = (function() {
 
       if (tokenRec && tokenRec.expired_at) {
         var nowMs = Date.now();
-        var expMs = Number(tokenRec.expired_at);
+        var expMs = tokenRec.expired_at;
         if (expMs < 10000000000) expMs = expMs * 1000;
         var diffMin = Math.floor((expMs - nowMs) / 60000);
         tokenStatus.remainingMinutes = diffMin;
@@ -700,40 +709,47 @@ var SheetManager = (function() {
         }
       }
 
-      // Log Aktivitas (10 Terakhir)
-      var logSheet = getOrCreateSheet(SHEETS.LOG);
-      var logLastRow = logSheet.getLastRow();
+      // Baca Log Aktivitas (7 Terakhir) langsung dari ss
+      var logSheet = ss.getSheetByName(SHEETS.LOG);
       var logs = [];
-      if (logLastRow >= 2) {
-        var startRow = Math.max(2, logLastRow - 9);
-        var numRows = logLastRow - startRow + 1;
-        var logValues = logSheet.getRange(startRow, 1, numRows, 5).getValues();
-        for (var j = logValues.length - 1; j >= 0; j--) {
+      if (logSheet && logSheet.getLastRow() >= 2) {
+        var lLast = logSheet.getLastRow();
+        var sRow = Math.max(2, lLast - 6);
+        var lRows = lLast - sRow + 1;
+        var lVals = logSheet.getRange(sRow, 1, lRows, 5).getValues();
+        for (var j = lVals.length - 1; j >= 0; j--) {
           logs.push({
-            time: logValues[j][0],
-            action: logValues[j][1],
-            count: logValues[j][2],
-            status: logValues[j][3],
-            detail: logValues[j][4]
+            time: String(lVals[j][0] || ''),
+            action: String(lVals[j][1] || ''),
+            count: Number(lVals[j][2]) || 0,
+            status: String(lVals[j][3] || ''),
+            detail: String(lVals[j][4] || '')
           });
         }
       }
 
-      // Cek Trigger Otomatis
-      var triggers = ScriptApp.getProjectTriggers();
-      var isTriggerActive = false;
-      for (var t = 0; t < triggers.length; t++) {
-        if (triggers[t].getHandlerFunction() === 'automatedSyncTrigger') {
-          isTriggerActive = true;
-          break;
+      // Cek Trigger Otomatis via PropertiesService (0 ms!)
+      var props = PropertiesService.getScriptProperties();
+      var isTriggerActive = props.getProperty('IS_TRIGGER_ACTIVE') === 'true';
+
+      // Baca Konfigurasi
+      var configSheet = ss.getSheetByName(SHEETS.CONFIG);
+      var config = {};
+      if (configSheet && configSheet.getLastRow() >= 2) {
+        var cVals = configSheet.getRange(2, 1, configSheet.getLastRow() - 1, 2).getValues();
+        for (var c = 0; c < cVals.length; c++) {
+          var key = String(cVals[c][0] || '').trim();
+          if (key) config[key] = String(cVals[c][1] || '').trim();
         }
       }
 
-      var config = this.getConfig();
-      var webAppUrl = '';
-      try {
-        webAppUrl = ScriptApp.getService().getUrl() || '';
-      } catch (e) {}
+      var webAppUrl = props.getProperty('WEB_APP_URL') || '';
+      if (!webAppUrl) {
+        try {
+          webAppUrl = ScriptApp.getService().getUrl() || '';
+          if (webAppUrl) props.setProperty('WEB_APP_URL', webAppUrl);
+        } catch (e) {}
+      }
 
       return {
         stats: stats,

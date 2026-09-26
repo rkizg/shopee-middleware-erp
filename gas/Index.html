@@ -888,7 +888,7 @@
           if (icon) icon.classList.remove('fa-spin');
           showToast('Gagal memuat data: ' + (err.message || err), 'error');
         })
-        .getDashboardData();
+        .getDashboardData(Boolean(isManual));
     }
 
     // Render Master UI

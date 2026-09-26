@@ -216,12 +216,9 @@ export class OrderService {
       // Query create_time chunks concurrently (concurrency = 3)
       await asyncPool(chunks, (chunk) => queryChunk(chunk, 'create_time'), 3);
 
-      // Also query update_time for recent chunks (last 30 days) to ensure orders created
-      // earlier but recently updated/fulfilled/shipped are captured
-      const recentUpdateChunks = chunks.filter((c) => c.to >= (nowSec - 30 * 86400));
-      if (recentUpdateChunks.length > 0) {
-        await asyncPool(recentUpdateChunks, (chunk) => queryChunk(chunk, 'update_time'), 3);
-      }
+      // Also query update_time for ALL chunks so any orders updated, fulfilled, or completed
+      // during this window are captured even if they were created earlier
+      await asyncPool(chunks, (chunk) => queryChunk(chunk, 'update_time'), 3);
     }
 
     const orderSnList = Array.from(orderSnSet);

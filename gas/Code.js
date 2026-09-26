@@ -239,11 +239,15 @@ function syncOrdersCore(days, isBackground) {
     SheetManager.logActivity('SYNC_PESANAN', orders.length, 'SUKSES', logMsg);
 
     if (ui) {
-      ui.alert(
-        'Sinkronisasi Selesai',
-        '✅ ' + logMsg,
-        ui.ButtonSet.OK
-      );
+      var alertDetails = '✅ ' + logMsg;
+      var diag = apiRes.data.diagnostics || {};
+      if (diag.errors && diag.errors.length > 0) {
+        alertDetails += '\n\n⚠️ Catatan API:\n' + diag.errors.slice(0, 3).join('\n');
+      }
+      if (orders.length <= 5 && days <= 90) {
+        alertDetails += '\n\n💡 Tips: Jika pesanan toko Anda berada di luar 90 hari, Anda dapat:\n1. Memasukkan rentang 180 atau 365 hari di menu "Pilih Rentang Hari".\n2. Menarik langsung via menu "Tarik Pesanan Berdasarkan Nomor SN".';
+      }
+      ui.alert('Sinkronisasi Selesai', alertDetails, ui.ButtonSet.OK);
     }
 
     return {

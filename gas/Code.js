@@ -10,25 +10,25 @@
  */
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
-  ui.createMenu('📦 ERP Begood')
-    .addItem('🌐 Buka Web Dashboard (Tab Baru)', 'openDashboardNewTab')
-    .addItem('🚀 Buka Web Dashboard (Layar Penuh)', 'openDashboardModal')
-    .addItem('📊 Buka Web Dashboard (Sidebar)', 'openDashboardSidebar')
+  ui.createMenu('ERP Begood')
+    .addItem('Buka Web Dashboard (Tab Baru)', 'openDashboardNewTab')
+    .addItem('Buka Web Dashboard (Layar Penuh)', 'openDashboardModal')
+    .addItem('Buka Web Dashboard (Sidebar)', 'openDashboardSidebar')
     .addSeparator()
-    .addItem('🔄 Tarik Pesanan Masuk (Hari Ini / 3 Hari)', 'syncOrdersDefault')
-    .addItem('📅 Tarik Pesanan Masuk (Pilih Rentang Hari)', 'syncOrdersCustomDays')
-    .addItem('🔍 Tarik Pesanan Berdasarkan Nomor SN', 'syncOrderBySnPrompt')
+    .addItem('Tarik Pesanan Masuk (Hari Ini / 3 Hari)', 'syncOrdersDefault')
+    .addItem('Tarik Pesanan Masuk (Pilih Rentang Hari)', 'syncOrdersCustomDays')
+    .addItem('Tarik Pesanan Berdasarkan Nomor SN', 'syncOrderBySnPrompt')
     .addSeparator()
-    .addItem('🔑 Cek Status Token Shopee', 'checkTokenStatus')
-    .addItem('🔑 Tempel Token Hasil Otorisasi (Paste)', 'pasteTokenPrompt')
-    .addItem('🔄 Refresh Token Shopee Sekarang', 'refreshShopeeToken')
-    .addItem('🔗 Buka Tautan Otorisasi Shopee Baru (Dialog Web)', 'generateAuthLink')
-    .addItem('📋 Salin Tautan Otorisasi (Teks Langsung)', 'copyAuthLink')
+    .addItem('Cek Status Token Shopee', 'checkTokenStatus')
+    .addItem('Tempel Token Hasil Otorisasi (Paste)', 'pasteTokenPrompt')
+    .addItem('Refresh Token Shopee Sekarang', 'refreshShopeeToken')
+    .addItem('Buka Tautan Otorisasi Shopee Baru (Dialog Web)', 'generateAuthLink')
+    .addItem('Salin Tautan Otorisasi (Teks Langsung)', 'copyAuthLink')
     .addSeparator()
-    .addItem('🩺 Cek Koneksi ke Middleware Vercel (Tes Ping)', 'checkMiddlewareHealth')
-    .addItem('⏰ Pasang Trigger Otomatis (Tiap 1 Jam)', 'setupHourlyTrigger')
-    .addItem('⏹️ Matikan Semua Trigger Otomatis', 'removeTriggers')
-    .addItem('🛠️ Inisialisasi / Reset Tabel Sheet', 'setupWorkspace')
+    .addItem('Cek Koneksi ke Middleware Vercel (Tes Ping)', 'checkMiddlewareHealth')
+    .addItem('Pasang Trigger Otomatis (Tiap 1 Jam)', 'setupHourlyTrigger')
+    .addItem('Matikan Semua Trigger Otomatis', 'removeTriggers')
+    .addItem('Inisialisasi / Reset Tabel Sheet', 'setupWorkspace')
     .addToUi();
 }
 
@@ -157,7 +157,7 @@ function syncOrdersBySnCore(orderSn, isBackground) {
     SheetManager.logActivity('SYNC_PESANAN_SN', orders.length, 'SUKSES', logMsg);
 
     if (ui) {
-      ui.alert('Pesanan Ditemukan & Tersimpan', '✅ ' + logMsg, ui.ButtonSet.OK);
+      ui.alert('Pesanan Ditemukan & Tersimpan', logMsg, ui.ButtonSet.OK);
     }
 
     return {
@@ -240,33 +240,33 @@ function syncOrdersCore(days, isBackground) {
     SheetManager.logActivity('SYNC_PESANAN', orders.length, 'SUKSES', logMsg);
 
     if (ui) {
-      var alertDetails = '✅ ' + logMsg;
+      var alertDetails = '[SUKSES] ' + logMsg;
       var diag = apiRes.data.diagnostics || {};
 
       // Show the actual date range that was queried
       if (diag.time_from_wib && diag.time_to_wib) {
-        alertDetails += '\n\n📅 Rentang: ' + diag.time_from_wib + ' → ' + diag.time_to_wib;
-        alertDetails += '\n📦 Chunks: ' + (diag.chunks_total || 0) + ' periode (masing-masing ≤14 hari)';
-        alertDetails += '\n🔍 Total SN ditemukan: ' + (diag.order_sns_found || orders.length);
+        alertDetails += '\n\nRentang: ' + diag.time_from_wib + ' -> ' + diag.time_to_wib;
+        alertDetails += '\nPeriode Chunk: ' + (diag.chunks_total || 0) + ' periode (masing-masing <=14 hari)';
+        alertDetails += '\nTotal SN ditemukan: ' + (diag.order_sns_found || orders.length);
       }
 
       // Show per-chunk breakdown if available (max 5 chunks shown)
       if (diag.chunk_results && diag.chunk_results.length > 0) {
         var nonZeroChunks = diag.chunk_results.filter(function(c) { return c.found > 0; });
-        alertDetails += '\n\n📊 Chunk dengan data (' + nonZeroChunks.length + ' dari ' + diag.chunk_results.length + '):';
+        alertDetails += '\n\nChunk dengan data (' + nonZeroChunks.length + ' dari ' + diag.chunk_results.length + '):';
         nonZeroChunks.slice(0, 5).forEach(function(c) {
           alertDetails += '\n  • [' + c.field + '] ' + c.from_wib.substring(0, 10) + ': ' + c.found + ' pesanan';
         });
         if (nonZeroChunks.length === 0) {
-          alertDetails += '\n  (Tidak ada chunk yang menghasilkan pesanan — kemungkinan pesanan berada di luar rentang tanggal ini)';
+          alertDetails += '\n  (Tidak ada chunk yang menghasilkan pesanan, kemungkinan pesanan berada di luar rentang tanggal ini)';
         }
       }
 
       if (diag.errors && diag.errors.length > 0) {
-        alertDetails += '\n\n⚠️ Catatan API:\n' + diag.errors.slice(0, 3).join('\n');
+        alertDetails += '\n\nCatatan API:\n' + diag.errors.slice(0, 3).join('\n');
       }
       if (orders.length <= 5 && days <= 90) {
-        alertDetails += '\n\n💡 Tips: Jika pesanan toko Anda berada di luar 90 hari, Anda dapat:\n1. Memasukkan rentang 180 atau 365 hari di menu "Pilih Rentang Hari".\n2. Menarik langsung via menu "Tarik Pesanan Berdasarkan Nomor SN".';
+        alertDetails += '\n\nPetunjuk: Jika pesanan toko Anda berada di luar 90 hari, Anda dapat:\n1. Memasukkan rentang 180 atau 365 hari di menu "Pilih Rentang Hari".\n2. Menarik langsung via menu "Tarik Pesanan Berdasarkan Nomor SN".';
       }
       ui.alert('Sinkronisasi Selesai', alertDetails, ui.ButtonSet.OK);
     }
@@ -312,7 +312,7 @@ function checkTokenStatus() {
   if (!tokenRec || !tokenRec.access_token) {
     ui.alert(
       'Status Token',
-      'Belum ada token tersimpan di sheet DB_Token.\nSilakan jalankan menu "🔗 Buka Tautan Otorisasi Shopee Baru".',
+      'Belum ada token tersimpan di sheet DB_Token.\nSilakan jalankan menu "Buka Tautan Otorisasi Shopee Baru".',
       ui.ButtonSet.OK
     );
     return;
@@ -326,11 +326,11 @@ function checkTokenStatus() {
   var statusText = '';
 
   if (diffMinutes <= 0) {
-    statusText = '⚠️ ACCESS TOKEN KADALUARSA (Expired sejak ' + Math.abs(diffMinutes) + ' menit yang lalu).\nSistem akan otomatis memperbarui menggunakan Refresh Token saat penarikan pesanan, atau Anda bisa klik "Refresh Token Shopee Sekarang".';
+    statusText = '[PERINGATAN] ACCESS TOKEN KADALUARSA (Expired sejak ' + Math.abs(diffMinutes) + ' menit yang lalu).\nSistem akan otomatis memperbarui menggunakan Refresh Token saat penarikan pesanan, atau Anda bisa klik "Refresh Token Shopee Sekarang".';
   } else {
     var hours = Math.floor(diffMinutes / 60);
     var mins = diffMinutes % 60;
-    statusText = '✅ TOKEN AKTIF (Sisa waktu: ' + hours + ' jam ' + mins + ' menit).\nExpired At: ' + tokenRec.expired_at_wib;
+    statusText = '[AKTIF] TOKEN BERLAKU (Sisa waktu: ' + hours + ' jam ' + mins + ' menit).\nExpired At: ' + tokenRec.expired_at_wib;
   }
 
   ui.alert(
@@ -380,7 +380,7 @@ function pasteTokenPrompt() {
       SheetManager.logActivity('MANUAL_PASTE_TOKEN', 0, 'SUKSES', 'Token berhasil diinput melalui prompt.');
       ui.alert(
         'Token Berhasil Disimpan',
-        '✅ Token Shopee berhasil disimpan ke sheet DB_Token!\nStatus: AKTIF\n\nSekarang Anda dapat menjalankan menu "🔄 Tarik Pesanan Masuk (Hari Ini / 3 Hari)".',
+        'Token Shopee berhasil disimpan ke sheet DB_Token!\nStatus: AKTIF\n\nSekarang Anda dapat menjalankan menu "Tarik Pesanan Masuk (Hari Ini / 3 Hari)".',
         ui.ButtonSet.OK
       );
     } catch (err) {
@@ -421,7 +421,7 @@ function refreshShopeeToken() {
       SheetManager.logActivity('MANUAL_REFRESH_TOKEN', 0, 'SUKSES', 'Token berhasil diperbarui manual.');
       ui.alert(
         'Refresh Token Sukses',
-        '✅ Token Shopee berhasil diperbarui!\nBerlaku hingga: ' + res.data.expired_at_formatted,
+        'Token Shopee berhasil diperbarui!\nBerlaku hingga: ' + res.data.expired_at_formatted,
         ui.ButtonSet.OK
       );
     } else {
@@ -460,7 +460,7 @@ function generateAuthLink() {
         '<div class="title">Otorisasi Toko Shopee (b e g o o d . b d g)</div>' +
         '<div class="desc">Klik tombol di bawah ini untuk membuka halaman login resmi Shopee Seller:</div>' +
         '<div style="text-align: center; margin: 20px 0;">' +
-        '<a href="' + authUrl + '" class="btn" target="_blank">🔗 Buka Halaman Login Shopee</a>' +
+        '<a href="' + authUrl + '" class="btn" target="_blank">Buka Halaman Login Shopee</a>' +
         '</div>' +
         '<div class="box">' +
         '<strong>Jika tombol tidak dapat diklik, salin URL ini:</strong><br>' +
@@ -523,7 +523,7 @@ function setupHourlyTrigger() {
     SheetManager.logActivity('TRIGGER_SETUP', 0, 'SUKSES', 'Trigger otomatis sinkronisasi 1 jam berhasil diaktifkan.');
     ui.alert(
       'Trigger Aktif',
-      '✅ Otomatisasi berjalan: Pesanan baru akan disinkronisasikan secara otomatis setiap 1 jam di latar belakang (background).',
+      'Otomatisasi berjalan: Pesanan baru akan disinkronisasikan secara otomatis setiap 1 jam di latar belakang (background).',
       ui.ButtonSet.OK
     );
   } catch (err) {
@@ -568,11 +568,11 @@ function checkMiddlewareHealth() {
 
     var cfg = res.config || {};
     var msg = 'Status Middleware: ' + res.status + '\n\n' +
-      '• Partner ID: ' + (cfg.partner_id_configured ? '✅ Terpasang' : '❌ BELUM DIISI di Vercel Env') + '\n' +
-      '• Partner Key: ' + (cfg.partner_key_configured ? '✅ Terpasang' : '❌ BELUM DIISI di Vercel Env') + '\n' +
-      '• Shop ID: ' + (cfg.shop_id_configured ? '✅ Terpasang' : '❌ BELUM DIISI di Vercel Env') + '\n' +
-      '• API Secret: ' + (cfg.api_secret_configured ? '✅ Terpasang' : '❌ BELUM DIISI di Vercel Env') + '\n' +
-      '• Redirect URI: ' + (cfg.redirect_uri_configured ? '✅ Terpasang' : '⚠️ Menggunakan Fallback Otomatis') + '\n\n' +
+      '• Partner ID: ' + (cfg.partner_id_configured ? '[OK] Terpasang' : '[BELUM DIISI] di Vercel Env') + '\n' +
+      '• Partner Key: ' + (cfg.partner_key_configured ? '[OK] Terpasang' : '[BELUM DIISI] di Vercel Env') + '\n' +
+      '• Shop ID: ' + (cfg.shop_id_configured ? '[OK] Terpasang' : '[BELUM DIISI] di Vercel Env') + '\n' +
+      '• API Secret: ' + (cfg.api_secret_configured ? '[OK] Terpasang' : '[BELUM DIISI] di Vercel Env') + '\n' +
+      '• Redirect URI: ' + (cfg.redirect_uri_configured ? '[OK] Terpasang' : '[INFO] Menggunakan Fallback Otomatis') + '\n\n' +
       res.message;
 
     ui.alert('Hasil Tes Koneksi Middleware', msg, ui.ButtonSet.OK);
@@ -621,7 +621,7 @@ function openDashboardNewTab() {
       '3. Pilih type "Web app".\n' +
       '4. Set "Execute as: Me" dan "Who has access: Anyone with Google account".\n' +
       '5. Klik "Deploy", lalu buka URL Web App di tab baru!\n\n' +
-      'Sementara itu, Anda tetap dapat menggunakan menu "🚀 Buka Web Dashboard (Layar Penuh)".',
+      'Sementara itu, Anda tetap dapat menggunakan menu "Buka Web Dashboard (Layar Penuh)".',
       ui.ButtonSet.OK
     );
     return;
@@ -640,9 +640,9 @@ function openDashboardNewTab() {
     '.btn { display: inline-block; padding: 12px 24px; background: #ea580c; color: white !important; font-weight: 600; text-decoration: none; border-radius: 8px; margin-top: 16px; box-shadow: 0 4px 12px rgba(234,88,12,0.3); }' +
     '.note { font-size: 11px; color: #94a3b8; margin-top: 14px; word-break: break-all; }' +
     '</style></head><body>' +
-    '<h3>🚀 Membuka Web Dashboard ERP Begood...</h3>' +
+    '<h3>Membuka Web Dashboard ERP Begood...</h3>' +
     '<p style="font-size: 13px; color: #cbd5e1;">Tab baru sedang dibuka. Jika jendela pop-up diblokir oleh browser, klik tombol di bawah:</p>' +
-    '<a href="' + webAppUrl + '" target="_blank" class="btn">🌐 Buka Dashboard di Tab Baru</a>' +
+    '<a href="' + webAppUrl + '" target="_blank" class="btn">Buka Dashboard di Tab Baru</a>' +
     '<div class="note">URL: ' + webAppUrl + '</div>' +
     '</body></html>';
 

@@ -41,14 +41,6 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
 
-    @keyframes pulse-subtle {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.85; transform: scale(1.02); }
-    }
-    .animate-pulse-subtle {
-      animation: pulse-subtle 3s infinite ease-in-out;
-    }
-
     /* Print Stylesheet */
     @media print {
       body * {
@@ -87,7 +79,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-extrabold text-base sm:text-lg text-white tracking-tight leading-none">ERP Begood</h1>
-            <span class="px-2 py-0.5 text-[10px] font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30 rounded-full tracking-wide">SHOPEE ID</span>
+            <span class="px-2 py-0.5 text-[10px] font-bold bg-orange-500/15 text-orange-400 border border-orange-500/30 rounded-md tracking-wide">SHOPEE ID</span>
           </div>
           <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
             <span>Toko: <strong class="text-slate-200 font-semibold">b e g o o d . b d g</strong></span>
@@ -108,7 +100,7 @@
 
         <!-- Token Status Pill -->
         <div id="badge-token" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300">
-          <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+          <i class="fa-solid fa-circle-notch fa-spin text-slate-400 text-[10px]"></i>
           <span>Cek Token...</span>
         </div>
 
@@ -130,13 +122,13 @@
         </div>
 
         <!-- Open in New Tab Button -->
-        <button onclick="handleOpenNewTab()" class="px-3 py-1.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-lg text-xs font-semibold shadow-sm shadow-orange-600/20 transition flex items-center gap-1.5" title="Buka website dashboard di tab peramban baru">
+        <button onclick="handleOpenNewTab()" class="px-3 py-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-lg text-xs font-semibold shadow-sm shadow-orange-600/20 transition flex items-center gap-1.5 min-h-[36px]" title="Buka website dashboard di tab peramban baru">
           <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
           <span class="hidden sm:inline">Buka di Tab Baru</span>
         </button>
 
         <!-- Refresh Button -->
-        <button onclick="loadDashboard(true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700 text-xs flex items-center gap-1.5" title="Muat Ulang Data">
+        <button onclick="loadDashboard(true)" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition border border-slate-700 text-xs flex items-center gap-1.5 min-h-[36px]" title="Muat Ulang Data">
           <i id="refresh-icon" class="fa-solid fa-rotate"></i>
           <span class="hidden md:inline">Refresh</span>
         </button>
@@ -147,7 +139,7 @@
   </header>
 
   <!-- ================= MAIN CONTAINER ================= -->
-  <main class="max-w-[1600px] mx-auto w-full p-3 sm:p-5 lg:p-6 flex-1 space-y-5">
+  <main class="max-w-[1600px] mx-auto w-full p-3 sm:p-5 lg:p-6 pb-12 sm:pb-8 flex-1 space-y-5">
 
     <!-- KPI STATS CARDS (Interactive Click-to-Filter) -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -180,7 +172,7 @@
       <!-- Siap Packing -->
       <div onclick="filterByQuickCard('Siap Packing')" class="bg-slate-900/90 hover:bg-orange-950/20 border border-orange-950/80 hover:border-orange-500/40 rounded-xl p-3.5 sm:p-4 shadow-sm relative overflow-hidden cursor-pointer transition group">
         <div class="text-orange-400 text-[11px] font-medium uppercase tracking-wider flex items-center gap-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-orange-400 animate-ping"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
           Siap Packing
         </div>
         <div class="text-2xl font-bold text-orange-400 mt-1" id="stat-siap-packing">0</div>
@@ -216,7 +208,7 @@
         <div class="text-lg sm:text-xl font-bold text-emerald-400 mt-1 truncate" id="stat-revenue">Rp 0</div>
         <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
           <span>Akumulasi Omzet</span>
-          <span class="text-[10px] text-slate-500 font-mono" id="stat-aov">AOV: -</span>
+          <span class="text-[10px] text-slate-400 font-mono" id="stat-aov">AOV: -</span>
         </div>
         <div class="absolute right-3 top-3 text-slate-800 text-2xl sm:text-3xl pointer-events-none">
           <i class="fa-solid fa-rupiah-sign"></i>
@@ -239,11 +231,11 @@
           
           <!-- Tombol Tarik Pesanan Masuk (Multi-day Selector) -->
           <div class="inline-flex rounded-lg shadow-sm overflow-hidden text-xs border border-orange-500/40">
-            <button onclick="triggerSyncWithSelectedDays()" id="btn-sync-action" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold transition flex items-center gap-1.5">
+            <button onclick="triggerSyncWithSelectedDays()" id="btn-sync-action" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold transition flex items-center gap-1.5 min-h-[38px]">
               <i class="fa-solid fa-cloud-arrow-down" id="icon-sync-main"></i>
               <span id="label-sync-btn">Tarik Pesanan (3 Hari)</span>
             </button>
-            <select id="select-sync-days" onchange="handleSyncDropdownChange(this.value)" class="bg-orange-700 hover:bg-orange-600 text-white font-semibold px-2.5 py-2 outline-none border-l border-orange-500/40 cursor-pointer text-xs">
+            <select id="select-sync-days" onchange="handleSyncDropdownChange(this.value)" class="bg-orange-700 hover:bg-orange-600 text-white font-semibold px-2.5 py-2 outline-none border-l border-orange-500/40 cursor-pointer text-xs min-h-[38px]">
               <option value="1">1 Hari (Hari Ini)</option>
               <option value="3" selected>3 Hari Terakhir</option>
               <option value="7">7 Hari (1 Minggu)</option>
@@ -258,31 +250,31 @@
           </div>
 
           <!-- Tombol Cari Order SN -->
-          <button onclick="promptSyncBySn()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5" title="Tarik pesanan spesifik berdasarkan Order SN">
+          <button onclick="promptSyncBySn()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5 min-h-[38px]" title="Tarik pesanan spesifik berdasarkan Order SN">
             <i class="fa-solid fa-magnifying-glass text-cyan-400"></i>
             <span>Cari Order SN</span>
           </button>
 
           <!-- Tombol Export CSV -->
-          <button onclick="exportTableToCSV()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5" title="Ekspor data pesanan saat ini ke file CSV">
+          <button onclick="exportTableToCSV()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5 min-h-[38px]" title="Ekspor data pesanan saat ini ke file CSV">
             <i class="fa-solid fa-file-csv text-emerald-400"></i>
             <span>Ekspor CSV</span>
           </button>
 
           <!-- Tombol Otorisasi Shopee -->
-          <button onclick="openAuthModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+          <button onclick="openAuthModal()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5 min-h-[38px]">
             <i class="fa-solid fa-key text-amber-400"></i>
             <span class="hidden sm:inline">Otorisasi</span>
           </button>
 
           <!-- Tombol Refresh Token -->
-          <button onclick="triggerRefreshToken()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5" title="Perbarui Access Token Shopee">
+          <button onclick="triggerRefreshToken()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5 min-h-[38px]" title="Perbarui Access Token Shopee">
             <i class="fa-solid fa-arrows-rotate text-teal-400"></i>
             <span class="hidden sm:inline">Refresh Token</span>
           </button>
 
           <!-- Toggle Trigger 1 Jam -->
-          <button onclick="toggleTriggerState()" id="btn-toggle-trigger" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5" title="Otomatisasi sinkronisasi tiap 1 jam di Google Apps Script">
+          <button onclick="toggleTriggerState()" id="btn-toggle-trigger" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition flex items-center gap-1.5 min-h-[38px]" title="Otomatisasi sinkronisasi tiap 1 jam di Google Apps Script">
             <i class="fa-solid fa-power-off text-slate-400" id="icon-trigger-toggle"></i>
             <span id="text-trigger-toggle">Auto-Sync (1 Jam)</span>
           </button>
@@ -347,8 +339,8 @@
         
         <!-- Live Instant Search Input -->
         <div class="relative flex-1 min-w-[260px] max-w-lg">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
-          <input type="text" id="order-search" oninput="filterOrdersTable()" placeholder="Cari No. Pesanan, Pembeli, Produk, SKU, Resi, Kurir, Kota..." class="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+          <input type="text" id="order-search" oninput="filterOrdersTable()" placeholder="Cari No. Pesanan, Pembeli, Produk, SKU, Resi, Kurir, Kota..." class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition min-h-[38px]">
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -356,7 +348,7 @@
           <!-- Filter Status Internal Begood -->
           <div class="flex items-center gap-1.5">
             <span class="text-slate-400 text-[11px]">Status Begood:</span>
-            <select id="filter-status" onchange="filterOrdersTable()" class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500">
+            <select id="filter-status" onchange="filterOrdersTable()" class="px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 min-h-[38px]">
               <option value="ALL">Semua Status</option>
               <option value="Siap Packing">Siap Packing</option>
               <option value="Pickup">Menunggu Pickup</option>
@@ -369,7 +361,7 @@
           <!-- Filter Kurir Ekspedisi -->
           <div class="flex items-center gap-1.5">
             <span class="text-slate-400 text-[11px]">Kurir:</span>
-            <select id="filter-courier" onchange="filterOrdersTable()" class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500">
+            <select id="filter-courier" onchange="filterOrdersTable()" class="px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 min-h-[38px]">
               <option value="ALL">Semua Kurir</option>
             </select>
           </div>
@@ -377,7 +369,7 @@
           <!-- Sort Selector -->
           <div class="flex items-center gap-1.5">
             <span class="text-slate-400 text-[11px]">Urutkan:</span>
-            <select id="sort-orders" onchange="filterOrdersTable()" class="px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500">
+            <select id="sort-orders" onchange="filterOrdersTable()" class="px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 min-h-[38px]">
               <option value="NEWEST">Tanggal Terbaru</option>
               <option value="OLDEST">Tanggal Terlama</option>
               <option value="AMOUNT_DESC">Nominal Terbesar</option>
@@ -387,7 +379,7 @@
 
           <!-- Items Per Page -->
           <div class="flex items-center gap-1.5">
-            <select id="items-per-page" onchange="changePageSize(this.value)" class="px-2 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500">
+            <select id="items-per-page" onchange="changePageSize(this.value)" class="px-2 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-orange-500 min-h-[38px]">
               <option value="15">15 / hal</option>
               <option value="25" selected>25 / hal</option>
               <option value="50">50 / hal</option>
@@ -422,12 +414,12 @@
             </thead>
             <tbody id="orders-tbody" class="divide-y divide-slate-800/60 font-mono text-xs">
               <tr>
-                <td colspan="10" class="text-center py-12 text-slate-500 font-sans">
+                <td colspan="10" class="text-center py-12 text-slate-400 font-sans">
                   <div class="inline-block p-3 rounded-full bg-slate-800/50 mb-3 text-orange-400">
                     <i class="fa-solid fa-spinner fa-spin text-xl"></i>
                   </div>
-                  <div class="text-slate-300 font-medium">Memuat data pesanan dari Google Sheets...</div>
-                  <div class="text-xs text-slate-500 mt-1">Mengambil riwayat transaksi terbaru beserta SKU, Variasi, dan Nomor Resi asli.</div>
+                  <div class="text-slate-200 font-medium">Memuat data pesanan dari Google Sheets...</div>
+                  <div class="text-xs text-slate-400 mt-1">Mengambil riwayat transaksi terbaru beserta SKU, Variasi, dan Nomor Resi asli.</div>
                 </td>
               </tr>
             </tbody>
@@ -456,11 +448,11 @@
             <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
               <i class="fa-solid fa-truck-moving text-sky-400"></i> Distribusi Jasa Ekspedisi / Kurir
             </h3>
-            <span class="text-xs text-slate-500 font-mono">Berdasarkan Pesanan Unik</span>
+            <span class="text-xs text-slate-400 font-mono">Berdasarkan Pesanan Unik</span>
           </div>
           
           <div id="analytics-courier-list" class="space-y-3">
-            <div class="text-slate-500 text-xs py-4 text-center">Memuat statistik ekspedisi...</div>
+            <div class="text-slate-400 text-xs py-4 text-center">Memuat statistik ekspedisi...</div>
           </div>
         </div>
 
@@ -470,11 +462,11 @@
             <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
               <i class="fa-solid fa-ranking-star text-amber-400"></i> Top 5 SKU Produk Terlaris
             </h3>
-            <span class="text-xs text-slate-500 font-mono">Total Kuantitas</span>
+            <span class="text-xs text-slate-400 font-mono">Total Kuantitas</span>
           </div>
 
           <div id="analytics-sku-list" class="space-y-3">
-            <div class="text-slate-500 text-xs py-4 text-center">Memuat statistik produk terlaris...</div>
+            <div class="text-slate-400 text-xs py-4 text-center">Memuat statistik produk terlaris...</div>
           </div>
         </div>
 
@@ -513,7 +505,7 @@
             <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
               <i class="fa-solid fa-key text-amber-400"></i> Status Kredensial Token Shopee
             </h3>
-            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-800 text-slate-300" id="info-token-badge">OAUTH 2.0</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-md font-bold bg-slate-800 text-slate-300" id="info-token-badge">OAUTH 2.0</span>
           </div>
 
           <div class="space-y-2.5 text-xs">
@@ -536,10 +528,10 @@
           </div>
 
           <div class="pt-2 flex flex-wrap gap-2">
-            <button onclick="triggerRefreshToken()" class="flex-1 min-w-[140px] py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20">
+            <button onclick="triggerRefreshToken()" class="flex-1 min-w-[140px] py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 min-h-[38px]">
               <i class="fa-solid fa-rotate"></i> Refresh Token Sekarang
             </button>
-            <button onclick="openAuthModal()" class="flex-1 min-w-[140px] py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5">
+            <button onclick="openAuthModal()" class="flex-1 min-w-[140px] py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 min-h-[38px]">
               <i class="fa-solid fa-link"></i> Otorisasi Toko Baru
             </button>
           </div>
@@ -554,7 +546,7 @@
           
           <textarea id="paste-token-input" rows="4" placeholder='{"shop_id": 1564950615, "access_token": "...", "refresh_token": "..."}' class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg font-mono text-xs text-slate-300 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"></textarea>
 
-          <button onclick="savePastedToken()" class="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-sm shadow-orange-600/20">
+          <button onclick="savePastedToken()" class="w-full py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-lg text-xs transition flex items-center justify-center gap-1.5 shadow-sm shadow-orange-600/20 min-h-[38px]">
             <i class="fa-solid fa-floppy-disk"></i> Simpan Token ke DB_Token
           </button>
         </div>
@@ -565,22 +557,25 @@
             <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
               <i class="fa-solid fa-server text-sky-400"></i> Infrastruktur Serverless Middleware
             </h3>
-            <button onclick="checkPing()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5">
+            <button onclick="checkPing()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1.5 min-h-[36px]">
               <i class="fa-solid fa-heart-pulse text-emerald-400"></i> Tes Koneksi (Ping)
             </button>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div class="p-3 bg-slate-950 rounded-lg border border-slate-800">
-              <span class="text-slate-500 block text-[11px]">Domain Middleware Vercel:</span>
+              <span class="text-slate-400 block text-[11px]">Domain Middleware Vercel:</span>
               <span class="font-mono text-slate-200 font-semibold break-all" id="info-vercel-url">-</span>
             </div>
             <div class="p-3 bg-slate-950 rounded-lg border border-slate-800">
-              <span class="text-slate-500 block text-[11px]">Proteksi API Secret:</span>
-              <span class="font-semibold text-emerald-400" id="info-secret-status">✅ Terlindungi (x-begood-secret)</span>
+              <span class="text-slate-400 block text-[11px]">Proteksi API Secret:</span>
+              <span class="font-semibold text-emerald-400 flex items-center gap-1.5" id="info-secret-status">
+                <i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i>
+                Terlindungi (x-begood-secret)
+              </span>
             </div>
             <div class="p-3 bg-slate-950 rounded-lg border border-slate-800">
-              <span class="text-slate-500 block text-[11px]">Otorisasi Live Redirect Domain:</span>
+              <span class="text-slate-400 block text-[11px]">Otorisasi Live Redirect Domain:</span>
               <span class="font-mono text-slate-300">Base Domain Valid</span>
             </div>
           </div>
@@ -605,7 +600,7 @@
             </thead>
             <tbody id="logs-tbody" class="divide-y divide-slate-800/60 font-mono text-xs">
               <tr>
-                <td colspan="5" class="text-center py-8 text-slate-500 font-sans">Belum ada riwayat aktivitas sistem.</td>
+                <td colspan="5" class="text-center py-8 text-slate-400 font-sans">Belum ada riwayat aktivitas sistem.</td>
               </tr>
             </tbody>
           </table>
@@ -641,15 +636,15 @@
         <!-- Info Grid -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Pembeli</span>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Pembeli</span>
             <span class="font-bold text-slate-200 truncate block mt-0.5" id="modal-buyer">-</span>
           </div>
           <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Kota Tujuan</span>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kota Tujuan</span>
             <span class="font-semibold text-slate-200 truncate block mt-0.5" id="modal-city">-</span>
           </div>
           <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
-            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Tanggal Pesan (WIB)</span>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Tanggal Pesan (WIB)</span>
             <span class="font-mono text-slate-300 block mt-0.5" id="modal-date">-</span>
           </div>
         </div>
@@ -657,7 +652,7 @@
         <!-- Ekspedisi & Resi Card -->
         <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Jasa Ekspedisi & Nomor Resi</span>
+            <span class="text-slate-400 block text-[10px] uppercase font-semibold">Jasa Ekspedisi & Nomor Resi</span>
             <div class="flex items-center gap-2 mt-0.5">
               <span class="font-bold text-slate-200" id="modal-courier">-</span>
               <span class="text-slate-600">•</span>
@@ -665,10 +660,10 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="copyModalResi()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1">
+            <button onclick="copyModalResi()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition flex items-center gap-1 min-h-[36px]">
               <i class="fa-regular fa-copy"></i> Salin Resi
             </button>
-            <a id="modal-track-link" href="#" target="_blank" class="px-2.5 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-lg text-xs font-medium transition flex items-center gap-1">
+            <a id="modal-track-link" href="#" target="_blank" class="px-2.5 py-1.5 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-lg text-xs font-medium transition flex items-center gap-1 min-h-[36px]">
               <i class="fa-solid fa-location-dot"></i> Lacak
             </a>
           </div>
@@ -686,14 +681,14 @@
         <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 flex justify-between items-center text-xs">
           <div>
             <span class="text-slate-400 block">Total Pembayaran Belanja:</span>
-            <span class="text-slate-500 text-[11px]" id="modal-shipping-fee">Ongkir: Rp 0</span>
+            <span class="text-slate-400 text-[11px]" id="modal-shipping-fee">Ongkir: Rp 0</span>
           </div>
           <div class="text-base font-extrabold text-emerald-400 font-mono" id="modal-total-amount">Rp 0</div>
         </div>
 
         <!-- Catatan Pembeli -->
         <div class="p-3.5 bg-slate-950 rounded-xl border border-slate-800/80 space-y-1">
-          <span class="text-slate-500 block text-[10px] uppercase font-semibold">Catatan dari Pembeli</span>
+          <span class="text-slate-400 block text-[10px] uppercase font-semibold">Catatan dari Pembeli</span>
           <div class="text-slate-300 italic" id="modal-note">(Tidak ada catatan khusus dari pembeli)</div>
         </div>
 
@@ -701,10 +696,10 @@
         <div class="p-3.5 bg-slate-950 rounded-xl border border-orange-500/30 space-y-2">
           <span class="text-orange-400 font-bold block text-xs">Ubah Status Operasional Internal Gudang:</span>
           <div class="flex gap-2">
-            <select id="modal-status-select" class="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:border-orange-500 focus:outline-none">
+            <select id="modal-status-select" class="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:border-orange-500 focus:outline-none min-h-[38px]">
               <!-- Filled via JS -->
             </select>
-            <button onclick="saveStatusFromModal()" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm shadow-orange-600/20">
+            <button onclick="saveStatusFromModal()" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm shadow-orange-600/20 min-h-[38px]">
               <i class="fa-solid fa-check"></i> Simpan
             </button>
           </div>
@@ -982,7 +977,7 @@
       let cHtml = '';
       const cKeys = Object.keys(stats).sort((a, b) => stats[b] - stats[a]);
       if (cKeys.length === 0) {
-        cHtml = '<div class="text-slate-500 text-xs text-center py-4">Belum ada data ekspedisi.</div>';
+        cHtml = '<div class="text-slate-400 text-xs text-center py-4">Belum ada data ekspedisi.</div>';
       } else {
         cKeys.forEach(k => {
           const count = stats[k];
@@ -1005,7 +1000,7 @@
       // SKU Ranking List
       let sHtml = '';
       if (topSkus.length === 0) {
-        sHtml = '<div class="text-slate-500 text-xs text-center py-4">Belum ada data SKU terdaftar.</div>';
+        sHtml = '<div class="text-slate-400 text-xs text-center py-4">Belum ada data SKU terdaftar.</div>';
       } else {
         topSkus.forEach((item, idx) => {
           sHtml += `
@@ -1084,10 +1079,10 @@
       if (total === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="10" class="text-center py-12 text-slate-500 font-sans">
+            <td colspan="10" class="text-center py-12 text-slate-400 font-sans">
               <i class="fa-solid fa-magnifying-glass text-2xl text-slate-600 mb-2"></i>
               <div class="text-slate-300 font-medium">Tidak ada pesanan yang sesuai dengan filter.</div>
-              <div class="text-xs text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau status filter.</div>
+              <div class="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau status filter.</div>
             </td>
           </tr>
         `;
@@ -1131,7 +1126,7 @@
             <td class="py-3 px-3.5 whitespace-nowrap">
               <div class="flex items-center gap-1.5">
                 <span class="font-bold text-slate-100">${ord.orderSn}</span>
-                <button onclick="copyToClipboard('${ord.orderSn}', 'Nomor Pesanan disalin!')" class="text-slate-500 hover:text-slate-300 opacity-0 group-hover:opacity-100 transition p-0.5" title="Salin No. Pesanan">
+                <button onclick="copyToClipboard('${ord.orderSn}', 'Nomor Pesanan disalin!')" class="text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition p-0.5" title="Salin No. Pesanan">
                   <i class="fa-regular fa-copy text-[11px]"></i>
                 </button>
               </div>
@@ -1139,7 +1134,7 @@
             <td class="py-3 px-3 text-slate-400 whitespace-nowrap text-[11px]">${ord.date || '-'}</td>
             <td class="py-3 px-3 whitespace-nowrap">
               <div class="font-semibold text-slate-200 truncate max-w-[140px]" title="${ord.buyer}">${ord.buyer || '-'}</div>
-              <div class="text-[10px] text-slate-500 truncate max-w-[140px]">${ord.city || '-'}</div>
+              <div class="text-[10px] text-slate-400 truncate max-w-[140px]">${ord.city || '-'}</div>
             </td>
             <td class="py-3 px-3 text-slate-300 font-sans text-xs">
               <div class="line-clamp-2 font-medium" title="${ord.items}">${ord.items || '-'}</div>
@@ -1151,11 +1146,11 @@
             </td>
             <td class="py-3 px-3 text-emerald-400 font-bold whitespace-nowrap">
               ${amountStr}
-              ${ord.shippingFee ? `<div class="text-[10px] text-slate-500 font-normal">Ongkir: Rp ${ord.shippingFee.toLocaleString('id-ID')}</div>` : ''}
+              ${ord.shippingFee ? `<div class="text-[10px] text-slate-400 font-normal">Ongkir: Rp ${ord.shippingFee.toLocaleString('id-ID')}</div>` : ''}
             </td>
             <td class="py-3 px-3 whitespace-nowrap text-[11px]">
               <div class="font-semibold text-slate-200">${ord.courier || '-'}</div>
-              <div class="text-[11px] font-mono flex items-center gap-1 ${ord.resi && ord.resi !== '-' ? 'text-emerald-400 font-semibold' : 'text-slate-500'}">
+              <div class="text-[11px] font-mono flex items-center gap-1 ${ord.resi && ord.resi !== '-' ? 'text-emerald-400 font-semibold' : 'text-slate-400'}">
                 <span>${ord.resi && ord.resi !== '-' ? ord.resi : '(Belum Ada Resi)'}</span>
                 ${ord.resi && ord.resi !== '-' ? `
                   <button onclick="copyToClipboard('${ord.resi}', 'Nomor Resi disalin!')" class="text-slate-400 hover:text-slate-200 transition" title="Salin Resi">
@@ -1243,7 +1238,7 @@
     function renderLogsTable(logs) {
       const tbody = document.getElementById('logs-tbody');
       if (!logs || logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-500 font-sans">Belum ada riwayat aktivitas sistem.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400 font-sans">Belum ada riwayat aktivitas sistem.</td></tr>';
         return;
       }
 
@@ -1294,7 +1289,7 @@
         alert(
           'Membuka di Tab Baru:\n\n' +
           '1. Jika Apps Script sudah di-deploy sebagai Web App, Anda dapat menyalin URL Web App dan membukanya langsung di tab baru.\n' +
-          '2. Atau di Google Sheets, klik menu: "📦 ERP Begood" > "🌐 Buka Web Dashboard (Tab Baru)".'
+          '2. Atau di Google Sheets, klik menu: "ERP Begood" > "Buka Web Dashboard (Tab Baru)".'
         );
       }
     }
@@ -1594,19 +1589,19 @@
 
             <div class="grid grid-cols-2 gap-4 py-3 border-b border-slate-300 text-xs">
               <div>
-                <span class="text-[10px] text-slate-500 uppercase font-bold block">Penerima</span>
+                <span class="text-[10px] text-slate-600 uppercase font-bold block">Penerima</span>
                 <strong class="text-sm block">${ord.buyer || '-'}</strong>
                 <div class="text-slate-700">${ord.city || '-'}</div>
               </div>
               <div class="text-right">
-                <span class="text-[10px] text-slate-500 uppercase font-bold block">Kurir / Ekspedisi</span>
+                <span class="text-[10px] text-slate-600 uppercase font-bold block">Kurir / Ekspedisi</span>
                 <strong class="text-sm block">${ord.courier || '-'}</strong>
                 <div class="font-mono font-bold text-sm text-slate-900">${ord.resi && ord.resi !== '-' ? ord.resi : '(RESI PENDING)'}</div>
               </div>
             </div>
 
             <div class="py-3">
-              <span class="text-[10px] text-slate-500 uppercase font-bold block mb-1.5">Daftar Barang (Item Checklist)</span>
+              <span class="text-[10px] text-slate-600 uppercase font-bold block mb-1.5">Daftar Barang (Item Checklist)</span>
               <table class="w-full text-left text-xs border border-slate-300">
                 <thead class="bg-slate-100 font-bold border-b border-slate-300">
                   <tr>
@@ -1635,7 +1630,7 @@
               </div>
             ` : ''}
 
-            <div class="mt-4 pt-2 border-t border-slate-200 flex justify-between text-[10px] text-slate-500">
+            <div class="mt-4 pt-2 border-t border-slate-200 flex justify-between text-[10px] text-slate-600">
               <span>Status: ${ord.internalStatus || 'Siap Packing'}</span>
               <span>Dicetak: ${new Date().toLocaleString('id-ID')}</span>
             </div>

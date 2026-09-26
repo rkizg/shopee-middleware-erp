@@ -12,9 +12,9 @@ Dokumen ini menjelaskan cara men-deploy proyek serverless middleware ERP Begood 
 
 ## Opsi 1: Deploy Cepat Menggunakan Vercel CLI (Disarankan)
 
-1. **Buka Terminal di Direktori Middleware**:
+1. **Buka Terminal di Direktori Proyek**:
    ```bash
-   cd "/Users/macbook/Documents/ERP Begood/middleware"
+   cd "/Users/macbook/Documents/ERP Begood"
    ```
 
 2. **Login ke Akun Vercel**:
@@ -23,43 +23,31 @@ Dokumen ini menjelaskan cara men-deploy proyek serverless middleware ERP Begood 
    ```
    Ikuti petunjuk di terminal untuk memverifikasi via browser.
 
-3. **Inisialisasi & Deploy ke Preview**:
-   ```bash
-   npx vercel
-   ```
-   Jawab pertanyaan konfigurasi Vercel:
-   - *Set up and deploy?* → **y**
-   - *Which scope?* → Pilih akun/tim Vercel Anda.
-   - *Link to existing project?* → **n**
-   - *What's your project's name?* → **begood-shopee-erp** (atau nama pilihan Anda).
-   - *In which directory is your code located?* → `./`
-   - *Want to modify settings?* → **n**
-
-4. **Deploy ke Lingkungan Produksi (Production)**:
+3. **Deploy ke Lingkungan Produksi (Production)**:
    ```bash
    npx vercel --prod
    ```
-   Setelah selesai, Anda akan mendapatkan URL produksi (misal: `https://begood-shopee-erp.vercel.app`).
+   Setelah selesai, proyek Anda terhubung ke domain:
+   ```text
+   https://shopee-middleware-erp.vercel.app
+   ```
+
+> ⚠️ **PENTING - Pengaturan Root Directory di Vercel:**
+> Pastikan di dashboard Vercel (**Settings** > **General** > **Root Directory**) diatur ke:
+> `middleware`
+> Ini memastikan Vercel menemukan folder `api/` dan file `package.json` middleware tanpa memicu error 404.
 
 ---
 
 ## Opsi 2: Deploy Melalui Git Repository (GitHub)
 
-1. Buat repositori baru di GitHub (misal: `erp-begood`).
-2. Masukkan direktori proyek ke Git dan dorong (push) ke GitHub:
-   ```bash
-   cd "/Users/macbook/Documents/ERP Begood"
-   git init
-   git add .
-   git commit -m "feat: inisiasi erp begood middleware dan gas"
-   git branch -M main
-   git remote add origin https://github.com/<username>/<nama-repo>.git
-   git push -u origin main
-   ```
-3. Buka dashboard [Vercel](https://vercel.com/new).
-4. Klik **Import Project** dari repositori GitHub Anda.
-5. Pada bagian **Root Directory**, pilih folder `middleware`.
-6. Klik **Deploy**.
+Repositori resmi proyek ini terhubung ke:
+`https://github.com/rkizg/shopee-middleware-erp.git`
+
+Jika melakukan clone baru:
+1. Hubungkan repo ke Vercel via **Import Project**.
+2. Pada bagian **Root Directory**, masukkan: `middleware`.
+3. Klik **Deploy**.
 
 ---
 
@@ -74,9 +62,9 @@ Setelah proyek terdaftar di Vercel, atur variabel lingkungan agar middleware dap
 |---|---|---|
 | `SHOPEE_PARTNER_ID` | `1005234` | Partner ID dari Shopee Console |
 | `SHOPEE_PARTNER_KEY` | `4b71a2c8...` | Partner Key dari Shopee Console |
-| `SHOPEE_SHOP_ID` | `987654321` | ID Toko `b e g o o d . b d g` |
+| `SHOPEE_SHOP_ID` | `1564950615` | ID Toko `b e g o o d . b d g` |
 | `SHOPEE_REGION` | `GLOBAL` | Default Shopee Indonesia |
-| `SHOPEE_REDIRECT_URI` | `https://begood-shopee-erp.vercel.app/api/auth/callback` | Callback URL aplikasi Vercel |
+| `SHOPEE_REDIRECT_URI` | `https://shopee-middleware-erp.vercel.app/api/auth/callback` | Callback URL aplikasi Vercel |
 | `BEGOOD_API_SECRET` | `begood_secret_pass_2026` | Token otentikasi antara GAS & Vercel |
 
 3. Klik **Save**.
@@ -89,7 +77,7 @@ Setelah proyek terdaftar di Vercel, atur variabel lingkungan agar middleware dap
 Setelah deploy selesai, Anda dapat memverifikasi status middleware melalui peramban:
 
 1. **Cek Status Kesehatan Server**:
-   Akses `https://<domain-vercel-anda>/api/health`.
+   Akses `https://shopee-middleware-erp.vercel.app/api/health`.
    Jika konfigurasi lengkap, respons JSON akan menampilkan:
    ```json
    {
@@ -99,5 +87,5 @@ Setelah deploy selesai, Anda dapat memverifikasi status middleware melalui peram
    ```
 
 2. **Cek Pembuatan URL Otorisasi**:
-   Akses `https://<domain-vercel-anda>/api/auth/url?secret=<BEGOOD_API_SECRET>`.
+   Akses `https://shopee-middleware-erp.vercel.app/api/auth/url?secret=begood_secret_pass_2026`.
    Middleware akan mengembalikan URL resmi Shopee yang siap digunakan.

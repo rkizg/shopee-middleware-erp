@@ -34,7 +34,7 @@ Modul Google Apps Script ini bertindak sebagai antarmuka pengguna (UI), basis da
      - Klik **Review Permissions** > pilih akun Google Anda.
      - Klik **Advanced** > klik **Go to ERP Begood (unsafe)** > klik **Allow**.
    - Sistem akan secara otomatis membuat 4 sheet terformat:
-     - `Pesanan Masuk`: Tabel data order lengkap dengan dropdown status internal.
+     - `Pesanan Masuk`: Tabel data order 16 kolom terstruktur (dilengkapi Nomor Referensi SKU, Nama Variasi, Nomor Resi asli, pemecahan baris per-item produk, dan dropdown status internal).
      - `DB_Token`: Tabel penyimpanan token OAuth2 Shopee yang aman.
      - `Konfigurasi`: Tabel variabel URL Vercel & kunci rahasia.
      - `Log_Aktivitas`: Tabel audit log penarikan pesanan & refresh token.

@@ -44,15 +44,15 @@ Setelah aplikasi dibuat:
 
 ---
 
-## 4. Mendaftarkan Redirect URL (Callback URL)
+## 4. Mendaftarkan Live Redirect URL Domain
 
 Agar alur OAuth2 dapat mengembalikan kode otorisasi ke middleware:
-1. Di halaman detail aplikasi Shopee Console, buka tab **App Setting** > **Redirect URL**.
-2. Masukkan alamat URL callback middleware Vercel Anda:
+1. Di halaman detail aplikasi Shopee Console, buka tab **App Setting** > **Redirect URL** / **Live Redirect URL Domain**.
+2. **PENTING**: Menurut panduan resmi Shopee Open Platform, Anda **HANYA** boleh memasukkan domain dasar (*base domain*). Jangan menambahkan path seperti `/api/auth/callback` atau nomor port.
+   ```text
+   https://shopee-middleware-erp.vercel.app/
    ```
-   https://<nama-proyek-vercel-anda>.vercel.app/api/auth/callback
-   ```
-   *(Ganti `<nama-proyek-vercel-anda>` dengan domain yang diberikan setelah Anda deploy ke Vercel).*
+   *(Ganti dengan domain proyek Vercel Anda, dan pastikan diakhiri dengan tanda garis miring `/` tanpa path tambahan).*
 3. Klik **Save** / **Submit**.
 
 ---

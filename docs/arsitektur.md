@@ -76,30 +76,40 @@ Jika token yang tersimpan di spreadsheet telah kedaluwarsa atau mendekati waktu 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Trigger as Trigger GAS (Berkala 1 Jam)
+    participant Trigger as Trigger GAS (Berkala 1 Jam) / UI
     participant Sheet as Google Sheets (Pesanan Masuk & DB_Token)
     participant Vercel as Vercel Middleware (/api/orders/daily)
-    participant Shopee as Shopee Open API v2
+    participant ShopeeOrder as Shopee Order API
+    participant ShopeeLogistics as Shopee Logistics API
 
     Trigger->>Sheet: Baca Token Terakhir dari DB_Token
-    Trigger->>Vercel: POST /api/orders/daily { access_token, refresh_token, shop_id }
+    Trigger->>Vercel: POST /api/orders/daily { access_token, time_from, time_to, shop_id }
     
-    alt Token Sudah Kedaluwarsa
-        Vercel->>Shopee: POST /api/v2/auth/access_token/get (Refresh Token)
-        Shopee-->>Vercel: Return Token Baru
+    alt Token Sudah / Mendekati Kedaluwarsa
+        Vercel->>ShopeeOrder: POST /api/v2/auth/access_token/get (Refresh Token)
+        ShopeeOrder-->>Vercel: Return Token Baru
     end
 
-    Vercel->>Shopee: GET /api/v2/order/get_order_list (Pagination)
-    Shopee-->>Vercel: List Order SN
-    Vercel->>Shopee: GET /api/v2/order/get_order_detail (Batch 50 Orders)
-    Shopee-->>Vercel: Data Detail Lengkap (Item, Kurir, Resi, Alamat)
-    Vercel-->>Trigger: Return { orders: [...], new_token: {...} }
+    loop Chunking 14 Hari (create_time & update_time)
+        Vercel->>ShopeeOrder: GET /api/v2/order/get_order_list (cursor pagination)
+        ShopeeOrder-->>Vercel: Array of Order SNs
+    end
+
+    Note over Vercel,ShopeeOrder: Concurrency Batch (asyncPool x3) dengan order_sn_list string koma
+    Vercel->>ShopeeOrder: GET /api/v2/order/get_order_detail (limit 50 SNs per call)
+    ShopeeOrder-->>Vercel: Detail Lengkap (Items, SKU, Variasi, Package List)
+
+    Note over Vercel,ShopeeLogistics: Batching Pelacakan Resi (50 paket per call)
+    Vercel->>ShopeeLogistics: POST /api/v2/logistics/get_mass_tracking_number { package_list }
+    ShopeeLogistics-->>Vercel: Tracking Numbers Asli (SPX, J&T, SiCepat, dll)
+
+    Vercel-->>Trigger: Return { orders: [ ... ], new_token: { ... } }
 
     opt Ada Token Baru (Refreshed)
         Trigger->>Sheet: Update DB_Token dengan Access Token Baru
     end
 
-    Trigger->>Sheet: Upsert Data ke "Pesanan Masuk" (Cegah Duplikasi)
+    Trigger->>Sheet: In-Memory Batch Upsert (Multi-Item Row Expansion ke "Pesanan Masuk")
     Trigger->>Sheet: Catat ke "Log_Aktivitas"
 ```
 
@@ -112,6 +122,8 @@ sequenceDiagram
 2. **Kredensial Serverless Terisolasi**:
    `SHOPEE_PARTNER_KEY` tidak pernah disimpan di Google Spreadsheet maupun terekspos ke klien; kunci utama disimpan aman di Environment Variables Vercel.
 3. **Penyimpanan Plain Text Nomor Penting**:
-   Kolom Nomor Pesanan dan Nomor Resi diatur berformat teks (`@`) pada spreadsheet untuk mencegah konversi angka besar menjadi notasi ilmiah (misal: `2.60925E+13`).
-4. **Proteksi Perubahan Manual**:
-   Fungsi upsert pesanan memeriksa apakah nomor pesanan sudah ada. Jika sudah ada, sistem hanya memperbarui status Shopee, ongkir, dan resi tanpa menimpa status internal atau catatan yang telah diedit oleh tim operasional gudang.
+   Kolom Nomor Pesanan, Nomor Referensi SKU, dan Nomor Resi diatur berformat teks (`@`) pada spreadsheet untuk mencegah konversi angka besar menjadi notasi ilmiah (misal: `2.60925E+13`).
+4. **Proteksi Perubahan Manual (Smart Upsert)**:
+   Fungsi upsert pesanan memeriksa apakah nomor pesanan sudah ada. Jika sudah ada, sistem hanya memperbarui status Shopee, ekspedisi, dan resi tanpa menimpa status internal atau catatan yang telah diedit oleh tim operasional gudang.
+5. **In-Memory Batch Writing**:
+   Seluruh data baris dibaca, dimodifikasi, dan ditulis ke spreadsheet dalam array 2D in-memory (bukan cell-by-cell). Proses ratusan hingga ribuan baris selesai dalam 1 detik tanpa memicu batas waktu eksekusi Google Apps Script (6 menit limit).

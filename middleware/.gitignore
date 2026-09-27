@@ -7,3 +7,5 @@ lib/
 *.log
 .DS_Store
 .env*
+# Template env tetap dilacak agar orang lain yang meng-clone mendapat contohnya
+!.env.example

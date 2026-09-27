@@ -115,6 +115,33 @@ sequenceDiagram
 
 ---
 
+## 🎨 Tampilan Dashboard dan Arah Desainnya
+
+Halaman dashboard berada di satu berkas, `gas/Index.html`. Di bagian paling atas berkas itu ada blok **DESIGN READ**: arahan tertulis yang diikuti markup di bawahnya. Blok itu memuat tiga dial (ENERGY, RHYTHM, MOTION), bahasa visualnya, dan motif identitasnya. Setiap perubahan tampilan yang besar sebaiknya memperbarui blok itu lebih dulu, karena blok itu yang membuat keputusan desain dapat diperiksa, bukan hanya dirasakan.
+
+| Keputusan | Isinya | Alasan |
+|---|---|---|
+| Dua bidang | Kerangka gelap untuk navigasi, bidang terang untuk data | Mata tahu ia sedang berada di mana tanpa harus membaca, dan data selalu ada di bidang yang paling terang |
+| Kartu di atas abu | Kartu putih di atas `#f3f4f6`, bukan di atas putih | Kartu putih di atas latar putih tidak terbaca sebagai kartu |
+| Tiga radius | Kendali 8px, permukaan kartu 12px, lencana bulat penuh | Bentuk yang berbeda memberi tahu benda apa itu. Lencana yang bulat tidak terbaca sebagai tombol |
+| Grafik monokrom | Batang hitam pekat, tanpa warna | Warna sudah dipakai untuk menandai keadaan. Grafik yang berwarna-warni membuat keadaan kehilangan tandanya |
+| Hijau dan merah terbatas | Hanya pada status dan arah angka | Peringatan yang muncul di mana-mana berhenti menjadi peringatan |
+| Satu aksen | Oranye merek, hanya pada tanda merek di sidebar | Warna itu sudah tercetak di setiap label produk toko |
+| Bayangan berhemat | Kartu memakai bayangan halus, modal dan bilah atas memakai bayangan angkat | Kalau semuanya mengambang, tidak ada yang benar-benar menonjol |
+| Mode gelap tetap ada | Token warna punya pasangan gelapnya | Fitur yang sudah ada tidak dihapus diam-diam saat tampilan diganti. Di mode gelap, grafiknya dibalik menjadi terang, bukan diwarnai |
+
+Dua nilai dari brief digelapkan satu langkah, dan itu disengaja: teks sekunder `#6b7280` menjadi `#5f6672` (pada latar abu nilainya hanya 4.38:1, di bawah ambang 4.5:1), dan hijau status `#10b981` menjadi `#067a4b` (pada ukuran 11px hanya 3.49:1). Rona warnanya tetap sama; yang berubah hanya gelapnya, supaya teks kecil benar-benar terbaca. Angka kontras lengkapnya tertulis di blok DESIGN TOKENS pada berkas yang sama.
+
+#### Arah yang diganti, dan harga yang dibayar
+
+Arahan sebelumnya menolak sidebar, baris kartu KPI, dan urutan grafik-lalu-tabel, dengan alasan yang masih berlaku: yang dibaca petugas gudang adalah tabelnya, bukan grafiknya. Arahan itu diganti atas permintaan pemilik produk, supaya angka ringkas terbaca lebih dulu.
+
+Harga yang dibayar ditulis terbuka, bukan disembunyikan: **tabel pesanan, yang sebenarnya alasan orang membuka layar ini, kini berada di bawah kartu dan grafik.** Karena itu grafik tidak diletakkan di bagian Pesanan masuk. Bagian itu tetap berisi panel antrian, kartu angka, lalu tabel. Grafiknya berada di bagian Analisis, satu klik dari sana.
+
+Berkas `dashboard-preview.html` di akar repositori adalah salinan statis untuk membuka desainnya di peramban tanpa deploy. Salinan itu punya blok harness yang meniru `google.script.run` dengan data contoh. Berkas itu bukan bagian dari yang di-deploy dan tidak dirujuk oleh kode mana pun.
+
+---
+
 ## 🛡️ Standar Keamanan & Proteksi Data
 
 1. **Header Secret Guard (`BEGOOD_API_SECRET`)**:
@@ -127,3 +154,10 @@ sequenceDiagram
    Fungsi upsert pesanan memeriksa apakah nomor pesanan sudah ada. Jika sudah ada, sistem hanya memperbarui status Shopee, ekspedisi, dan resi tanpa menimpa status internal atau catatan yang telah diedit oleh tim operasional gudang.
 5. **In-Memory Batch Writing**:
    Seluruh data baris dibaca, dimodifikasi, dan ditulis ke spreadsheet dalam array 2D in-memory (bukan cell-by-cell). Proses ratusan hingga ribuan baris selesai dalam 1 detik tanpa memicu batas waktu eksekusi Google Apps Script (6 menit limit).
+
+---
+
+Catatan: pengelolaan beberapa toko Shopee di bawah satu app sudah dikerjakan sebagian, sampai tahap sinkronisasi. Yang sudah berlaku: `DB_Token` menyimpan satu baris per toko, sheet `Pesanan Masuk` memakai kolom Q `Toko` sebagai penanda, `Log_Aktivitas` mencatat toko pelaksana, dan sinkronisasi menarik seluruh toko aktif secara berurutan dengan isolasi galat per toko. Yang belum dikerjakan: cakupan data per toko di dashboard dan pemecahan trigger per toko. Rinciannya di `docs/arsitektur-multi-toko.md`.
+
+Dua perubahan yang memengaruhi isi dokumen ini: `upsertOrders()` kini membatasi pencocokannya pada baris satu toko, dan `syncOrdersCore()` menerima parameter ketiga berisi kode toko.
+

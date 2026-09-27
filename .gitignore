@@ -17,6 +17,9 @@ yarn-error.log*
 # Logs
 *.log
 
+# Cline
+.cline/
+
 # OS generated files
 .DS_Store
 Thumbs.db

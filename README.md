@@ -70,18 +70,29 @@ ERP Begood/
 │   └── .env.example              # Template Environment Variables
 │
 ├── gas/                          # Kode Sumber Google Apps Script (Spreadsheet)
-│   ├── Code.js                   # Menu Bar UI, Trigger Otomatis, dan Handler Aksi
-│   ├── SheetManager.js           # Manajemen tabel 16 kolom, multi-baris item, & DB_Token
+│   ├── Code.js                   # Menu Bar UI, Trigger Otomatis, Handler Aksi, & antrian produksi
+│   ├── SheetManager.js           # Manajemen tabel 17 kolom, multi-baris item, DB_Token, & data produksi
 │   ├── ShopeeApi.js              # Klien HTTP penghubung GAS ke Vercel (fail-safe headers)
-│   ├── Index.html                # Tampilan Web Dashboard Modern (Tailwind + FontAwesome)
+│   ├── Index.html                # Web Dashboard: desain token sendiri (CSS murni) + FontAwesome
 │   ├── appsscript.json           # Manifest Google Apps Script (WIB timezone)
 │   └── README.md                 # Panduan instalasi ke Google Sheets
 │
+├── dashboard-preview.html        # Pratinjau dashboard di peramban biasa, tanpa backend
+│
+├── tests/                        # Rangkaian uji yang dijalankan di komputer (Node, tanpa jaringan)
+│   ├── jalankan-uji.js           # Pelari seluruh rangkaian uji
+│   ├── fas1test.js ... doccheck.js  # Berkas uji, satu berkas satu bagian
+│   └── README.md                 # Isi tiap berkas uji dan kebiasaan saat merevisi
+│
 ├── docs/                         # Dokumentasi Lengkap
 │   ├── arsitektur.md             # Penjelasan mendalam arsitektur & sequence diagram
+│   ├── arsitektur-multi-toko.md  # Rencana migrasi ke beberapa toko Shopee
 │   ├── panduan-setup-shopee.md   # Panduan registrasi Shopee Open Platform & App
 │   ├── panduan-deploy-vercel.md  # Panduan deployment Vercel & pengaturan env
-│   └── struktur-spreadsheet.md   # Skema 16 kolom, aturan multi-produk, & SOP
+│   ├── panduan-export-pdf.md     # Panduan export PDF & cetak slip packing
+│   ├── panduan-adaptasi-data-jahit-data-proses.md  # Panduan modul produksi jahit
+│   ├── pembagian-jahit.md        # Panduan modul pembagian jahit & upah per penjahit
+│   └── struktur-spreadsheet.md   # Skema 17 kolom, aturan multi-produk, sheet produksi, & SOP
 │
 └── README.md                     # Dokumentasi utama proyek
 ```
@@ -121,6 +132,9 @@ Ikuti panduan di [gas/README.md](file:///Users/macbook/Documents/ERP%20Begood/ga
 - Klik **📦 ERP Begood** > **🔄 Tarik Pesanan Masuk (Hari Ini / 3 Hari)** atau menu **Pilih Rentang Hari** (1 s/d 365 hari).
 - Aktifkan trigger otomatis melalui menu **⏰ Pasang Trigger Otomatis (Tiap 1 Jam)**.
 - Buka visual dashboard melalui **📊 Buka Web Dashboard (Sidebar)**.
+- Untuk mencetak slip packing atau menambahkan ekspor PDF, ikuti [docs/panduan-export-pdf.md](file:///Users/macbook/Documents/ERP%20Begood/docs/panduan-export-pdf.md).
+- Untuk modul produksi jahit (daftar kerja dari pesanan menunggu pickup, harga proses, dan estimasi beban kerja & upah), ikuti [docs/panduan-adaptasi-data-jahit-data-proses.md](file:///Users/macbook/Documents/ERP%20Begood/docs/panduan-adaptasi-data-jahit-data-proses.md).
+- Untuk modul pembagian jahit (pembagian pcs ke penjahit menurut grup dan bobot, rekap upah per penjahit, dan setelan penjahit serta aturan SKU), ikuti [docs/pembagian-jahit.md](file:///Users/macbook/Documents/ERP%20Begood/docs/pembagian-jahit.md).
 
 ---
 
@@ -132,4 +146,22 @@ Ikuti panduan di [gas/README.md](file:///Users/macbook/Documents/ERP%20Begood/ga
 - **Self-Healing Token**: Access token diperiksa masa kedaluwarsanya sebelum penarikan pesanan, dan otomatis diperbarui menggunakan refresh token tanpa interupsi.
 - **Smart In-Memory Upsert**: Update 1.000+ baris spreadsheet selesai dalam 1 detik menggunakan memori 2D array, dan **tidak menimpa** Status Internal Begood yang diubah manual oleh staf gudang.
 - **Web Dashboard Terpadu**: Pantau KPI omzet harian, status siap packing, kurir pengiriman, dan cari pesanan realtime via sidebar atau layar penuh.
+- **Modul Produksi dari Pesanan**: Pesanan berstatus `[2] Menunggu Pickup` menjadi daftar kerja jahit yang dibaca langsung dari sheet pesanan, lalu hasil jahitnya disimpan ke `DATA JAHIT` bersama sesi dan nama penjahit. Harga dan waktu prosesnya diisi sekali per SKU pada sheet `DATA PROSES`; SKU baru langsung mendapat barisnya saat disimpan, dan isian yang dikosongkan tidak pernah menimpa nilai lama.
+- **Tutup Sesi Sekali Klik**: Tombol **Tutup sesi & simpan hasil** pada tab Pembagian jahit mengerjakan seluruh rangkaian harian dalam satu kali tekan — membagi pcs yang belum terbagi, mengisi harga pcs lama yang masih kosong, lalu menyimpan hasil jahitnya ke `DATA JAHIT` lengkap dengan penjahit, sesi, dan tanggalnya. Ada pula padanannya di menu spreadsheet: **Tutup Sesi Jahit (Bagi + Simpan Hasil)**.
+- **Pembagian Jahit Otomatis**: Pekerjaan dari pesanan menunggu pickup dibagi menjadi satuan pcs lalu ditetapkan kepada penjahit menurut grup dan bobot kapasitasnya, dengan pembanding upah agar pembagiannya tidak berat sebelah. Setiap pcs berkunci, sehingga pembagian boleh diulang tanpa menggandakan pekerjaan maupun upah, dan rekap upah per penjahit, per grup, serta per toko dihitung saat diminta.
+- **Estimasi Kerja Harian**: Beban kerja (pcs serta menit jahit dan potong) dan upah per penjahit dihitung dari `DATA JAHIT` × harga pada `DATA PROSES`, dipisah per sesi PAGI dan SIANG. Baris yang SKU-nya belum dihargai dilaporkan terbuka, bukan dihitung sebagai nol.
 - **Keamanan Berlapis**: Proteksi header `x-begood-secret` mencegah pihak asing mengakses endpoint middleware.
+
+---
+
+## 🧪 Menjalankan Uji
+
+Seluruh rangkaian uji ada di folder `tests/` dan dijalankan di komputer dengan Node.js, tanpa menyentuh Google Spreadsheet, Shopee, maupun jaringan. Datanya tiruan, jadi aman dijalankan berkali-kali.
+
+```bash
+node tests/jalankan-uji.js            # seluruh rangkaian
+node tests/jalankan-uji.js fas11      # hanya berkas yang namanya memuat itu
+node tests/fas11test.js               # satu berkas, keluarannya lengkap
+```
+
+Rangkaiannya berjumlah 22 berkas dengan 948 pernyataan. Cakupannya mulai dari pemetaan data pesanan, login beserta perannya, modul produksi jahit, modul pembagian jahit, layar dashboard, tata letak PDF, sampai pemeriksa silang antara `gas/Index.html`, `dashboard-preview.html`, dan dokumen. Isi tiap berkas serta kebiasaan yang dipakai saat merevisi ada di [tests/README.md](file:///Users/macbook/Documents/ERP%20Begood/tests/README.md).

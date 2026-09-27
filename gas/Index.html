@@ -898,21 +898,21 @@
         </button>
 
         <span class="nav-label">Produksi</span>
-        <button type="button" class="tab butuh-admin" id="tab-produksi" role="tab" aria-selected="false"
-                aria-controls="content-produksi" onclick="switchTab('produksi')">
-          <i class="fa-solid fa-scissors" aria-hidden="true"></i>
-          Produksi &amp; antrian
-          <span class="tab-count" id="tab-count-produksi">0</span>
-        </button>
         <button type="button" class="tab" id="tab-pembagian" role="tab" aria-selected="false"
                 aria-controls="content-pembagian" onclick="switchTab('pembagian')">
           <i class="fa-solid fa-people-group" aria-hidden="true"></i>
           Pembagian jahit
         </button>
+        <button type="button" class="tab butuh-admin" id="tab-produksi" role="tab" aria-selected="false"
+                aria-controls="content-produksi" onclick="switchTab('produksi')">
+          <i class="fa-solid fa-scissors" aria-hidden="true"></i>
+          Antrian &amp; tarif SKU
+          <span class="tab-count" id="tab-count-produksi">0</span>
+        </button>
         <button type="button" class="tab" id="tab-estimasi" role="tab" aria-selected="false"
                 aria-controls="content-estimasi" onclick="switchTab('estimasi')">
           <i class="fa-solid fa-stopwatch" aria-hidden="true"></i>
-          Estimasi kerja
+          Estimasi upah &amp; kerja
         </button>
 
         <span class="nav-label">Sistem</span>
@@ -1422,190 +1422,216 @@
       </p>
 
       <section class="kpi-grid" aria-label="Ringkasan antrian produksi">
-        <div class="kpi-card">
+        <div class="kpi-card" style="cursor: pointer;" onclick="gantiSubTabProduksi_('antrian')" title="Lihat antrian pekerjaan">
           <div class="kpi-head"><span class="label">Pesanan menunggu pickup</span></div>
           <span class="kpi-value" id="prod-stat-pesanan">0</span>
           <span class="kpi-sub"><span class="num" id="prod-stat-bariss">0</span> baris, <span class="num" id="prod-stat-qty">0</span> pcs</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" style="cursor: pointer;" onclick="gantiSubTabProduksi_('antrian')" title="Lihat antrian pekerjaan">
           <div class="kpi-head"><span class="label">Belum dijahit</span></div>
           <span class="kpi-value" id="prod-stat-belum-dijahit">0</span>
           <span class="kpi-sub">baris produk</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" style="cursor: pointer;" onclick="gantiSubTabProduksi_('tarif')" title="Kelola tarif SKU yang belum ada">
           <div class="kpi-head"><span class="label">Belum dihargai</span></div>
           <span class="kpi-value" id="prod-stat-tanpa-harga">0</span>
           <span class="kpi-sub">baris produk, upahnya belum dapat dihitung</span>
         </div>
       </section>
 
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">Pekerjaan menunggu pickup</h2>
-            <p class="panel-note">SKU dan jumlah dipakai apa adanya dari pesanan. Nama variasi dipotong sampai koma pertama, karena keterangan sesudahnya sudah tercermin pada SKU.</p>
-          </div>
-          <span class="mark is-idle" id="prod-antrian-mark"><span class="dot"></span><span>Belum dibaca</span></span>
-        </div>
-
-        <div class="toolbar">
-          <div class="toolbar-group">
-            <label class="sr-only" for="prod-filter-keadaan">Saring keadaan pekerjaan</label>
-            <select id="prod-filter-keadaan" class="field" onchange="renderAntrianProduksi()">
-              <option value="SEMUA">Semua pekerjaan</option>
-              <option value="BELUM_DIJAHIT">Belum dijahit</option>
-              <option value="SUDAH_DIJAHIT">Sudah dijahit</option>
-              <option value="TANPA_HARGA">Belum dihargai</option>
-            </select>
-          </div>
-          <div class="toolbar-group">
-            <button type="button" class="btn" onclick="muatAntrianProduksi(true)">
-              <i class="fa-solid fa-rotate" aria-hidden="true"></i> Muat ulang
-            </button>
-          </div>
-        </div>
-
-        <div class="table-wrap">
-          <table class="ledger" id="prod-antrian-table">
-            <caption class="sr-only">Pesanan menunggu pickup yang menjadi antrian produksi</caption>
-            <thead>
-              <tr>
-                <th scope="col">No. Pesanan</th>
-                <th scope="col" class="col-toko">Toko</th>
-                <th scope="col">SKU</th>
-                <th scope="col">Variasi</th>
-                <th scope="col">Qty</th>
-                <th scope="col" class="butuh-uang">Harga jahit</th>
-                <th scope="col">Keadaan</th>
-              </tr>
-            </thead>
-            <tbody id="prod-antrian-tbody">
-              <tr><td colspan="7"><div class="state">
-                <div class="state-title">Antrian belum dibaca</div>
-                <p class="state-note">Daftar diambil dari sheet Pesanan Masuk saat tab ini dibuka.</p>
-              </div></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="panel-note" id="prod-antrian-info">Menampilkan 0 baris</p>
+      <div class="pembagian-nav-tabs" role="tablist" aria-label="Sub tab modul produksi" style="margin-bottom: 16px;">
+        <button type="button" class="btn btn-sm is-active" id="tab-sub-prod-antrian" onclick="gantiSubTabProduksi_('antrian')">
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i> Antrian Siap Jahit
+        </button>
+        <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-prod-tarif" onclick="gantiSubTabProduksi_('tarif')">
+          <i class="fa-solid fa-tag" aria-hidden="true"></i> Tarif &amp; Waktu SKU
+        </button>
+        <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-prod-manual" onclick="gantiSubTabProduksi_('manual')">
+          <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Input Manual (Cadangan)
+        </button>
       </div>
 
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">Harga dan waktu proses</h2>
-            <p class="panel-note">
-              Satu baris untuk satu SKU, dan nilainya berlaku untuk seluruh variasi serta seluruh
-              pesanan SKU itu. SKU yang belum ada di daftar langsung ditambahkan saat disimpan.
-            </p>
-          </div>
-          <span class="panel-note" id="prod-harga-info">Belum ada harga yang disimpan pada sesi ini</span>
-        </div>
-
-        <div class="panel-body stack-sm">
-          <div class="toolbar-group">
-            <div class="stack-sm">
-              <label class="label" for="prod-harga-sku">SKU</label>
-              <input type="text" id="prod-harga-sku" class="field num" size="26"
-                     list="prod-sku-belum-harga" placeholder="pilih dari daftar SKU">
+      <!-- SUB-TAB 1: ANTRIAN SIAP JAHIT -->
+      <div id="prod-sub-antrian">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Pekerjaan menunggu pickup</h2>
+              <p class="panel-note">SKU dan jumlah dipakai apa adanya dari pesanan. Nama variasi dipotong sampai koma pertama, karena keterangan sesudahnya sudah tercermin pada SKU.</p>
             </div>
-            <div class="stack-sm">
-              <label class="label" for="prod-harga-nilai">Harga jahit (Rp)</label>
-              <input type="number" id="prod-harga-nilai" class="field num" min="0" step="100"
-                     size="10" placeholder="0">
+            <div class="toolbar-group">
+              <span class="mark is-idle" id="prod-antrian-mark"><span class="dot"></span><span>Belum dibaca</span></span>
+              <button type="button" class="btn btn-primary" onclick="switchTab('pembagian')">
+                <i class="fa-solid fa-people-group" aria-hidden="true"></i> Bagi ke Penjahit &rarr;
+              </button>
             </div>
-            <div class="stack-sm">
-              <label class="label" for="prod-harga-jahit">Waktu jahit (menit)</label>
-              <input type="number" id="prod-harga-jahit" class="field num" min="0" step="1"
-                     size="6" placeholder="0">
-            </div>
-            <div class="stack-sm">
-              <label class="label" for="prod-harga-potong">Waktu potong (menit)</label>
-              <input type="number" id="prod-harga-potong" class="field num" min="0" step="1"
-                     size="6" placeholder="0">
-            </div>
-            <button type="button" class="btn btn-primary" onclick="simpanHargaProsesAction()">
-              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan harga
-            </button>
           </div>
 
-          <span class="label">SKU yang belum dihargai</span>
-          <div class="toolbar-group" id="prod-sku-belum-harga-wrap">
-            <span class="panel-note">Belum ada SKU tanpa harga pada antrian yang dibaca.</span>
-          </div>
-          <datalist id="prod-sku-belum-harga"></datalist>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">Tabel input hasil jahit</h2>
-            <p class="panel-note">
-              Barisnya diambil dari antrian, sehingga yang perlu dilengkapi hanya nama penjahit.
-              Satu kali simpan berlaku untuk satu tanggal dan satu sesi.
-            </p>
-          </div>
-          <span class="mark is-idle" id="prod-input-mark"><span class="dot"></span><span>0 baris siap</span></span>
-        </div>
-
-        <div class="toolbar">
-          <div class="toolbar-group">
-            <div class="stack-sm">
-              <label class="label" for="prod-input-tanggal">Tanggal kerja</label>
-              <input type="date" id="prod-input-tanggal" class="field num">
-            </div>
-            <div class="stack-sm">
-              <label class="label" for="prod-input-sesi">Sesi</label>
-              <select id="prod-input-sesi" class="field">
-                <option value="PAGI">PAGI</option>
-                <option value="SIANG" selected>SIANG</option>
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <label class="sr-only" for="prod-filter-keadaan">Saring keadaan pekerjaan</label>
+              <select id="prod-filter-keadaan" class="field" onchange="renderAntrianProduksi()">
+                <option value="SEMUA">Semua pekerjaan</option>
+                <option value="BELUM_DIJAHIT">Belum dijahit</option>
+                <option value="SUDAH_DIJAHIT">Sudah dijahit</option>
+                <option value="TANPA_HARGA">Belum dihargai</option>
               </select>
             </div>
-            <div class="stack-sm">
-              <label class="label" for="prod-input-penjahit">Penjahit baris baru</label>
-              <input type="text" id="prod-input-penjahit" class="field num" size="18"
-                     list="prod-daftar-penjahit" placeholder="nama penjahit">
+            <div class="toolbar-group">
+              <button type="button" class="btn" onclick="muatAntrianProduksi(true)">
+                <i class="fa-solid fa-rotate" aria-hidden="true"></i> Muat ulang
+              </button>
             </div>
           </div>
-          <div class="toolbar-group">
-            <button type="button" class="btn" onclick="isiTabelDariAntrian()">
-              <i class="fa-solid fa-list-check" aria-hidden="true"></i> Isi dari antrian
-            </button>
-            <button type="button" class="btn" onclick="tambahBarisProduksi()">
-              <i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah baris
-            </button>
-            <button type="button" class="btn btn-primary" id="btn-simpan-produksi" onclick="simpanProduksiAction()">
-              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan hasil jahit
-            </button>
+
+          <div class="table-wrap">
+            <table class="ledger" id="prod-antrian-table">
+              <caption class="sr-only">Pesanan menunggu pickup yang menjadi antrian produksi</caption>
+              <thead>
+                <tr>
+                  <th scope="col">No. Pesanan</th>
+                  <th scope="col" class="col-toko">Toko</th>
+                  <th scope="col">SKU</th>
+                  <th scope="col">Variasi</th>
+                  <th scope="col">Qty</th>
+                  <th scope="col" class="butuh-uang">Harga jahit</th>
+                  <th scope="col">Keadaan</th>
+                </tr>
+              </thead>
+              <tbody id="prod-antrian-tbody">
+                <tr><td colspan="7"><div class="state">
+                  <div class="state-title">Antrian belum dibaca</div>
+                  <p class="state-note">Daftar diambil dari sheet Pesanan Masuk saat tab ini dibuka.</p>
+                </div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="panel-note" id="prod-antrian-info">Menampilkan 0 baris</p>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: TARIF & WAKTU SKU -->
+      <div id="prod-sub-tarif" style="display: none;">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Harga dan waktu proses</h2>
+              <p class="panel-note">
+                Satu baris untuk satu SKU, dan nilainya berlaku untuk seluruh variasi serta seluruh
+                pesanan SKU itu. SKU yang belum ada di daftar langsung ditambahkan saat disimpan.
+              </p>
+            </div>
+            <span class="panel-note" id="prod-harga-info">Belum ada harga yang disimpan pada sesi ini</span>
+          </div>
+
+          <div class="panel-body stack-sm">
+            <div class="toolbar-group">
+              <div class="stack-sm">
+                <label class="label" for="prod-harga-sku">SKU</label>
+                <input type="text" id="prod-harga-sku" class="field num" size="26"
+                       list="prod-sku-belum-harga" placeholder="pilih dari daftar SKU">
+              </div>
+              <div class="stack-sm">
+                <label class="label" for="prod-harga-nilai">Harga jahit (Rp)</label>
+                <input type="number" id="prod-harga-nilai" class="field num" min="0" step="100"
+                       size="10" placeholder="0">
+              </div>
+              <div class="stack-sm">
+                <label class="label" for="prod-harga-jahit">Waktu jahit (menit)</label>
+                <input type="number" id="prod-harga-jahit" class="field num" min="0" step="1"
+                       size="6" placeholder="0">
+              </div>
+              <div class="stack-sm">
+                <label class="label" for="prod-harga-potong">Waktu potong (menit)</label>
+                <input type="number" id="prod-harga-potong" class="field num" min="0" step="1"
+                       size="6" placeholder="0">
+              </div>
+              <button type="button" class="btn btn-primary" onclick="simpanHargaProsesAction()">
+                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan harga
+              </button>
+            </div>
+
+            <span class="label">SKU yang belum dihargai</span>
+            <div class="toolbar-group" id="prod-sku-belum-harga-wrap">
+              <span class="panel-note">Belum ada SKU tanpa harga pada antrian yang dibaca.</span>
+            </div>
+            <datalist id="prod-sku-belum-harga"></datalist>
           </div>
         </div>
+      </div>
 
-        <div class="table-wrap">
-          <table class="ledger" id="prod-input-table">
-            <caption class="sr-only">Baris hasil jahit yang akan disimpan</caption>
-            <thead>
-              <tr>
-                <th scope="col">SKU</th>
-                <th scope="col">Variasi</th>
-                <th scope="col">Qty</th>
-                <th scope="col">Penjahit</th>
-                <th scope="col">No. Pesanan</th>
-                <th scope="col">Toko</th>
-                <th scope="col">Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="prod-input-tbody">
-              <tr><td colspan="7"><div class="state">
-                <div class="state-title">Belum ada baris</div>
-                <p class="state-note">Klik Isi dari antrian untuk mengambil pekerjaan yang belum dijahit,
-                  atau Tambah baris untuk mengisi sendiri.</p>
-              </div></td></tr>
-            </tbody>
-          </table>
+      <!-- SUB-TAB 3: INPUT MANUAL (CADANGAN) -->
+      <div id="prod-sub-manual" style="display: none;">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Tabel input hasil jahit (Cadangan)</h2>
+              <p class="panel-note">
+                Gunakan tab <strong>Pembagian jahit</strong> untuk alur kerja otomatis harian. Formulir manual di bawah ini
+                disediakan sebagai cadangan jika perlu mencatat hasil jahit tanggal/sesi tertentu secara langsung.
+              </p>
+            </div>
+            <span class="mark is-idle" id="prod-input-mark"><span class="dot"></span><span>0 baris siap</span></span>
+          </div>
+
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <div class="stack-sm">
+                <label class="label" for="prod-input-tanggal">Tanggal kerja</label>
+                <input type="date" id="prod-input-tanggal" class="field num">
+              </div>
+              <div class="stack-sm">
+                <label class="label" for="prod-input-sesi">Sesi</label>
+                <select id="prod-input-sesi" class="field">
+                  <option value="PAGI">PAGI</option>
+                  <option value="SIANG" selected>SIANG</option>
+                </select>
+              </div>
+              <div class="stack-sm">
+                <label class="label" for="prod-input-penjahit">Penjahit baris baru</label>
+                <input type="text" id="prod-input-penjahit" class="field num" size="18"
+                       list="prod-daftar-penjahit" placeholder="nama penjahit">
+              </div>
+            </div>
+            <div class="toolbar-group">
+              <button type="button" class="btn" onclick="isiTabelDariAntrian()">
+                <i class="fa-solid fa-list-check" aria-hidden="true"></i> Isi dari antrian
+              </button>
+              <button type="button" class="btn" onclick="tambahBarisProduksi()">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah baris
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-simpan-produksi" onclick="simpanProduksiAction()">
+                <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan hasil jahit
+              </button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="ledger" id="prod-input-table">
+              <caption class="sr-only">Baris hasil jahit yang akan disimpan</caption>
+              <thead>
+                <tr>
+                  <th scope="col">SKU</th>
+                  <th scope="col">Variasi</th>
+                  <th scope="col">Qty</th>
+                  <th scope="col">Penjahit</th>
+                  <th scope="col">No. Pesanan</th>
+                  <th scope="col">Toko</th>
+                  <th scope="col">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="prod-input-tbody">
+                <tr><td colspan="7"><div class="state">
+                  <div class="state-title">Belum ada baris</div>
+                  <p class="state-note">Klik Isi dari antrian untuk mengambil pekerjaan yang belum dijahit,
+                    atau Tambah baris untuk mengisi sendiri.</p>
+                </div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="panel-note" id="prod-input-info">0 baris siap disimpan</p>
+          <datalist id="prod-daftar-penjahit"></datalist>
         </div>
-        <p class="panel-note" id="prod-input-info">0 baris siap disimpan</p>
-        <datalist id="prod-daftar-penjahit"></datalist>
       </div>
 
     </section>
@@ -4311,9 +4337,9 @@
     const JUDUL_TAB = {
       orders: 'Pesanan masuk',
       analytics: 'Analisis',
-      produksi: 'Produksi & antrian',
       pembagian: 'Pembagian jahit',
-      estimasi: 'Estimasi kerja',
+      produksi: 'Antrian & tarif SKU',
+      estimasi: 'Estimasi upah & kerja',
       token: 'Token & konfigurasi',
       pengguna: 'Pengguna & peran',
       logs: 'Log aktivitas'
@@ -7180,6 +7206,22 @@
       if (box) box.hidden = true;
     }
 
+    function gantiSubTabProduksi_(tab) {
+      const subTabs = ['antrian', 'tarif', 'manual'];
+      subTabs.forEach((t) => {
+        const el = document.getElementById('prod-sub-' + t);
+        const btn = document.getElementById('tab-sub-prod-' + t);
+        if (el) el.style.display = (t === tab) ? '' : 'none';
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'btn btn-sm is-active';
+          } else {
+            btn.className = 'btn btn-sm btn-quiet';
+          }
+        }
+      });
+    }
+
     /** Tanggal bawaan pada kedua formulir produksi. */
     function siapkanEstimasiProduksi() {
       const tanggalEstimasi = document.getElementById('est-tanggal');
@@ -7367,6 +7409,7 @@
     }
 
     function pilihSkuBelumHarga(sku) {
+      gantiSubTabProduksi_('tarif');
       const elSku = document.getElementById('prod-harga-sku');
       if (elSku) elSku.value = sku || '';
 
@@ -7408,6 +7451,8 @@
         noPesanan: item.noPesanan || '',
         toko: item.toko || ''
       });
+      gantiSubTabProduksi_('manual');
+      showToast('Baris ditambahkan ke Input Manual.', 'ok');
     }
 
     /**
@@ -7768,7 +7813,7 @@
         const daftar = tanpaHarga.map((b) =>
           esc(b.sku) + (b.variasi ? ' · ' + esc(b.variasi) : '')).join(', ');
         setText('est-tanpa-harga-note', Number(payload.barisTanpaHarga).toLocaleString('id-ID') +
-          ' baris belum dihargai: ' + daftar + '. Isi harganya di tab Produksi & antrian.');
+          ' baris belum dihargai: ' + daftar + '. Isi harganya di tab Antrian & tarif SKU.');
       } else {
         setText('est-tanpa-harga-note', 'Seluruh baris pada tanggal ini sudah punya harga.');
       }

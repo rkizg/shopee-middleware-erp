@@ -545,23 +545,23 @@ Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 
 | Baris | Isi |
 |---|---|
-| 907 | Tombol tab `tab-pembagian` |
-| 1750 | Panel `content-pembagian` |
-| 4351 | `muatPembagianJahit()` |
-| 4395 | `teksUangBagi_()` |
-| 4400 | `renderPembagianJahit()` |
-| 4434 | `renderTabelPenjahitPembagian_()` |
-| 4479 | `renderPeringatanPembagian_()` |
-| 4506 | `renderUnitPembagian_()` |
-| 4549 | `tsvDariTabel_()` |
-| 4560 | `tabelDariTsv_()` |
-| 4705 | `isiSetelanPembagian_()` |
-| 4728 | `bagiJahitAction()` |
-| 4759 | `sesiDefaultKlien_()` |
-| 4763 | `siapkanSesiPembagian_()` |
-| 4776 | `tutupSesiJahitAction()` |
-| 4814 | `simpanPenjahitAction()` |
-| 4853 | `simpanAturanAction()` |
+| 901 | Tombol tab `tab-pembagian` |
+| 1776 | Panel `content-pembagian` |
+| 4377 | `muatPembagianJahit()` |
+| 4421 | `teksUangBagi_()` |
+| 4426 | `renderPembagianJahit()` |
+| 4460 | `renderTabelPenjahitPembagian_()` |
+| 4505 | `renderPeringatanPembagian_()` |
+| 4532 | `renderUnitPembagian_()` |
+| 4575 | `tsvDariTabel_()` |
+| 4586 | `tabelDariTsv_()` |
+| 4731 | `isiSetelanPembagian_()` |
+| 4754 | `bagiJahitAction()` |
+| 4785 | `sesiDefaultKlien_()` |
+| 4789 | `siapkanSesiPembagian_()` |
+| 4802 | `tutupSesiJahitAction()` |
+| 4840 | `simpanPenjahitAction()` |
+| 4879 | `simpanAturanAction()` |
 
 Daftar tabnya ada pada `TAB_NAMES` dan `JUDUL_TAB`, dan `switchTab()` memanggil
 `muatPembagianJahit()` setiap kali tabnya dibuka.
@@ -692,7 +692,7 @@ total upah 235.000, selisih tertinggi-terendah 45.000, dan target grup SPREI
 |---|---|---|
 | Tombol bagi tidak menambah pcs | Semua pcs sudah pernah dibagi | Lihat angka **Belum dibagi**. Bila nol, memang tidak ada yang baru |
 | Banyak pcs bertanda `BELUM DISET` | Grupnya tidak punya penjahit aktif, atau SKU-nya belum punya pola | Isi `SETTING PENJAHIT` atau `SKU RULES`, lalu bagi ulang |
-| Upah baris nol | SKU belum dihargai | Isi harga untuk SKU itu di tab Produksi & antrian |
+| Upah baris nol | SKU belum dihargai | Isi harga untuk SKU itu di tab Antrian & tarif SKU |
 | Aturan baru belum berpengaruh | Cache aturan belum kedaluwarsa | Tunggu paling lama 120 detik, atau simpan ulang aturannya dari dashboard |
 | Tab pembagian melaporkan versi server belum memuat fungsinya | Deployment Web App masih versi lama | Buat deployment versi baru setelah menempel ulang berkasnya |
 | Peringatan `PENJAHIT_TIDAK_AKTIF` | Baris lama menunjuk nama yang sudah dihapus atau dinonaktifkan | Ubah kolom Penjahit pada baris itu, atau masukkan kembali namanya ke daftar |

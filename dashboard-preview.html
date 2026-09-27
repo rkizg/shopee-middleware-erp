@@ -1948,8 +1948,9 @@
                   </div>
                   <div>
                     <label class="sr-only" for="input-penjahit-grup">Grup</label>
-                    <input type="text" id="input-penjahit-grup" class="field" placeholder="Grup (misal: KAOS) *" list="list-grup-penjahit" style="text-transform:uppercase;">
+                    <input type="text" id="input-penjahit-grup" class="field" placeholder="Grup (misal: BC, SPREI) *" list="list-grup-penjahit" style="text-transform:uppercase;">
                     <datalist id="list-grup-penjahit"></datalist>
+                    <div id="tambah-penjahit-grups" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;"></div>
                   </div>
                   <div>
                     <label class="sr-only" for="input-penjahit-bobot">Bobot Kapasitas</label>
@@ -1971,16 +1972,16 @@
             <!-- Tabel Interaktif Penjahit -->
             <div class="table-wrap">
               <table class="ledger" id="tabel-penjahit-setelan">
-                <caption class="sr-only">Tabel pengelolaan data penjahit, grup, bobot kapasitas, dan status aktif</caption>
+                <caption class="sr-only">Tabel pengelolaan data penjahit, item kategori jahit, bobot kapasitas, dan status aktif</caption>
                 <thead>
                   <tr>
                     <th scope="col" style="width:36px; text-align:center;">No</th>
-                    <th scope="col" style="min-width:140px;">Nama Penjahit</th>
-                    <th scope="col" style="min-width:130px;">Grup Pekerjaan</th>
-                    <th scope="col" style="min-width:110px; text-align:center;">Status Aktif</th>
+                    <th scope="col" style="min-width:130px;">Nama Penjahit</th>
+                    <th scope="col" style="min-width:200px;">Item / Kategori Jahit</th>
+                    <th scope="col" style="min-width:100px; text-align:center;">Status Aktif</th>
                     <th scope="col" style="min-width:110px;">Bobot Kapasitas</th>
-                    <th scope="col" style="min-width:160px;">Catatan</th>
-                    <th scope="col" style="width:60px; text-align:center;">Aksi</th>
+                    <th scope="col" style="min-width:150px;">Catatan</th>
+                    <th scope="col" style="width:50px; text-align:center;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="tbody-penjahit-setelan">
@@ -1991,8 +1992,7 @@
 
             <div class="panel-note" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <span>
-                <strong>Petunjuk:</strong> Klik badge status untuk aktifkan/nonaktifkan penjahit libur.
-                Bobot 1 = kapasitas normal, bobot 2 = target upah ganda untuk pemerataan keadilan.
+                <strong>Petunjuk:</strong> Klik badge status untuk aktifkan/nonaktifkan penjahit libur. Centang checkbox kategori item yang boleh dikerjakan tiap penjahit. Bobot 1 = kapasitas normal.
               </span>
               <span id="penjahit-dirty-indicator" class="mark is-wait" style="display:none;">
                 <span class="dot"></span> Perubahan belum disimpan
@@ -4869,18 +4869,88 @@
       }
     }
 
-    function perbaruiDatalistGrup_() {
+    function ambilSemuaGrupTersedia_() {
       const grupSet = {};
-      dataSetelanPenjahit_.forEach(function(p) { if (p.grup) grupSet[p.grup] = true; });
-      dataSetelanAturan_.forEach(function(a) { if (a.grup && a.grup !== 'IGNORE') grupSet[a.grup] = true; });
+      (dataSetelanAturan_ || []).forEach(function(a) {
+        const g = String(a.grup || '').trim().toUpperCase();
+        if (g && g !== 'IGNORE' && g !== 'BELUM DISET') grupSet[g] = true;
+      });
+      (dataSetelanPenjahit_ || []).forEach(function(p) {
+        String(p.grup || '').toUpperCase().split(/[,;/]+/).forEach(function(part) {
+          const g = part.trim();
+          if (g && g !== 'IGNORE' && g !== 'BELUM DISET') grupSet[g] = true;
+        });
+      });
+      const list = Object.keys(grupSet).sort();
+      return list.length ? list : ['BC', 'SPREI'];
+    }
 
-      const opsiHtml = Object.keys(grupSet).sort().map(function(g) { return '<option value="' + esc(g) + '">'; }).join('');
+    function pecahGrup_(str) {
+      const parts = String(str || '').toUpperCase().split(/[,;/]+/);
+      const res = [];
+      const seen = {};
+      for (let i = 0; i < parts.length; i++) {
+        const item = parts[i].trim();
+        if (item && !seen[item]) {
+          seen[item] = true;
+          res.push(item);
+        }
+      }
+      return res;
+    }
+
+    function toggleGrupPenjahit_(idx, grupName, isChecked) {
+      if (!dataSetelanPenjahit_[idx]) return;
+      const target = String(grupName || '').trim().toUpperCase();
+      if (!target) return;
+
+      const saatIni = pecahGrup_(dataSetelanPenjahit_[idx].grup);
+      const pos = saatIni.indexOf(target);
+      if (isChecked && pos === -1) {
+        saatIni.push(target);
+      } else if (!isChecked && pos !== -1) {
+        saatIni.splice(pos, 1);
+      }
+
+      dataSetelanPenjahit_[idx].grup = saatIni.join(', ');
+      renderTabelPenjahitSetelan_();
+      sinkronkanKeTsv_();
+      perbaruiDatalistGrup_();
+      setPenjahitDirty_(true);
+    }
+
+    function sinkronInputTambahGrup_() {
+      const checks = document.querySelectorAll('.tambah-grup-check:checked');
+      const terpilih = [];
+      checks.forEach(function(c) { terpilih.push(c.value); });
+      const elGrup = document.getElementById('input-penjahit-grup');
+      if (elGrup) {
+        elGrup.value = terpilih.join(', ');
+      }
+    }
+
+    function perbaruiDatalistGrup_() {
+      const grups = ambilSemuaGrupTersedia_();
+      const opsiHtml = grups.map(function(g) { return '<option value="' + esc(g) + '">'; }).join('');
       const dlPenjahit = document.getElementById('list-grup-penjahit');
       if (dlPenjahit) dlPenjahit.innerHTML = opsiHtml;
 
       const dlAturan = document.getElementById('list-grup-aturan');
       if (dlAturan) {
         dlAturan.innerHTML = '<option value="IGNORE">IGNORE (Lewati / Bukan Jahit)</option>' + opsiHtml;
+      }
+
+      const containerTambah = document.getElementById('tambah-penjahit-grups');
+      if (containerTambah) {
+        const elGrup = document.getElementById('input-penjahit-grup');
+        const nilaiInput = pecahGrup_(elGrup ? elGrup.value : '');
+        containerTambah.innerHTML = grups.map(function(g) {
+          const isPilih = nilaiInput.indexOf(g) !== -1;
+          return '<label class="chip" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:2px 6px; border-radius:4px; border:1px solid #cbd5e1; font-size:11px; background:#f8fafc; color:#334155;">' +
+            '<input type="checkbox" class="tambah-grup-check" value="' + esc(g) + '" style="cursor:pointer; margin:0;" ' + (isPilih ? 'checked' : '') + ' onchange="sinkronInputTambahGrup_()">' +
+            '<span>' + esc(g) + '</span>' +
+          '</label>';
+        }).join('');
       }
     }
 
@@ -5100,16 +5170,35 @@
         return;
       }
 
+      const grupsTersedia = ambilSemuaGrupTersedia_();
+
       tbody.innerHTML = barisTampil.map(({ item, idx }) => {
         const isAktif = (item.aktif === 'YA');
         const badgeAktif = isAktif
           ? '<button type="button" class="mark is-ok" onclick="toggleStatusPenjahit_(' + idx + ')" title="Klik untuk ubah status menjadi Libur" style="cursor:pointer; border:none; padding:4px 9px;"><span class="dot"></span> Aktif</button>'
           : '<button type="button" class="mark is-idle" onclick="toggleStatusPenjahit_(' + idx + ')" title="Klik untuk aktifkan penjahit" style="cursor:pointer; border:none; padding:4px 9px;"><span class="dot"></span> Libur</button>';
 
+        const grupsPenjahit = pecahGrup_(item.grup);
+        const chipsHtml = grupsTersedia.map(function(g) {
+          const isPilih = grupsPenjahit.indexOf(g) !== -1;
+          const styleBadge = isPilih
+            ? 'background:#ecfdf5; border:1px solid #10b981; color:#065f46; font-weight:700;'
+            : 'background:#f8fafc; border:1px solid #cbd5e1; color:#64748b; font-weight:500;';
+          return '<label class="chip" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:3px 7px; border-radius:4px; font-size:11px; ' + styleBadge + '" title="Centang bila ' + esc(item.nama) + ' boleh menjahit ' + esc(g) + '">' +
+            '<input type="checkbox" style="cursor:pointer; margin:0;" ' + (isPilih ? 'checked' : '') + ' onchange="toggleGrupPenjahit_(' + idx + ', \'' + esc(g) + '\', this.checked)">' +
+            '<span>' + esc(g) + '</span>' +
+          '</label>';
+        }).join('');
+
+        const cellGrup = '<div style="display:flex; flex-direction:column; gap:4px;">' +
+          '<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">' + chipsHtml + '</div>' +
+          '<input type="text" class="field" style="width:100%; font-size:11px; text-transform:uppercase;" value="' + esc(item.grup) + '" placeholder="Pilih checkbox di atas atau ketik..." onchange="ubahFieldPenjahit_(' + idx + ', \'grup\', this.value)">' +
+        '</div>';
+
         return '<tr data-idx="' + idx + '">' +
           '<td class="num" style="text-align:center; color:#5c6b73;">' + (idx + 1) + '</td>' +
           '<td><input type="text" class="field" style="width:100%; font-weight:600; text-transform:uppercase;" value="' + esc(item.nama) + '" onchange="ubahFieldPenjahit_(' + idx + ', \'nama\', this.value)"></td>' +
-          '<td><input type="text" class="field" list="list-grup-penjahit" style="width:100%; text-transform:uppercase;" value="' + esc(item.grup) + '" onchange="ubahFieldPenjahit_(' + idx + ', \'grup\', this.value)"></td>' +
+          '<td>' + cellGrup + '</td>' +
           '<td style="text-align:center;">' + badgeAktif + '</td>' +
           '<td><div style="display:flex; align-items:center; gap:6px;"><input type="number" class="field num" style="width:70px;" value="' + item.bobot + '" step="0.1" min="0.1" onchange="ubahFieldPenjahit_(' + idx + ', \'bobot\', this.value)"><span class="panel-note">' + (item.bobot == 1 ? '1.0x' : item.bobot + 'x') + '</span></div></td>' +
           '<td><input type="text" class="field" style="width:100%;" value="' + esc(item.catatan) + '" placeholder="Keterangan" onchange="ubahFieldPenjahit_(' + idx + ', \'catatan\', this.value)"></td>' +
@@ -5184,6 +5273,7 @@
       if (elGrup) elGrup.value = '';
       if (elBobot) elBobot.value = '1';
       if (elCatatan) elCatatan.value = '';
+      document.querySelectorAll('.tambah-grup-check').forEach(function(c) { c.checked = false; });
 
       renderTabelPenjahitSetelan_();
       sinkronkanKeTsv_();

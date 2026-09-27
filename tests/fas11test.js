@@ -396,6 +396,30 @@ cek('harga baris lama diisi dari daftar harga', Number(barisS9[7])===13579, bari
 cek('harga totalnya dihitung dari Qty', Number(barisS9[8])===13579, barisS9[8]);
 cek('variasi baris lama ikut dirapikan di sheet', String(barisS9[3])==='Lilac', JSON.stringify(barisS9[3]));
 
+console.log('=== 17: penjahit multi-grup (checkbox grup/kategori) ===');
+/* Penjahit dapat menguasai lebih dari satu grup sekaligus (misal: "BC, SPREI").
+   Penjahit yang hanya mencentang SPREI tidak boleh menerima BC, sedangkan
+   penjahit yang mencentang BC dan SPREI berhak menerima keduanya. */
+sb.simpanAturanDashboard(tAdmin, [
+  { pola: 'BEDCOVER', grup: 'BC' },
+  { pola: 'SPREI', grup: 'SPREI' }
+]);
+sb.simpanPenjahitDashboard(tAdmin, [
+  { nama: 'ADUL', grup: 'BC, SPREI', aktif: 'YA', bobot: 1 },
+  { nama: 'ELSI', grup: 'SPREI', aktif: 'YA', bobot: 1 }
+]);
+ord.appendRow(pesanRow('SN-MULTI-BC', 'BEDCOVER SET LUXURY', 'Standar', 1, '[2] Menunggu Pickup', 50000));
+ord.appendRow(pesanRow('SN-MULTI-SPREI', 'SPREI SET LUXURY', 'Standar', 1, '[2] Menunggu Pickup', 30000));
+const bagiMulti = sb.bagiPembagianDashboard(tAdmin, '');
+cek('kedua pcs multi-grup terbagi', bagiMulti.qtyDitambah === 2, bagiMulti.qtyDitambah);
+const barisMultiBC = barisPesan('SN-MULTI-BC')[0];
+const barisMultiSP = barisPesan('SN-MULTI-SPREI')[0];
+cek('pesanan BC hanya jatuh ke ADUL karena ELSI hanya di grup SPREI',
+  barisMultiBC && String(barisMultiBC[5]) === 'ADUL', barisMultiBC && barisMultiBC[5]);
+cek('pesanan SPREI terbagi ke penjahit yang menguasai SPREI',
+  barisMultiSP && (String(barisMultiSP[5]) === 'ELSI' || String(barisMultiSP[5]) === 'ADUL'),
+  barisMultiSP && barisMultiSP[5]);
+
 console.log('');
 console.log('HASIL PEMBAGIAN JAHIT: '+(gagal===0?'SEMUA LULUS':gagal+' KEGAGALAN'));
 process.exit(gagal===0?0:1);

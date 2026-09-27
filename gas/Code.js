@@ -3334,6 +3334,24 @@ function tentukanGrupSku_(sku, aturan) {
   return '';
 }
 
+/**
+ * Memeriksa apakah seorang penjahit dapat menerima pekerjaan dari grup tertentu.
+ * Penjahit dapat memiliki satu grup atau beberapa grup sekaligus (dipisahkan koma).
+ *
+ * @param {string} grupPenjahit grup yang dikuasai penjahit, misal "BC" atau "BC, SPREI"
+ * @param {string} grupItem grup pekerjaan SKU, misal "BC"
+ * @return {boolean} true bila penjahit boleh menjahit grup ini
+ */
+function penjahitBisaGrup_(grupPenjahit, grupItem) {
+  if (!grupPenjahit || !grupItem) return false;
+  var target = String(grupItem).trim().toUpperCase();
+  var daftar = String(grupPenjahit).toUpperCase().split(/[,;/]+/);
+  for (var i = 0; i < daftar.length; i++) {
+    if (daftar[i].trim() === target) return true;
+  }
+  return false;
+}
+
 /** Menyaring penjahit yang benar-benar boleh menerima pekerjaan. */
 function penjahitAktif_(daftar) {
   var hasil = [];
@@ -3692,7 +3710,7 @@ function bagiPembagianJahit_(kodeToko) {
     var kandidat = [];
 
     for (var c = 0; c < penjahit.length; c++) {
-      if (penjahit[c].grup === grupKey) kandidat.push(penjahit[c]);
+      if (penjahitBisaGrup_(penjahit[c].grup, grupKey)) kandidat.push(penjahit[c]);
     }
 
     if (!kandidat.length) {

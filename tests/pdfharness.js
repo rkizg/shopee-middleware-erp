@@ -16,6 +16,9 @@ class FakeDoc {
   setFontSize(n){ this.fontSize=n; return this; }
   setFont(f,s){ if(f) this.font=f; if(s) this.style=s; return this; }
   setTextColor(){ return this; } setDrawColor(){ return this; } setLineWidth(){ return this; }
+  setFillColor(){ return this; }
+  getNumberOfPages(){ return this.pages; }
+  setPage(p){ return this; }
   text(t,x,y,op){ this.calls.push({op:'text',t:String(t),x,y,size:this.fontSize,font:this.font,style:this.style,align:(op&&op.align)||'left'}); return this; }
   line(x1,y1,x2,y2){ this.calls.push({op:'line',x1,y1,x2,y2}); return this; }
   rect(x,y,w,h){ this.calls.push({op:'rect',x,y,w,h}); return this; }
@@ -64,7 +67,7 @@ sandbox.window.jspdf={jsPDF:FakeDoc};
 
 const html=fs.readFileSync(AKAR + 'gas/Index.html','utf8');
 const code=html.split('<script>')[1].split('</script>')[0];
-const EXPORT='globalThis.__api={loadDashboard,groupOrdersBySn,buildSlipPdf,buildBatchSlipPdf,buildLabelPdf,exportTable:null,pdfKit,rekapPesananRows,rekapRowsFrom,exportSlipPdf,cetakSlipPdfTerpilih,exportRekapPesananPdf,cetakLabelPdfTerpilih,setData:d=>{globalData=d;},setFiltered:f=>{currentFilteredOrders=f;},setSel:s=>{selectedOrderSns=s;},toggles:()=>0};';
+const EXPORT='globalThis.__api={loadDashboard,groupOrdersBySn,buildSlipPdf,buildBatchSlipPdf,buildLabelPdf,buildSpkPenjahitPdf,exportTable:null,pdfKit,rekapPesananRows,rekapRowsFrom,exportSlipPdf,cetakSlipPdfTerpilih,exportRekapPesananPdf,cetakLabelPdfTerpilih,setData:d=>{globalData=d;},setFiltered:f=>{currentFilteredOrders=f;},setSel:s=>{selectedOrderSns=s;},toggles:()=>0};';
 vm.createContext(sandbox);
 vm.runInContext(code+EXPORT,sandbox);
 const A=sandbox.__api;
@@ -106,7 +109,40 @@ allOk=audit('batch 5 slip (2 lembar A4)',d4)&&allOk;
 const d5=A.buildLabelPdf(FakeDoc,Array.from({length:3},(_,i)=>({kepala:Object.assign({},order,{orderSn:'L'+i}),barang:[order]})));
 allOk=audit('label 3 paket',d5)&&allOk;
 
+const spkInfo = {
+  nama: 'ADUL',
+  sesi: 'PAGI',
+  tanggal: '2026-09-28',
+  estimasiJahit: '2 jam 28 menit',
+  estimasiPotong: '1 jam 56 menit (2 Personil Cutting)',
+  kodeTokoMap: { 'begood.bdg': 'BG', 'toko tidur manis': 'TM' },
+  items: [
+    { sku: 'Balmut 120x150', toko: 'toko tidur manis', variasi: 'Light Gray.', jumlah: 1 },
+    { sku: 'BC AJA 120x220', toko: 'begood.bdg', variasi: 'Light Blue', jumlah: 1 },
+    { sku: 'BC AJA 140x220', toko: 'toko tidur manis', variasi: 'Pink', jumlah: 1 },
+    { sku: 'BC AJA 160x220', toko: 'begood.bdg', variasi: 'Blue Sky', jumlah: 1 },
+    { sku: 'BC AJA 200X220', toko: 'toko tidur manis', variasi: 'Blue Sky', jumlah: 1 },
+    { sku: 'BC AJA 90x220', toko: 'begood.bdg', variasi: 'Lilac', jumlah: 1 },
+    { sku: 'SPREI DK 180/30 SET', toko: 'toko tidur manis', variasi: 'Lilac', jumlah: 1 },
+    { sku: 'SPREI DK 180/30 SET', toko: 'begood.bdg', variasi: 'Turkish', jumlah: 1 },
+    { sku: 'SPREI 120/30 SET', toko: 'toko tidur manis', variasi: 'Wardah', jumlah: 1 },
+    { sku: 'SARKUR 100/25', toko: 'begood.bdg', variasi: 'Light Grey', jumlah: 1 },
+    { sku: 'SARKUR 120/20', toko: 'toko tidur manis', variasi: 'Black', jumlah: 1 },
+    { sku: 'SARKUR 70/10', toko: 'begood.bdg', variasi: 'Light Gray', jumlah: 2 },
+    { sku: 'SARKUR 90/10', toko: 'toko tidur manis', variasi: 'Latte', jumlah: 2 },
+    { sku: 'SARKUR 90/25', toko: 'begood.bdg', variasi: 'Latte', jumlah: 1 }
+  ]
+};
+const dSpk = A.buildSpkPenjahitPdf(FakeDoc, spkInfo);
+allOk = audit('SPK Penjahit 14 item (2 halaman A6)', dSpk) && allOk;
+
 console.log('\n=== KONTEN ===');
+console.log('  SPK: judul Lembar Kerja Jahit ->', dSpk.calls.some(c => c.op === 'text' && c.t === 'Lembar Kerja Jahit'));
+console.log('  SPK: tanggal Indonesia format ->', dSpk.calls.some(c => c.op === 'text' && c.t.indexOf('Senin, 28 September 2026') !== -1));
+console.log('  SPK: kode toko BG tercetak    ->', dSpk.calls.some(c => c.op === 'text' && c.t === 'BG'));
+console.log('  SPK: kode toko TM tercetak    ->', dSpk.calls.some(c => c.op === 'text' && c.t === 'TM'));
+console.log('  SPK: slogan tercetak          ->', dSpk.calls.some(c => c.op === 'text' && c.t.indexOf('Semangat!') !== -1));
+console.log('  SPK: 2 halaman A6             ->', dSpk.pages === 2);
 console.log('  slip: halaman di kaki  ->', d2.calls.filter(c=>c.op==='text'&&c.t.startsWith('Halaman')).map(c=>c.t).join(' | '));
 console.log('  slip: resi kosong      ->', d3.calls.some(c=>c.op==='text'&&c.t==='BELUM TERSEDIA'));
 console.log('  slip: catatan tercetak ->', d1.calls.some(c=>c.op==='text'&&c.t.indexOf('Catatan pembeli')===0));

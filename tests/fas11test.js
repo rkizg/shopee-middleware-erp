@@ -420,6 +420,26 @@ cek('pesanan SPREI terbagi ke penjahit yang menguasai SPREI',
   barisMultiSP && (String(barisMultiSP[5]) === 'ELSI' || String(barisMultiSP[5]) === 'ADUL'),
   barisMultiSP && barisMultiSP[5]);
 
+console.log('=== 18: pemetaan kode toko cetak (superadmin) ===');
+const defaultPeta = SM.bacaKodeTokoCetak();
+cek('kode toko bawaan terisi (begood.bdg -> BG, toko tidur manis -> TM)',
+  defaultPeta['begood.bdg'] === 'BG' && defaultPeta['toko tidur manis'] === 'TM');
+const pembagianData = sb.getPembagianJahit(tSuper, '');
+cek('setelan kode toko ikut dikirim pada getPembagianJahit',
+  pembagianData.setelan && pembagianData.setelan.kodeToko && pembagianData.setelan.kodeToko['begood.bdg'] === 'BG');
+cek('packing ditolak menyimpan kode toko',
+  (lempar(() => sb.simpanKodeTokoDashboard(tPack, [])) || '').indexOf('Peran PACKING tidak berhak') !== -1);
+cek('admin ditolak menyimpan kode toko (khusus superadmin)',
+  (lempar(() => sb.simpanKodeTokoDashboard(tAdmin, [])) || '').indexOf('Peran ADMIN tidak berhak') !== -1);
+const simpanTokoRes = sb.simpanKodeTokoDashboard(tSuper, [
+  { toko: 'begood.bdg', kode: 'BG' },
+  { toko: 'toko tidur manis', kode: 'TM' },
+  { toko: 'custom.shop', kode: 'CS' }
+]);
+cek('superadmin berhasil menyimpan kode toko', simpanTokoRes.berhasil && simpanTokoRes.jumlah === 3);
+const bacaUlangPeta = SM.bacaKodeTokoCetak();
+cek('pemetaan toko baru tersimpan di Konfigurasi', bacaUlangPeta['custom.shop'] === 'CS');
+
 console.log('');
 console.log('HASIL PEMBAGIAN JAHIT: '+(gagal===0?'SEMUA LULUS':gagal+' KEGAGALAN'));
 process.exit(gagal===0?0:1);

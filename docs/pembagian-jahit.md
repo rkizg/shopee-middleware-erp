@@ -535,9 +535,10 @@ pada komentar bloknya), di bawah blok `DATA PROSES` dan `DATA JAHIT`.
 | 4303 | `tutupSesiJahit()` |
 | 4324 | `simpanPenjahitDashboard()` |
 | 4353 | `simpanAturanDashboard()` |
-| 4367 | `siapkanSettingProduksiPrompt()`, dipanggil menu |
-| 4394 | `tutupSesiJahitPrompt()`, dipanggil menu |
-| 4436 | `bagiPembagianJahitPrompt()`, dipanggil menu |
+| 4369 | `simpanKodeTokoDashboard()` |
+| 4404 | `siapkanSettingProduksiPrompt()`, dipanggil menu |
+| 4431 | `tutupSesiJahitPrompt()`, dipanggil menu |
+| 4473 | `bagiPembagianJahitPrompt()`, dipanggil menu |
 
 Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 
@@ -547,21 +548,21 @@ Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 |---|---|
 | 1115 | Tombol tab `tab-pembagian` |
 | 1990 | Panel `content-pembagian` |
-| 4675 | `muatPembagianJahit()` |
-| 4719 | `teksUangBagi_()` |
-| 4724 | `renderPembagianJahit()` |
-| 4759 | `renderTabelPenjahitPembagian_()` |
-| 5110 | `renderPeringatanPembagian_()` |
-| 5137 | `renderUnitPembagian_()` |
-| 5180 | `tsvDariTabel_()` |
-| 5191 | `tabelDariTsv_()` |
-| 5336 | `isiSetelanPembagian_()` |
-| 5359 | `bagiJahitAction()` |
-| 5390 | `sesiDefaultKlien_()` |
-| 5394 | `siapkanSesiPembagian_()` |
-| 5407 | `tutupSesiJahitAction()` |
-| 5445 | `simpanPenjahitAction()` |
-| 5484 | `simpanAturanAction()` |
+| 4746 | `muatPembagianJahit()` |
+| 4790 | `teksUangBagi_()` |
+| 4795 | `renderPembagianJahit()` |
+| 4830 | `renderTabelPenjahitPembagian_()` |
+| 5227 | `renderPeringatanPembagian_()` |
+| 5254 | `renderUnitPembagian_()` |
+| 5297 | `tsvDariTabel_()` |
+| 5308 | `tabelDariTsv_()` |
+| 5586 | `isiSetelanPembagian_()` |
+| 5629 | `bagiJahitAction()` |
+| 5660 | `sesiDefaultKlien_()` |
+| 5664 | `siapkanSesiPembagian_()` |
+| 5677 | `tutupSesiJahitAction()` |
+| 5715 | `simpanPenjahitAction()` |
+| 5754 | `simpanAturanAction()` |
 
 Daftar tabnya ada pada `TAB_NAMES` dan `JUDUL_TAB`, dan `switchTab()` memanggil
 `muatPembagianJahit()` setiap kali tabnya dibuka.

@@ -2884,12 +2884,13 @@ function kumpulkanEstimasiProduksi_(produksi, kamus, tanggal) {
        yang dijahit dua kali dalam sehari tidak muncul sebagai dua baris laporan
        yang harus dibaca terpisah. */
     var kunciItem = (sesiBaris || 'TANPA SESI') + '|' +
-      kunciSkuProduksi_(b.sku) + '|' + kunciSkuProduksi_(b.variasi);
+      kunciSkuProduksi_(b.sku) + '|' + kunciSkuProduksi_(b.variasi) + '|' + String(b.toko || '').toUpperCase();
     if (!orang.items[kunciItem]) {
       orang.items[kunciItem] = {
         sesi: sesiBaris,
         sku: b.sku,
         variasi: b.variasi || '',
+        toko: b.toko || '',
         jumlah: 0, waktuJahit: 0, waktuPotong: 0, waktu: 0, upah: 0,
         hargaSatuan: hargaSatuan
       };
@@ -4237,7 +4238,8 @@ function getPembagianJahit(token, kodeToko) {
     cakupan: cakupan,
     setelan: {
       penjahit: SheetManager.bacaPenjahit(),
-      aturan: SheetManager.bacaAturanSku()
+      aturan: SheetManager.bacaAturanSku(),
+      kodeToko: SheetManager.bacaKodeTokoCetak()
     },
     rekap: rekapPembagian_(cakupan),
     estimasiHariIni: estimasiHariIni
@@ -4360,6 +4362,41 @@ function simpanAturanDashboard(token, daftar) {
     'Aturan SKU diperbarui: ' + jumlah + ' baris.', '', sesi.kode);
 
   return { berhasil: true, jumlah: jumlah, pesan: jumlah + ' aturan SKU disimpan.' };
+}
+
+/** RPC: menyimpan pemetaan kode toko cetak dari halaman.
+ * Hanya SUPERADMIN yang berhak mengubah setelan kode toko. */
+function simpanKodeTokoDashboard(token, daftar) {
+  var sesi = wajibSesi_(token, 'SUPERADMIN');
+
+  var peta = {};
+  if (Array.isArray(daftar)) {
+    for (var i = 0; i < daftar.length; i++) {
+      var baris = daftar[i] || {};
+      var toko = String(baris.toko || '').trim();
+      var kode = String(baris.kode || '').trim().toUpperCase();
+      if (toko && kode) {
+        peta[toko] = kode;
+      }
+    }
+  } else if (daftar && typeof daftar === 'object') {
+    for (var k in daftar) {
+      if (Object.prototype.hasOwnProperty.call(daftar, k)) {
+        var t = String(k).trim();
+        var kd = String(daftar[k]).trim().toUpperCase();
+        if (t && kd) {
+          peta[t] = kd;
+        }
+      }
+    }
+  }
+
+  var jumlah = SheetManager.simpanKodeTokoCetak(peta);
+
+  SheetManager.logActivity('PRODUKSI_SIMPAN_KODE_TOKO', jumlah, 'SUKSES',
+    'Pemetaan kode toko cetak diperbarui: ' + jumlah + ' toko.', '', sesi.kode);
+
+  return { berhasil: true, jumlah: jumlah, peta: peta, pesan: jumlah + ' kode toko cetak disimpan.' };
 }
 
 /** Menu: menyiapkan sheet setelan produksi beserta isi bawaannya. Tanpa aturan,

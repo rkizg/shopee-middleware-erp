@@ -2235,6 +2235,9 @@
               <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-aturan" onclick="gantiSubTabSetelan_('aturan')">
                 <i class="fa-solid fa-list-check" aria-hidden="true"></i> Aturan SKU (<span id="setelan-aturan-count">0</span>)
               </button>
+              <button type="button" class="btn btn-sm btn-quiet butuh-superadmin" id="tab-sub-toko" onclick="gantiSubTabSetelan_('toko')">
+                <i class="fa-solid fa-store" aria-hidden="true"></i> Kode Toko (<span id="setelan-toko-count">0</span>)
+              </button>
               <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-tsv" onclick="gantiSubTabSetelan_('tsv')">
                 <i class="fa-solid fa-paste" aria-hidden="true"></i> Teks / Salin Massal
               </button>
@@ -2401,7 +2404,75 @@
             </div>
           </div>
 
-          <!-- SUB-TAB 3: MODE SALIN / TEMPEL MASSAL (TSV) -->
+          <!-- SUB-TAB 3: KODE TOKO CETAK SPK (SUPERADMIN) -->
+          <div id="setelan-sub-toko" class="stack" style="display:none;">
+            <div class="toolbar" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+              <div class="toolbar-group" style="flex:1 1 240px; max-width:380px;">
+                <div class="search" style="width:100%;">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  <input type="text" id="cari-setelan-toko" class="field" placeholder="Cari nama atau kode toko..." oninput="filterTabelTokoSetelan_()">
+                </div>
+              </div>
+              <div class="toolbar-group">
+                <span id="setelan-toko-ringkasan" class="chip chip-accent">0 toko terdaftar</span>
+                <button type="button" class="btn btn-primary" onclick="simpanTokoDariTabelAction()" id="btn-simpan-toko-tabel">
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan kode toko
+                </button>
+                <span class="panel-note" id="pembagian-toko-status"></span>
+              </div>
+            </div>
+
+            <!-- Form Tambah Pemetaan Toko -->
+            <div class="panel" style="background:var(--desk); border:1px solid var(--rule-strong); padding:12px 14px;">
+              <div class="stack-sm">
+                <span class="label">Tambah Pemetaan Toko Baru (Superadmin)</span>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:8px; align-items:end;">
+                  <div>
+                    <label class="sr-only" for="input-toko-nama">Nama / Asal Toko</label>
+                    <input type="text" id="input-toko-nama" class="field" placeholder="Nama Toko (misal: begood.bdg) *">
+                  </div>
+                  <div>
+                    <label class="sr-only" for="input-toko-kode">Kode Singkat Cetak</label>
+                    <input type="text" id="input-toko-kode" class="field num" placeholder="Kode Cetak (misal: BG) *" maxlength="6" style="text-transform:uppercase;">
+                  </div>
+                  <div>
+                    <button type="button" class="btn btn-sm btn-primary" style="width:100%; min-height:32px;" onclick="tambahTokoBaruAction()">
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabel Interaktif Kode Toko -->
+            <div class="table-wrap">
+              <table class="ledger" id="tabel-toko-setelan">
+                <caption class="sr-only">Tabel pemetaan nama toko ke kode cetak singkat untuk Lembar Kerja Jahit</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" style="width:40px; text-align:center;">No</th>
+                    <th scope="col" style="min-width:200px;">Nama / Asal Toko</th>
+                    <th scope="col" style="min-width:140px; text-align:center;">Kode Singkat Cetak SPK</th>
+                    <th scope="col" style="width:60px; text-align:center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-toko-setelan">
+                  <!-- diisi via JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="panel-note" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span>
+                <strong>Petunjuk:</strong> Kode singkat (misal <strong>BG</strong> untuk <em>begood.bdg</em> atau <strong>TM</strong> untuk <em>toko tidur manis</em>) akan dicetak pada kolom kedua Lembar Kerja Jahit SPK.
+              </span>
+              <span id="toko-dirty-indicator" class="mark is-wait" style="display:none;">
+                <span class="dot"></span> Perubahan belum disimpan
+              </span>
+            </div>
+          </div>
+
+          <!-- SUB-TAB 4: MODE SALIN / TEMPEL MASSAL (TSV) -->
           <div id="setelan-sub-tsv" class="stack" style="display:none;">
             <div class="panel" style="background:var(--desk); border:1px solid var(--rule); padding:12px 14px;">
               <p class="panel-note" style="line-height:1.5;">
@@ -2969,7 +3040,13 @@
             { pola: 'BEDCOVER', grup: 'BC', catatan: 'Bedcover' },
             { pola: 'SPREI', grup: 'SPREI', catatan: 'Sprei' },
             { pola: 'SARUNG BANTAL', grup: 'SPREI', catatan: 'Sarung bantal' }
-          ]
+          ],
+          kodeToko: {
+            'begood.bdg': 'BG',
+            'toko tidur manis': 'TM',
+            'BGD': 'BG',
+            'BGD2': 'TM'
+          }
         },
         rekap: {
           cakupan: '',
@@ -3163,6 +3240,15 @@
               } else if (prop === 'simpanAturanDashboard') {
                 res = { berhasil: true, jumlah: (b || []).length,
                         pesan: (b || []).length + ' aturan SKU disimpan (pratinjau lokal).' };
+              } else if (prop === 'simpanKodeTokoDashboard') {
+                var daftar = b || [];
+                var peta = {};
+                if (Array.isArray(daftar)) {
+                  daftar.forEach(function (d) { if (d.toko && d.kode) peta[d.toko] = d.kode; });
+                }
+                PEMBAGIAN.setelan.kodeToko = peta;
+                res = { berhasil: true, jumlah: Object.keys(peta).length, peta: peta,
+                        pesan: Object.keys(peta).length + ' kode toko cetak disimpan (pratinjau lokal).' };
               } else if (prop === 'getProduksiRingkasan') {
                 res = JSON.parse(JSON.stringify(ESTIMASI));
                 /* Meniru pemotongan nominal upah yang dilakukan server. */
@@ -5054,6 +5140,38 @@
       return formatMenitJam_(menit) + ' (2 Personil Cutting)';
     }
 
+    function formatTanggalIndonesiaLengkap_(tglStr) {
+      if (!tglStr) return '-';
+      const hariArr = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const bulanArr = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      let d;
+      if (typeof tglStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(tglStr)) {
+        const parts = tglStr.split(' ')[0].split('-');
+        d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        d = new Date(tglStr);
+      }
+      if (isNaN(d.getTime())) return String(tglStr);
+      return hariArr[d.getDay()] + ', ' + d.getDate() + ' ' + bulanArr[d.getMonth()] + ' ' + d.getFullYear();
+    }
+
+    function resolveKodeToko_(toko, map) {
+      if (!toko) return '';
+      const raw = String(toko).trim();
+      if (!raw) return '';
+      const peta = map || {};
+      if (peta[raw]) return peta[raw];
+      const rawLower = raw.toLowerCase();
+      for (const k in peta) {
+        if (k.toLowerCase() === rawLower) return peta[k];
+      }
+      if (raw.length <= 3) return raw.toUpperCase();
+      return raw.substring(0, 2).toUpperCase();
+    }
+
     function gantiTampilanPenjahit_(mode) {
       const isCards = (mode !== 'table');
       const viewCards = document.getElementById('view-penjahit-cards');
@@ -5327,6 +5445,19 @@
         totalPcs += Number(it.jumlah || it.qty) || 0;
       });
 
+      const kodeTokoMap = {};
+      (dataSetelanToko_ || []).forEach((t) => {
+        if (t.toko && t.kode) kodeTokoMap[t.toko] = t.kode;
+      });
+      if (pembagianTerakhir && pembagianTerakhir.setelan && pembagianTerakhir.setelan.kodeToko) {
+        const pk = pembagianTerakhir.setelan.kodeToko;
+        if (!Array.isArray(pk)) {
+          for (const k in pk) {
+            if (!kodeTokoMap[k]) kodeTokoMap[k] = pk[k];
+          }
+        }
+      }
+
       const info = {
         nama: namaPenjahit,
         sesi: sesi,
@@ -5334,6 +5465,7 @@
         totalPcs: totalPcs,
         estimasiJahit: formatMenitJam_(sesiData.waktuJahit),
         estimasiPotong: formatEstimasiPotong_(sesiData.waktuPotong),
+        kodeTokoMap: kodeTokoMap,
         items: sesiData.items || []
       };
 
@@ -5450,20 +5582,23 @@
 
     let dataSetelanPenjahit_ = [];
     let dataSetelanAturan_ = [];
+    let dataSetelanToko_ = [];
     let penjahitDirty_ = false;
     let aturanDirty_ = false;
+    let tokoDirty_ = false;
 
     function gantiSubTabSetelan_(tab) {
-      const subTabs = ['penjahit', 'aturan', 'tsv'];
+      const subTabs = ['penjahit', 'aturan', 'toko', 'tsv'];
       subTabs.forEach((t) => {
         const el = document.getElementById('setelan-sub-' + t);
         const btn = document.getElementById('tab-sub-' + t);
         if (el) el.style.display = (t === tab) ? '' : 'none';
         if (btn) {
+          const isSuper = btn.classList.contains('butuh-superadmin');
           if (t === tab) {
-            btn.className = 'btn btn-sm is-active';
+            btn.className = 'btn btn-sm is-active' + (isSuper ? ' butuh-superadmin' : '');
           } else {
-            btn.className = 'btn btn-sm btn-quiet';
+            btn.className = 'btn btn-sm btn-quiet' + (isSuper ? ' butuh-superadmin' : '');
           }
         }
       });
@@ -5479,6 +5614,136 @@
       aturanDirty_ = Boolean(dirty);
       const ind = document.getElementById('aturan-dirty-indicator');
       if (ind) ind.style.display = aturanDirty_ ? 'inline-flex' : 'none';
+    }
+
+    function setTokoDirty_(dirty) {
+      tokoDirty_ = Boolean(dirty);
+      const ind = document.getElementById('toko-dirty-indicator');
+      if (ind) ind.style.display = tokoDirty_ ? 'inline-flex' : 'none';
+    }
+
+    function renderTabelTokoSetelan_() {
+      const tbody = document.getElementById('tbody-toko-setelan');
+      if (!tbody) return;
+
+      const q = String((document.getElementById('cari-setelan-toko') && document.getElementById('cari-setelan-toko').value) || '').trim().toLowerCase();
+      const list = (dataSetelanToko_ || []).filter((t) => {
+        if (!q) return true;
+        return (t.toko && t.toko.toLowerCase().indexOf(q) !== -1) ||
+               (t.kode && t.kode.toLowerCase().indexOf(q) !== -1);
+      });
+
+      const countEl = document.getElementById('setelan-toko-count');
+      if (countEl) countEl.textContent = String(dataSetelanToko_.length);
+      const ringkasEl = document.getElementById('setelan-toko-ringkasan');
+      if (ringkasEl) ringkasEl.textContent = dataSetelanToko_.length + ' toko terdaftar';
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px; color:#64748b;">' +
+          (q ? 'Tidak ada toko yang cocok dengan pencarian.' : 'Belum ada pemetaan kode toko.') +
+          '</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => {
+        const realIdx = dataSetelanToko_.indexOf(item);
+        return '<tr>' +
+          '<td style="text-align:center; color:#64748b; font-size:12px;">' + (idx + 1) + '</td>' +
+          '<td>' +
+            '<input type="text" class="field field-sm" value="' + esc(item.toko || '') + '" onchange="ubahTokoNama_(' + realIdx + ', this.value)" style="width:100%;">' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<input type="text" class="field field-sm num" value="' + esc(item.kode || '') + '" maxlength="6" onchange="ubahTokoKode_(' + realIdx + ', this.value)" style="width:80px; text-align:center; text-transform:uppercase; font-weight:600;">' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<button type="button" class="btn btn-sm btn-quiet" onclick="hapusTokoSetelan_(' + realIdx + ')" title="Hapus toko" style="color:#dc2626;">' +
+              '<i class="fa-solid fa-trash" aria-hidden="true"></i>' +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function filterTabelTokoSetelan_() {
+      renderTabelTokoSetelan_();
+    }
+
+    function ubahTokoNama_(idx, val) {
+      if (dataSetelanToko_[idx]) {
+        dataSetelanToko_[idx].toko = String(val || '').trim();
+        setTokoDirty_(true);
+      }
+    }
+
+    function ubahTokoKode_(idx, val) {
+      if (dataSetelanToko_[idx]) {
+        dataSetelanToko_[idx].kode = String(val || '').trim().toUpperCase();
+        setTokoDirty_(true);
+      }
+    }
+
+    function tambahTokoBaruAction() {
+      const elNama = document.getElementById('input-toko-nama');
+      const elKode = document.getElementById('input-toko-kode');
+      const nama = elNama ? String(elNama.value || '').trim() : '';
+      const kode = elKode ? String(elKode.value || '').trim().toUpperCase() : '';
+
+      if (!nama) {
+        showToast('Nama toko tidak boleh kosong.', 'error');
+        if (elNama) elNama.focus();
+        return;
+      }
+      if (!kode) {
+        showToast('Kode cetak toko tidak boleh kosong.', 'error');
+        if (elKode) elKode.focus();
+        return;
+      }
+
+      const sudahAda = dataSetelanToko_.some((t) => t.toko.toLowerCase() === nama.toLowerCase());
+      if (sudahAda) {
+        showToast('Toko ' + nama + ' sudah ada dalam daftar.', 'error');
+        return;
+      }
+
+      dataSetelanToko_.push({ toko: nama, kode: kode });
+      if (elNama) elNama.value = '';
+      if (elKode) elKode.value = '';
+      setTokoDirty_(true);
+      renderTabelTokoSetelan_();
+      showToast('Toko ' + nama + ' (' + kode + ') ditambahkan ke tabel.', 'info');
+    }
+
+    function hapusTokoSetelan_(idx) {
+      if (idx >= 0 && idx < dataSetelanToko_.length) {
+        const item = dataSetelanToko_[idx];
+        dataSetelanToko_.splice(idx, 1);
+        setTokoDirty_(true);
+        renderTabelTokoSetelan_();
+        showToast('Toko ' + item.toko + ' dihapus dari tabel.', 'info');
+      }
+    }
+
+    function simpanTokoDariTabelAction() {
+      const tombol = document.getElementById('btn-simpan-toko-tabel');
+      const statusEl = document.getElementById('pembagian-toko-status');
+      if (tombol) tombol.disabled = true;
+      if (statusEl) statusEl.textContent = 'Menyimpan...';
+
+      const daftar = (dataSetelanToko_ || []).filter((t) => t.toko && t.kode);
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (tombol) tombol.disabled = false;
+          if (statusEl) statusEl.textContent = '';
+          setTokoDirty_(false);
+          showToast((res && res.pesan) || 'Kode toko berhasil disimpan.', 'success');
+        })
+        .withFailureHandler((err) => {
+          if (tombol) tombol.disabled = false;
+          if (statusEl) statusEl.textContent = '';
+          showToast('Gagal menyimpan kode toko: ' + ((err && err.message) || err), 'error');
+        })
+        .simpanKodeTokoDashboard(sesiToken, daftar);
     }
 
     function sinkronkanKeTsv_() {
@@ -5602,12 +5867,32 @@
         catatan: String(a.catatan || '').trim()
       }));
 
+      const rawToko = (setelan && setelan.kodeToko) || {};
+      dataSetelanToko_ = [];
+      if (Array.isArray(rawToko)) {
+        dataSetelanToko_ = rawToko.map((t) => ({
+          toko: String(t.toko || '').trim(),
+          kode: String(t.kode || '').trim().toUpperCase()
+        })).filter((t) => t.toko);
+      } else {
+        for (const k in rawToko) {
+          if (Object.prototype.hasOwnProperty.call(rawToko, k)) {
+            dataSetelanToko_.push({
+              toko: String(k).trim(),
+              kode: String(rawToko[k]).trim().toUpperCase()
+            });
+          }
+        }
+      }
+
       renderTabelPenjahitSetelan_();
       renderTabelAturanSetelan_();
+      renderTabelTokoSetelan_();
       sinkronkanKeTsv_();
       perbaruiDatalistGrup_();
       setPenjahitDirty_(false);
       setAturanDirty_(false);
+      setTokoDirty_(false);
     }
 
     function bagiJahitAction() {
@@ -7908,145 +8193,161 @@
 
       let y = margin + 3;
 
+      // 1. Centered Title
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.setTextColor(30, 41, 59);
-      doc.text('BEGOOD COLLECTION', pageW / 2, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      doc.text('Lembar Kerja Jahit', pageW / 2, y, { align: 'center' });
 
-      y += 4;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(71, 85, 105);
-      doc.text('SURAT PERINTAH KERJA (SPK) PENJAHIT', pageW / 2, y, { align: 'center' });
+      y += 3.5;
 
-      y += 3;
-      doc.setDrawColor(203, 213, 225);
-      doc.setLineWidth(0.3);
-      doc.line(margin, y, margin + width, y);
+      // 2. Metadata Table (solid black border around table and every cell)
+      const metaRows = [
+        ['Nama', String(info.nama || '-')],
+        ['Tanggal', formatTanggalIndonesiaLengkap_(info.tanggal)],
+        ['Sesi', String(info.sesi || '-')],
+        ['Estimasi Jahit', String(info.estimasiJahit || '-')],
+        ['Estimasi Potong Keseluruhan', String(info.estimasiPotong || '-')]
+      ];
 
-      y += 3;
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(margin, y, width, 18, 1.5, 1.5, 'F');
-      doc.setDrawColor(203, 213, 225);
-      doc.rect(margin, y, width, 18, 'S');
+      const metaCol1W = 38;
+      const metaCol2W = width - metaCol1W;
+      const metaRowH = 4.8;
 
-      doc.setFontSize(7);
-      doc.setTextColor(100, 116, 139);
-      doc.text('Penjahit:', margin + 3, y + 4.5);
-      doc.text('Sesi:', margin + 3, y + 9);
-      doc.text('Tanggal:', margin + 3, y + 13.5);
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.2);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(15, 23, 42);
-      doc.text(String(info.nama || '-'), margin + 17, y + 4.5);
-      doc.text(String(info.sesi || '-'), margin + 17, y + 9);
-      doc.text(String(info.tanggal || '-'), margin + 17, y + 13.5);
+      for (let r = 0; r < metaRows.length; r++) {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, y, metaCol1W, metaRowH, 'FD');
+        doc.rect(margin + metaCol1W, y, metaCol2W, metaRowH, 'FD');
 
-      const col2X = margin + 48;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 116, 139);
-      doc.text('Total Pcs:', col2X, y + 4.5);
-      doc.text('Est. Jahit:', col2X, y + 9);
-      doc.text('Est. Potong:', col2X, y + 13.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(0, 0, 0);
+        doc.text(metaRows[r][0], margin + 1.5, y + 3.4);
 
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(15, 23, 42);
-      doc.text(String(info.totalPcs || 0) + ' pcs', col2X + 16, y + 4.5);
-      doc.text(String(info.estimasiJahit || '-'), col2X + 16, y + 9);
-      doc.text(String(info.estimasiPotong || '-'), col2X + 16, y + 13.5);
+        doc.setFont('helvetica', (r === 0 || r === 2) ? 'bold' : 'normal');
+        doc.text(metaRows[r][1], margin + metaCol1W + 1.5, y + 3.4);
 
-      y += 22;
-
-      const cols = [7, 43, 31, 12];
-      const startX = [margin];
-      for (let c = 1; c < cols.length; c++) {
-        startX.push(startX[c - 1] + cols[c - 1]);
+        y += metaRowH;
       }
 
+      y += 3.5;
+
+      // 3. Motivational Headline
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Semangat!, Semoga kita bisa bekerja sama dengan baik hari ini.', pageW / 2, y, { align: 'center' });
+
+      y += 3.5;
+
+      // 4. Items Table
+      // Columns: Produk (SKU) [36], Kode Toko [8], Variasi [32], Qty [9], Checkbox [8] = 93 mm
+      const colW = [36, 8, 32, 9, 8];
+      const startX = [margin];
+      for (let c = 1; c < colW.length; c++) {
+        startX.push(startX[c - 1] + colW[c - 1]);
+      }
+
+      const headerH = 5.5;
+      const rowH = 5.4;
+
       function drawTableHeader(curY) {
-        doc.setFillColor(30, 41, 59);
-        doc.rect(margin, curY, width, 5.5, 'F');
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
+        doc.setFillColor(255, 255, 255);
+
+        for (let c = 0; c < colW.length; c++) {
+          doc.rect(startX[c], curY, colW[c], headerH, 'FD');
+        }
+
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
-        doc.setTextColor(255, 255, 255);
-        doc.text('NO', startX[0] + (cols[0] / 2), curY + 3.8, { align: 'center' });
-        doc.text('SKU', startX[1] + 1.5, curY + 3.8);
-        doc.text('VARIASI', startX[2] + 1.5, curY + 3.8);
-        doc.text('PCS', startX[3] + (cols[3] / 2), curY + 3.8, { align: 'center' });
-        return curY + 5.5;
+        doc.setFontSize(7.5);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Produk (SKU)', startX[0] + 1.5, curY + 3.8);
+        // Col 1 is empty header for store code
+        doc.text('Variasi', startX[2] + 1.5, curY + 3.8);
+        doc.text('Qty', startX[3] + (colW[3] / 2), curY + 3.8, { align: 'center' });
+        // Col 4 is empty header for checkbox
+
+        return curY + headerH;
       }
 
       y = drawTableHeader(y);
 
       const items = info.items || [];
       if (items.length === 0) {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
         doc.setFillColor(255, 255, 255);
-        doc.rect(margin, y, width, 8, 'F');
-        doc.setDrawColor(226, 232, 240);
-        doc.rect(margin, y, width, 8, 'S');
+        doc.rect(margin, y, width, 8, 'FD');
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(7);
-        doc.setTextColor(148, 163, 184);
+        doc.setTextColor(100, 100, 100);
         doc.text('Belum ada rincian pekerjaan untuk sesi ini.', pageW / 2, y + 5, { align: 'center' });
         y += 8;
       } else {
-        const rowH = 5.2;
         const maxBottom = pageH - 24;
 
         for (let i = 0; i < items.length; i++) {
           if (y + rowH > maxBottom) {
             doc.addPage([pageW, pageH], 'portrait');
-            y = margin + 3;
+            y = margin + 4;
             y = drawTableHeader(y);
           }
 
           const it = items[i];
-          const isEven = (i % 2 === 0);
-          if (isEven) {
-            doc.setFillColor(255, 255, 255);
-          } else {
-            doc.setFillColor(248, 250, 252);
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.2);
+          doc.setFillColor(255, 255, 255);
+
+          for (let c = 0; c < colW.length; c++) {
+            doc.rect(startX[c], y, colW[c], rowH, 'FD');
           }
-          doc.rect(margin, y, width, rowH, 'F');
-          doc.setDrawColor(226, 232, 240);
-          doc.rect(margin, y, width, rowH, 'S');
 
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(6.5);
-          doc.setTextColor(30, 41, 59);
+          doc.setTextColor(0, 0, 0);
 
-          doc.text(String(i + 1), startX[0] + (cols[0] / 2), y + 3.6, { align: 'center' });
+          // Col 0: Produk (SKU)
+          pdfKit.fitText(doc, String(it.sku || '-'), colW[0] - 3, 7, 5);
+          doc.text(String(it.sku || '-'), startX[0] + 1.5, y + 3.7);
 
-          pdfKit.fitText(doc, String(it.sku || '-'), cols[1] - 3, 6.5, 5);
-          doc.text(String(it.sku || '-'), startX[1] + 1.5, y + 3.6);
+          // Col 1: Store Code (TM, BG)
+          const kodeToko = resolveKodeToko_(it.toko, info.kodeTokoMap);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.text(kodeToko, startX[1] + (colW[1] / 2), y + 3.7, { align: 'center' });
 
-          pdfKit.fitText(doc, String(it.variasi || '-'), cols[2] - 3, 6.5, 5);
-          doc.text(String(it.variasi || '-'), startX[2] + 1.5, y + 3.6);
+          // Col 2: Variasi
+          pdfKit.fitText(doc, String(it.variasi || '-'), colW[2] - 3, 7, 5);
+          doc.text(String(it.variasi || '-'), startX[2] + 1.5, y + 3.7);
 
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(6.5);
-          doc.text(String(it.jumlah || it.qty || 1), startX[3] + (cols[3] / 2), y + 3.6, { align: 'center' });
+          // Col 3: Qty
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.text(String(it.jumlah || it.qty || 1), startX[3] + (colW[3] / 2), y + 3.7, { align: 'center' });
+
+          // Col 4: Open square checkbox [ ]
+          const cbSize = 3.8;
+          const cbX = startX[4] + (colW[4] - cbSize) / 2;
+          const cbY = y + (rowH - cbSize) / 2;
+          doc.rect(cbX, cbY, cbSize, cbSize, 'S');
 
           y += rowH;
         }
       }
 
-      const sigY = pageH - 18;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      doc.setTextColor(71, 85, 105);
-
-      doc.text('Penjahit,', margin + 10, sigY);
-      doc.line(margin + 5, sigY + 9, margin + 35, sigY + 9);
-      doc.text('( ' + String(info.nama || '') + ' )', margin + 20, sigY + 12, { align: 'center' });
-
-      doc.text('Mandor / QC,', margin + width - 30, sigY);
-      doc.line(margin + width - 35, sigY + 9, margin + width - 5, sigY + 9);
-      doc.text('( _______________ )', margin + width - 20, sigY + 12, { align: 'center' });
-
-      doc.setFontSize(5);
-      doc.setTextColor(148, 163, 184);
-      doc.text('ERP BEGOOD - ' + pdfKit.yyyymmdd(new Date()), margin, pageH - 2.5);
+      // 5. Centered Page Footer: Halaman X / Y
+      const totalPages = doc.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(60, 60, 60);
+        doc.text('Halaman ' + p + ' / ' + totalPages, pageW / 2, pageH - 7, { align: 'center' });
+      }
 
       return doc;
     }

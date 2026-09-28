@@ -3085,6 +3085,55 @@ var SheetManager = (function() {
       sheet.getRange(2, 1, sheet.getMaxRows() - 1, RULES_HEADERS.length).clearContent();
       sheet.getRange(2, 1, baris.length, RULES_HEADERS.length).setValues(baris);
       return baris.length;
+    },
+
+    /**
+     * Membaca pemetaan nama toko ke kode singkat cetak SPK.
+     *
+     * @return {Object} pemetaan toko -> kode singkat
+     */
+    bacaKodeTokoCetak: function() {
+      var cfg = this.getConfig();
+      var raw = cfg.KODE_TOKO_CETAK || '';
+      var peta = {};
+      if (raw) {
+        try {
+          peta = JSON.parse(raw);
+        } catch (err) {
+          peta = {};
+        }
+      }
+      if (Object.keys(peta).length === 0) {
+        peta = {
+          'begood.bdg': 'BG',
+          'toko tidur manis': 'TM',
+          'BGD': 'BG',
+          'BGD2': 'TM'
+        };
+      }
+      return peta;
+    },
+
+    /**
+     * Menyimpan pemetaan nama toko ke kode singkat cetak pada sheet Konfigurasi.
+     *
+     * @param {Object} peta objek pemetaan nama toko -> kode cetak
+     * @return {number} jumlah pemetaan tersimpan
+     */
+    simpanKodeTokoCetak: function(peta) {
+      var sheet = getOrCreateSheet(SHEETS.CONFIG);
+      var data = sheet.getDataRange().getValues();
+      var key = 'KODE_TOKO_CETAK';
+      var val = typeof peta === 'string' ? peta : JSON.stringify(peta);
+
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][0]).trim() === key) {
+          sheet.getRange(i + 1, 2).setValue(val);
+          return Object.keys(peta || {}).length;
+        }
+      }
+      sheet.appendRow([key, val, 'Pemetaan nama toko ke kode singkat cetak SPK (JSON)']);
+      return Object.keys(peta || {}).length;
     }
   };
 })();

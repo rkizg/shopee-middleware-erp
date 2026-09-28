@@ -67,7 +67,7 @@ sandbox.window.jspdf={jsPDF:FakeDoc};
 
 const html=fs.readFileSync(AKAR + 'gas/Index.html','utf8');
 const code=html.split('<script>')[1].split('</script>')[0];
-const EXPORT='globalThis.__api={loadDashboard,groupOrdersBySn,buildSlipPdf,buildBatchSlipPdf,buildLabelPdf,buildSpkPenjahitPdf,exportTable:null,pdfKit,rekapPesananRows,rekapRowsFrom,exportSlipPdf,cetakSlipPdfTerpilih,exportRekapPesananPdf,cetakLabelPdfTerpilih,setData:d=>{globalData=d;},setFiltered:f=>{currentFilteredOrders=f;},setSel:s=>{selectedOrderSns=s;},toggles:()=>0};';
+const EXPORT='globalThis.__api={loadDashboard,groupOrdersBySn,buildSlipPdf,buildBatchSlipPdf,buildLabelPdf,buildSpkPenjahitPdf,resolveKodeToko_,cariTokoItem_,kumpulkanDataKartu_,exportTable:null,pdfKit,rekapPesananRows,rekapRowsFrom,exportSlipPdf,cetakSlipPdfTerpilih,exportRekapPesananPdf,cetakLabelPdfTerpilih,setData:d=>{globalData=d;},setFiltered:f=>{currentFilteredOrders=f;},setSel:s=>{selectedOrderSns=s;},toggles:()=>0};';
 vm.createContext(sandbox);
 vm.runInContext(code+EXPORT,sandbox);
 const A=sandbox.__api;
@@ -143,6 +143,33 @@ console.log('  SPK: kode toko BG tercetak    ->', dSpk.calls.some(c => c.op === 
 console.log('  SPK: kode toko TM tercetak    ->', dSpk.calls.some(c => c.op === 'text' && c.t === 'TM'));
 console.log('  SPK: slogan tercetak          ->', dSpk.calls.some(c => c.op === 'text' && c.t.indexOf('Semangat!') !== -1));
 console.log('  SPK: 2 halaman A6             ->', dSpk.pages === 2);
+
+const dSpkTanpaPeta = A.buildSpkPenjahitPdf(FakeDoc, {
+  nama: 'ADUL', sesi: 'SIANG', tanggal: '2026-09-28',
+  items: [
+    { sku: 'BC AJA 200x220', toko: 'BEGOOD.BDG', variasi: 'Navy', jumlah: 1 },
+    { sku: 'SPREI 100/25 SET', toko: 'Toko Tidur Manis', variasi: 'Coffee', jumlah: 1 }
+  ]
+});
+console.log('  SPK: fallback kode toko BG    ->', dSpkTanpaPeta.calls.some(c => c.op === 'text' && c.t === 'BG'));
+console.log('  SPK: fallback kode toko TM    ->', dSpkTanpaPeta.calls.some(c => c.op === 'text' && c.t === 'TM'));
+
+const dummyRekap = {
+  total: { upah: 100000, waktuJahit: 60, waktuPotong: 30 },
+  perPenjahit: [
+    { nama: 'ADUL', grup: 'BC', upah: 50000, waktuJahit: 30, waktuPotong: 15, items: [
+      { sku: 'BC AJA 200x220', variasi: 'Navy', qty: 1, toko: 'begood.bdg' },
+      { sku: 'SPREI 100/25', variasi: 'Coffee', qty: 1, toko: 'toko tidur manis' }
+    ]}
+  ]
+};
+const kartuData = A.kumpulkanDataKartu_({ rekap: dummyRekap, setelan: {} });
+const adulKartu = (kartuData.penjahit || []).find(p => p.nama === 'ADUL');
+const shiftSekarang = (new Date().getHours() < 13) ? 'PAGI' : 'SIANG';
+const adulItems = (adulKartu && adulKartu.sesi && adulKartu.sesi[shiftSekarang] && adulKartu.sesi[shiftSekarang].items) || [];
+console.log('  kartu: toko dipertahankan     ->', adulItems.length === 2 && adulItems[0].toko === 'begood.bdg' && adulItems[1].toko === 'toko tidur manis');
+if (adulItems.length !== 2 || adulItems[0].toko !== 'begood.bdg' || adulItems[1].toko !== 'toko tidur manis') allOk = false;
+if (!dSpkTanpaPeta.calls.some(c => c.op === 'text' && c.t === 'BG') || !dSpkTanpaPeta.calls.some(c => c.op === 'text' && c.t === 'TM')) allOk = false;
 console.log('  slip: halaman di kaki  ->', d2.calls.filter(c=>c.op==='text'&&c.t.startsWith('Halaman')).map(c=>c.t).join(' | '));
 console.log('  slip: resi kosong      ->', d3.calls.some(c=>c.op==='text'&&c.t==='BELUM TERSEDIA'));
 console.log('  slip: catatan tercetak ->', d1.calls.some(c=>c.op==='text'&&c.t.indexOf('Catatan pembeli')===0));

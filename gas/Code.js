@@ -2891,6 +2891,7 @@ function kumpulkanEstimasiProduksi_(produksi, kamus, tanggal) {
         sku: b.sku,
         variasi: b.variasi || '',
         toko: b.toko || '',
+        noPesanan: b.noPesanan || '',
         jumlah: 0, waktuJahit: 0, waktuPotong: 0, waktu: 0, upah: 0,
         hargaSatuan: hargaSatuan
       };

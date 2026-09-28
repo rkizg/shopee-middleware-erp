@@ -552,17 +552,17 @@ Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 | 4790 | `teksUangBagi_()` |
 | 4795 | `renderPembagianJahit()` |
 | 4830 | `renderTabelPenjahitPembagian_()` |
-| 5227 | `renderPeringatanPembagian_()` |
-| 5254 | `renderUnitPembagian_()` |
-| 5297 | `tsvDariTabel_()` |
-| 5308 | `tabelDariTsv_()` |
-| 5586 | `isiSetelanPembagian_()` |
-| 5629 | `bagiJahitAction()` |
-| 5660 | `sesiDefaultKlien_()` |
-| 5664 | `siapkanSesiPembagian_()` |
-| 5677 | `tutupSesiJahitAction()` |
-| 5715 | `simpanPenjahitAction()` |
-| 5754 | `simpanAturanAction()` |
+| 5292 | `renderPeringatanPembagian_()` |
+| 5319 | `renderUnitPembagian_()` |
+| 5362 | `tsvDariTabel_()` |
+| 5373 | `tabelDariTsv_()` |
+| 5651 | `isiSetelanPembagian_()` |
+| 5694 | `bagiJahitAction()` |
+| 5725 | `sesiDefaultKlien_()` |
+| 5729 | `siapkanSesiPembagian_()` |
+| 5742 | `tutupSesiJahitAction()` |
+| 5780 | `simpanPenjahitAction()` |
+| 5819 | `simpanAturanAction()` |
 
 Daftar tabnya ada pada `TAB_NAMES` dan `JUDUL_TAB`, dan `switchTab()` memanggil
 `muatPembagianJahit()` setiap kali tabnya dibuka.

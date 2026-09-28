@@ -4889,17 +4889,71 @@
       return hariArr[d.getDay()] + ', ' + d.getDate() + ' ' + bulanArr[d.getMonth()] + ' ' + d.getFullYear();
     }
 
+    function cariTokoItem_(it, payload) {
+      if (!it) return '';
+      if (it.toko && String(it.toko).trim()) {
+        return String(it.toko).trim();
+      }
+      const unit = (payload && payload.rekap && payload.rekap.unit) || (payload && payload.unit) || [];
+      const noPesanan = it.noPesanan || it.pesanan || '';
+      if (noPesanan) {
+        for (let u = 0; u < unit.length; u++) {
+          if (unit[u].noPesanan === noPesanan && unit[u].toko) {
+            return String(unit[u].toko).trim();
+          }
+        }
+        if (typeof semuaBarisPesanan_ === 'function') {
+          try {
+            const pesanan = semuaBarisPesanan_();
+            for (let s = 0; s < pesanan.length; s++) {
+              if (pesanan[s].orderSn === noPesanan && (pesanan[s].shopName || pesanan[s].toko)) {
+                return String(pesanan[s].shopName || pesanan[s].toko).trim();
+              }
+            }
+          } catch (e) {}
+        }
+      }
+      if (it.sku) {
+        for (let u = 0; u < unit.length; u++) {
+          if (unit[u].sku === it.sku && (!it.variasi || unit[u].variasi === it.variasi) && unit[u].toko) {
+            return String(unit[u].toko).trim();
+          }
+        }
+      }
+      if (payload && payload.cakupan && payload.cakupan !== 'SEMUA') {
+        return String(payload.cakupan).trim();
+      }
+      return '';
+    }
+
     function resolveKodeToko_(toko, map) {
       if (!toko) return '';
       const raw = String(toko).trim();
       if (!raw) return '';
       const peta = map || {};
-      if (peta[raw]) return peta[raw];
+
+      if (peta[raw]) return String(peta[raw]).trim().toUpperCase();
+
       const rawLower = raw.toLowerCase();
       for (const k in peta) {
-        if (k.toLowerCase() === rawLower) return peta[k];
+        if (k.toLowerCase() === rawLower) return String(peta[k]).trim().toUpperCase();
       }
+
+      for (const k in peta) {
+        const kLower = k.toLowerCase();
+        if (kLower && (rawLower.indexOf(kLower) !== -1 || kLower.indexOf(rawLower) !== -1)) {
+          return String(peta[k]).trim().toUpperCase();
+        }
+      }
+
+      if (rawLower.indexOf('begood') !== -1 || rawLower === 'bgd') return 'BG';
+      if (rawLower.indexOf('tidur') !== -1 || rawLower.indexOf('manis') !== -1 || rawLower === 'bgd2' || rawLower === 'tm') return 'TM';
+
       if (raw.length <= 3) return raw.toUpperCase();
+      const words = raw.split(/[\s._-]+/).filter(Boolean);
+      if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+      }
       return raw.substring(0, 2).toUpperCase();
     }
 
@@ -5007,6 +5061,9 @@
           if (Array.isArray(p.items)) {
             p.items.forEach((it) => {
               const s = (it.sesi === 'SIANG') ? 'SIANG' : 'PAGI';
+              if (!it.toko) {
+                it.toko = cariTokoItem_(it, payload);
+              }
               entry.sesi[s].items.push(it);
             });
           }
@@ -5061,7 +5118,8 @@
             waktuPotong: Number(it.waktuPotong) || 0,
             upah: Number(it.hargaTotal || it.harga) || 0,
             hargaSatuan: Number(it.harga) || 0,
-            noPesanan: it.noPesanan || ''
+            noPesanan: it.noPesanan || '',
+            toko: it.toko || cariTokoItem_(it, payload) || ''
           }));
         });
       }
@@ -5174,6 +5232,9 @@
       let totalPcs = 0;
       (sesiData.items || []).forEach((it) => {
         totalPcs += Number(it.jumlah || it.qty) || 0;
+        if (!it.toko) {
+          it.toko = cariTokoItem_(it, pembagianTerakhir);
+        }
       });
 
       const kodeTokoMap = {};
@@ -5182,7 +5243,11 @@
       });
       if (pembagianTerakhir && pembagianTerakhir.setelan && pembagianTerakhir.setelan.kodeToko) {
         const pk = pembagianTerakhir.setelan.kodeToko;
-        if (!Array.isArray(pk)) {
+        if (Array.isArray(pk)) {
+          pk.forEach((t) => {
+            if (t.toko && t.kode && !kodeTokoMap[t.toko]) kodeTokoMap[t.toko] = t.kode;
+          });
+        } else {
           for (const k in pk) {
             if (!kodeTokoMap[k]) kodeTokoMap[k] = pk[k];
           }
@@ -8046,7 +8111,8 @@
           doc.text(String(it.sku || '-'), startX[0] + 1.5, y + 3.7);
 
           // Col 1: Store Code (TM, BG)
-          const kodeToko = resolveKodeToko_(it.toko, info.kodeTokoMap);
+          const tokoItem = it.toko || (typeof cariTokoItem_ === 'function' ? cariTokoItem_(it, (typeof pembagianTerakhir !== 'undefined' ? pembagianTerakhir : null)) : '');
+          const kodeToko = resolveKodeToko_(tokoItem, info.kodeTokoMap);
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7);
           doc.text(kodeToko, startX[1] + (colW[1] / 2), y + 3.7, { align: 'center' });

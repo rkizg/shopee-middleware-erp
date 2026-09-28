@@ -3455,6 +3455,8 @@ function kumpulkanUnitPembagian_(rows, aturan, kamus, peringatan) {
 
     var entri = cariProsesSku_(kamus, sku, variasi);
     var harga = entri ? (Number(entri.harga) || 0) : 0;
+    var waktuJahit = entri ? (Number(entri.waktuJahit) || 0) : 0;
+    var waktuPotong = entri ? (Number(entri.waktuPotong) || 0) : 0;
 
     if (harga <= 0) {
       peringatan.push(peringatanBagi_('SKU_TANPA_HARGA', noPesanan, sku, variasi,
@@ -3470,6 +3472,8 @@ function kumpulkanUnitPembagian_(rows, aturan, kamus, peringatan) {
         part: qty > 1 ? (pcs + '/' + qty) : '',
         grup: grup,
         harga: harga,
+        waktuJahit: waktuJahit,
+        waktuPotong: waktuPotong,
         penjahit: ''
       });
     }
@@ -3912,6 +3916,7 @@ function rekapPembagian_(kodeToko) {
   var semua = SheetManager.bacaPembagian();
   var terkini = [];
   var qtyTerpakai = {};
+  var kamus = bangunKamusProses_(bacaProsesCached_());
 
   for (var j = 0; j < semua.length; j++) {
     var b = semua[j];
@@ -3939,6 +3944,10 @@ function rekapPembagian_(kodeToko) {
     var hargaTotal = Number(b.hargaTotal) || 0;
     if (hargaTotal <= 0 && harga > 0) hargaTotal = harga * qtyBaris;
 
+    var entri = cariProsesSku_(kamus, b.sku, b.variasi);
+    b.waktuJahit = entri ? (Number(entri.waktuJahit) || 0) : 0;
+    b.waktuPotong = entri ? (Number(entri.waktuPotong) || 0) : 0;
+
     b.qty = qtyBaris;
     b.harga = harga;
     b.hargaTotal = hargaTotal;
@@ -3962,6 +3971,8 @@ function rekapPembagian_(kodeToko) {
 
   var perPenjahit = rekapPerPenjahit_(terkini, penjahit);
   var totalUpah = 0;
+  var totalWaktuJahit = 0;
+  var totalWaktuPotong = 0;
   var pcsTerbagi = 0;
   var tertinggi = 0;
   var terendah = 0;
@@ -3977,6 +3988,8 @@ function rekapPembagian_(kodeToko) {
 
     pcsTerbagi += orang.pcs;
     totalUpah += orang.upah;
+    totalWaktuJahit += orang.waktuJahit || 0;
+    totalWaktuPotong += orang.waktuPotong || 0;
     if (!adaUpah || orang.upah > tertinggi) tertinggi = orang.upah;
     if (!adaUpah || orang.upah < terendah) terendah = orang.upah;
     adaUpah = true;
@@ -4005,6 +4018,8 @@ function rekapPembagian_(kodeToko) {
     unit: terkini,
     total: {
       upah: totalUpah,
+      waktuJahit: totalWaktuJahit,
+      waktuPotong: totalWaktuPotong,
       selisih: adaUpah ? tertinggi - terendah : 0,
       rataUpah: bekerja > 0 ? Math.round(totalUpah / bekerja) : 0
     },
@@ -4028,6 +4043,9 @@ function rekapPerPenjahit_(terkini, penjahit) {
       bobot: daftar[i].bobot,
       pcs: 0,
       upah: 0,
+      waktuJahit: 0,
+      waktuPotong: 0,
+      items: [],
       order: {},
       sku: {}
     };
@@ -4039,12 +4057,16 @@ function rekapPerPenjahit_(terkini, penjahit) {
     if (!nama) continue;
 
     if (!peta[nama]) {
-      peta[nama] = { nama: nama, grup: b.grup || '', bobot: 1, pcs: 0, upah: 0, order: {}, sku: {} };
+      peta[nama] = { nama: nama, grup: b.grup || '', bobot: 1, pcs: 0, upah: 0, waktuJahit: 0, waktuPotong: 0, items: [], order: {}, sku: {} };
     }
 
     var qtyBaris = Number(b.qty) > 0 ? Number(b.qty) : 1;
     peta[nama].pcs += qtyBaris;
     peta[nama].upah += upahBarisBagi_(b);
+    peta[nama].waktuJahit = (peta[nama].waktuJahit || 0) + (Number(b.waktuJahit) || 0) * qtyBaris;
+    peta[nama].waktuPotong = (peta[nama].waktuPotong || 0) + (Number(b.waktuPotong) || 0) * qtyBaris;
+    if (!peta[nama].items) peta[nama].items = [];
+    peta[nama].items.push(b);
     if (b.noPesanan) peta[nama].order[b.noPesanan] = true;
     if (b.sku) peta[nama].sku[b.sku] = true;
   }
@@ -4074,6 +4096,9 @@ function rekapPerPenjahit_(terkini, penjahit) {
       bobot: berat,
       pcs: orang.pcs,
       upah: orang.upah,
+      waktuJahit: orang.waktuJahit || 0,
+      waktuPotong: orang.waktuPotong || 0,
+      items: orang.items || [],
       jumlahOrder: Object.keys(orang.order).length,
       jumlahSku: Object.keys(orang.sku).length,
       target: target,
@@ -4188,6 +4213,10 @@ function tanpaUangBagi_(payload) {
     delete unit[m].hargaTotal;
   }
 
+  if (hasil.estimasiHariIni) {
+    hasil.estimasiHariIni = tanpaUangEstimasi_(hasil.estimasiHariIni);
+  }
+
   hasil.uangDisembunyikan = true;
   return hasil;
 }
@@ -4200,13 +4229,18 @@ function getPembagianJahit(token, kodeToko) {
 
   SheetManager.pastikanSettingProduksi();
 
+  var hariIni = tanggalWibHariIni_();
+  var kamus = bangunKamusProses_(bacaProsesCached_());
+  var estimasiHariIni = kumpulkanEstimasiProduksi_(SheetManager.bacaProduksi(), kamus, hariIni);
+
   var payload = {
     cakupan: cakupan,
     setelan: {
       penjahit: SheetManager.bacaPenjahit(),
       aturan: SheetManager.bacaAturanSku()
     },
-    rekap: rekapPembagian_(cakupan)
+    rekap: rekapPembagian_(cakupan),
+    estimasiHariIni: estimasiHariIni
   };
 
   return bolehLihatUang_(sesi) ? payload : tanpaUangBagi_(payload);

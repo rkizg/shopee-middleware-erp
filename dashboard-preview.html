@@ -360,6 +360,220 @@
       box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
     }
 
+    /* ---------- layout kartu pembagian penjahit ---------- */
+    .pembagian-summary-box {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--r-surface);
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+    .pembagian-summary-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 12px;
+    }
+    .pembagian-summary-hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+    .pembagian-metric-label {
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+    .pembagian-metric-val-green {
+      font-size: 26px;
+      font-weight: 800;
+      color: #10b981;
+      font-family: var(--sans);
+      line-height: 1.2;
+    }
+    [data-theme="light"] .pembagian-metric-val-green { color: #059669; }
+    .pembagian-metric-val-blue {
+      font-size: 26px;
+      font-weight: 800;
+      color: #38bdf8;
+      font-family: var(--sans);
+      line-height: 1.2;
+    }
+    [data-theme="light"] .pembagian-metric-val-blue { color: #0284c7; }
+
+    .pembagian-summary-sesi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .pembagian-sesi-card {
+      background: var(--desk);
+      border: 1px solid var(--rule);
+      border-radius: var(--r-control);
+      padding: 14px;
+    }
+    .pembagian-sesi-title-pagi {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #f59e0b;
+      margin-bottom: 10px;
+    }
+    [data-theme="light"] .pembagian-sesi-title-pagi { color: #b45309; }
+    .pembagian-sesi-title-siang {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      margin-bottom: 10px;
+    }
+    [data-theme="light"] .pembagian-sesi-title-siang { color: #0284c7; }
+
+    .pembagian-sesi-sub-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .pembagian-sesi-col-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 4px;
+    }
+    .pembagian-sesi-col-val-green {
+      font-size: 15px;
+      font-weight: 700;
+      color: #10b981;
+    }
+    [data-theme="light"] .pembagian-sesi-col-val-green { color: #059669; }
+    .pembagian-sesi-col-val-blue {
+      font-size: 15px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    [data-theme="light"] .pembagian-sesi-col-val-blue { color: #0284c7; }
+
+    .pembagian-potong-row {
+      border-top: 1px solid var(--rule);
+      padding-top: 10px;
+    }
+    .pembagian-potong-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 2px;
+    }
+    .pembagian-potong-val {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f59e0b;
+    }
+    [data-theme="light"] .pembagian-potong-val { color: #b45309; }
+
+    .pembagian-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .pembagian-summary-hero { grid-template-columns: 1fr; gap: 12px; }
+      .pembagian-summary-sesi-grid { grid-template-columns: 1fr; gap: 12px; }
+      .pembagian-cards-grid { grid-template-columns: 1fr; }
+    }
+
+    .penjahit-card {
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: var(--r-surface);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .penjahit-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .penjahit-card-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: .02em;
+      margin: 0;
+    }
+    [data-theme="light"] .penjahit-card-name { color: #0284c7; }
+    .penjahit-card-total-wrap { text-align: right; }
+    .penjahit-card-total-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .penjahit-card-total-val {
+      font-size: 15px;
+      font-weight: 800;
+      color: #10b981;
+      line-height: 1.2;
+    }
+    [data-theme="light"] .penjahit-card-total-val { color: #059669; }
+    .penjahit-card-total-est {
+      font-size: 12px;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+    [data-theme="light"] .penjahit-card-total-est { color: #0284c7; }
+    .penjahit-card-est-sub {
+      font-size: 10px;
+      color: var(--ink-faint);
+    }
+
+    .penjahit-sub-card {
+      background: var(--desk);
+      border: 1px solid var(--rule);
+      border-radius: var(--r-control);
+      padding: 12px;
+    }
+    .penjahit-sub-card + .penjahit-sub-card { margin-top: 10px; }
+    .btn-pdf-a6 {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--r-control);
+      background: var(--desk-sunk);
+      border: 1px solid var(--rule-strong);
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 120ms ease;
+      min-height: 38px;
+    }
+    .btn-pdf-a6:hover {
+      background: var(--paper);
+      border-color: var(--ink-muted);
+    }
+    .btn-pdf-a6 i {
+      color: #ef4444;
+      margin-right: 6px;
+      font-size: 13px;
+    }
+
     /* ---------- table ---------- */
     .table-wrap { overflow-x: auto; }
 
@@ -1842,35 +2056,119 @@
 
       <div class="panel">
         <div class="panel-head">
-          <h2 class="panel-title">Beban dan upah per penjahit</h2>
-          <span class="panel-note" id="pembagian-rekap-note">Dihitung dari pekerjaan yang masih menunggu</span>
+          <div>
+            <h2 class="panel-title">Beban dan upah per penjahit</h2>
+            <span class="panel-note" id="pembagian-rekap-note">Dihitung dari pekerjaan yang masih menunggu</span>
+          </div>
+          <div class="toolbar-group">
+            <div class="pembagian-nav-tabs" role="tablist" aria-label="Mode tampilan penjahit">
+              <button type="button" class="btn btn-sm is-active" id="tab-view-penjahit-cards" onclick="gantiTampilanPenjahit_('cards')">
+                <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i> Tampilan Kartu
+              </button>
+              <button type="button" class="btn btn-sm btn-quiet" id="tab-view-penjahit-table" onclick="gantiTampilanPenjahit_('table')">
+                <i class="fa-solid fa-table-list" aria-hidden="true"></i> Tabel Ringkas
+              </button>
+            </div>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table class="ledger">
-            <caption class="sr-only">Beban dan upah setiap penjahit pada pekerjaan yang masih menunggu pickup</caption>
-            <thead>
-              <tr>
-                <th scope="col">Penjahit</th>
-                <th scope="col">Grup</th>
-                <th scope="col">Pcs</th>
-                <th scope="col">Order</th>
-                <th scope="col" class="butuh-uang">Upah</th>
-                <th scope="col">Bobot</th>
-                <th scope="col" class="butuh-uang">Target</th>
-                <th scope="col" class="butuh-uang">Selisih</th>
-              </tr>
-            </thead>
-            <tbody id="pembagian-penjahit-tbody">
-              <tr>
-                <td colspan="8">
-                  <div class="state">
-                    <div class="state-title">Pembagian belum dibaca</div>
-                    <p class="state-note">Tekan Muat ulang untuk membaca daftar pembagian dan penjahitnya.</p>
+
+        <div class="panel-body">
+          <!-- VIEW 1: KARTU PENJAHIT (SESUAI MOCKUP) -->
+          <div id="view-penjahit-cards">
+            <!-- TOP SUMMARY BOX: TOTAL SEMUA PENJAHIT (PAGI + SIANG) -->
+            <div class="pembagian-summary-box">
+              <div class="pembagian-summary-title">TOTAL SEMUA PENJAHIT (PAGI + SIANG)</div>
+              <div class="pembagian-summary-hero">
+                <div>
+                  <div class="pembagian-metric-label">Estimasi Harga Jahit</div>
+                  <div class="pembagian-metric-val-green butuh-uang" id="card-total-upah">Rp 0</div>
+                </div>
+                <div>
+                  <div class="pembagian-metric-label">Total Estimasi Jahit</div>
+                  <div class="pembagian-metric-val-blue" id="card-total-estimasi-jahit">0 menit</div>
+                </div>
+              </div>
+
+              <div class="pembagian-summary-sesi-grid">
+                <!-- SESI PAGI -->
+                <div class="pembagian-sesi-card">
+                  <div class="pembagian-sesi-title-pagi">SESI PAGI</div>
+                  <div class="pembagian-sesi-sub-grid">
+                    <div>
+                      <div class="pembagian-sesi-col-label">HARGA JAHIT</div>
+                      <div class="pembagian-sesi-col-val-green butuh-uang" id="card-sesi-pagi-upah">Rp 0</div>
+                    </div>
+                    <div>
+                      <div class="pembagian-sesi-col-label">ESTIMASI JAHIT</div>
+                      <div class="pembagian-sesi-col-val-blue" id="card-sesi-pagi-jahit">0 menit</div>
+                    </div>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  <div class="pembagian-potong-row">
+                    <div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>
+                    <div class="pembagian-potong-val" id="card-sesi-pagi-potong">0 menit (2 Personil Cutting)</div>
+                  </div>
+                </div>
+
+                <!-- SESI SIANG -->
+                <div class="pembagian-sesi-card">
+                  <div class="pembagian-sesi-title-siang">SESI SIANG</div>
+                  <div class="pembagian-sesi-sub-grid">
+                    <div>
+                      <div class="pembagian-sesi-col-label">HARGA JAHIT</div>
+                      <div class="pembagian-sesi-col-val-green butuh-uang" id="card-sesi-siang-upah">Rp 0</div>
+                    </div>
+                    <div>
+                      <div class="pembagian-sesi-col-label">ESTIMASI JAHIT</div>
+                      <div class="pembagian-sesi-col-val-blue" id="card-sesi-siang-jahit">0 menit</div>
+                    </div>
+                  </div>
+                  <div class="pembagian-potong-row">
+                    <div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>
+                    <div class="pembagian-potong-val" id="card-sesi-siang-potong">0 menit (2 Personil Cutting)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- GRID KARTU PER PENJAHIT -->
+            <div class="pembagian-cards-grid" id="pembagian-penjahit-cards">
+              <div class="state" style="grid-column: 1 / -1; padding: 24px; text-align: center;">
+                <div class="state-title">Memuat kartu penjahit&hellip;</div>
+                <p class="state-note">Daftar penjahit dan rincian pekerjaan sedang diproses.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIEW 2: TABEL RINGKAS (UNTUK PENINJAUAN & COMPATIBILITY) -->
+          <div id="view-penjahit-table" style="display: none;">
+            <div class="table-wrap">
+              <table class="ledger" id="pembagian-penjahit-table">
+                <caption class="sr-only">Beban dan upah setiap penjahit pada pekerjaan yang masih menunggu pickup</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Penjahit</th>
+                    <th scope="col">Grup</th>
+                    <th scope="col">Pcs</th>
+                    <th scope="col">Order</th>
+                    <th scope="col" class="butuh-uang">Upah</th>
+                    <th scope="col">Bobot</th>
+                    <th scope="col" class="butuh-uang">Target</th>
+                    <th scope="col" class="butuh-uang">Selisih</th>
+                  </tr>
+                </thead>
+                <tbody id="pembagian-penjahit-tbody">
+                  <tr>
+                    <td colspan="8">
+                      <div class="state">
+                        <div class="state-title">Pembagian belum dibaca</div>
+                        <p class="state-note">Tekan Muat ulang untuk membaca daftar pembagian dan penjahitnya.</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2747,7 +3045,7 @@
         },
         penjahit: [
           { nama: 'ADUL', pcs: 7, waktuJahit: 140, waktuPotong: 35, waktu: 175, upah: 154000,
-            sesi: { PAGI: { waktu: 175 }, SIANG: { waktu: 0 } },
+            sesi: { PAGI: { upah: 154000, waktuJahit: 140, waktuPotong: 35, waktu: 175 }, SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, waktu: 0 } },
             items: [
               { sesi: 'PAGI', sku: 'BG-KS-001', variasi: 'Hitam, L', jumlah: 5, waktuJahit: 100,
                 waktuPotong: 25, waktu: 125, upah: 110000, hargaSatuan: 22000 },
@@ -2755,7 +3053,7 @@
                 waktuPotong: 10, waktu: 50, upah: 44000, hargaSatuan: 22000 }
             ] },
           { nama: 'OPIK', pcs: 5, waktuJahit: 100, waktuPotong: 25, waktu: 125, upah: 110000,
-            sesi: { PAGI: { waktu: 0 }, SIANG: { waktu: 125 } },
+            sesi: { PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, waktu: 0 }, SIANG: { upah: 110000, waktuJahit: 100, waktuPotong: 25, waktu: 125 } },
             items: [
               { sesi: 'SIANG', sku: 'BG-KS-002', variasi: 'Putih, M', jumlah: 5, waktuJahit: 100,
                 waktuPotong: 25, waktu: 125, upah: 110000, hargaSatuan: 22000 }
@@ -2766,6 +3064,8 @@
         skuTanpaHarga: [],
         uangDisembunyikan: false
       };
+
+      PEMBAGIAN.estimasiHariIni = ESTIMASI;
 
       function makeRun() {
         var ok = null, fail = null;
@@ -4697,6 +4997,7 @@
         : 'Dihitung dari pekerjaan yang masih menunggu, nominal upah tidak ditampilkan di perangkat ini');
 
       renderTabelPenjahitPembagian_(rekap.perPenjahit || []);
+      renderKartuPenjahitPembagian_(payload);
       renderTabelRingkasPembagian_('pembagian-grup-tbody', (rekap.perGrup || []).map((g) => [
         esc(g.grup || '-'), angkaBagi_(g.pcs), angkaBagi_(g.jumlahPenjahit), teksUangBagi_(g.upah)
       ]), 'Belum ada grup yang terbaca.');
@@ -4737,6 +5038,312 @@
           '<td class="num butuh-uang">' + selisihTeks + '</td>' +
         '</tr>';
       }).join('');
+    }
+
+    function formatMenitJam_(menit) {
+      const m = Math.round(Number(menit) || 0);
+      if (m <= 0) return '0 menit';
+      const jam = Math.floor(m / 60);
+      const sisa = m % 60;
+      if (jam === 0) return sisa + ' menit';
+      if (sisa === 0) return jam + ' jam';
+      return jam + ' jam ' + sisa + ' menit';
+    }
+
+    function formatEstimasiPotong_(menit) {
+      return formatMenitJam_(menit) + ' (2 Personil Cutting)';
+    }
+
+    function gantiTampilanPenjahit_(mode) {
+      const isCards = (mode !== 'table');
+      const viewCards = document.getElementById('view-penjahit-cards');
+      const viewTable = document.getElementById('view-penjahit-table');
+      const tabCards = document.getElementById('tab-view-penjahit-cards');
+      const tabTable = document.getElementById('tab-view-penjahit-table');
+
+      if (viewCards) viewCards.style.display = isCards ? 'block' : 'none';
+      if (viewTable) viewTable.style.display = isCards ? 'none' : 'block';
+
+      if (tabCards) {
+        if (isCards) {
+          tabCards.classList.add('is-active');
+          tabCards.classList.remove('btn-quiet');
+        } else {
+          tabCards.classList.remove('is-active');
+          tabCards.classList.add('btn-quiet');
+        }
+      }
+
+      if (tabTable) {
+        if (!isCards) {
+          tabTable.classList.add('is-active');
+          tabTable.classList.remove('btn-quiet');
+        } else {
+          tabTable.classList.remove('is-active');
+          tabTable.classList.add('btn-quiet');
+        }
+      }
+    }
+
+    function kumpulkanDataKartu_(payload) {
+      const estimasi = (payload && payload.estimasiHariIni) || null;
+      const rekap = (payload && payload.rekap) || null;
+      const setelan = (payload && payload.setelan) || null;
+
+      let totalUpah = (estimasi && estimasi.total && Number(estimasi.total.upah)) || 0;
+      let totalWaktuJahit = (estimasi && estimasi.total && Number(estimasi.total.waktuJahit)) || 0;
+
+      let sesiPagi = {
+        upah: (estimasi && estimasi.sesi && estimasi.sesi.PAGI && Number(estimasi.sesi.PAGI.upah)) || 0,
+        waktuJahit: (estimasi && estimasi.sesi && estimasi.sesi.PAGI && Number(estimasi.sesi.PAGI.waktuJahit)) || 0,
+        waktuPotong: (estimasi && estimasi.sesi && estimasi.sesi.PAGI && Number(estimasi.sesi.PAGI.waktuPotong)) || 0
+      };
+
+      let sesiSiang = {
+        upah: (estimasi && estimasi.sesi && estimasi.sesi.SIANG && Number(estimasi.sesi.SIANG.upah)) || 0,
+        waktuJahit: (estimasi && estimasi.sesi && estimasi.sesi.SIANG && Number(estimasi.sesi.SIANG.waktuJahit)) || 0,
+        waktuPotong: (estimasi && estimasi.sesi && estimasi.sesi.SIANG && Number(estimasi.sesi.SIANG.waktuPotong)) || 0
+      };
+
+      const penjahitMap = {};
+
+      if (setelan && Array.isArray(setelan.penjahit)) {
+        setelan.penjahit.forEach((p) => {
+          const nama = String(p.nama || '').trim().toUpperCase();
+          const aktif = String(p.aktif || 'YA').trim().toUpperCase();
+          if (nama && aktif !== 'TIDAK') {
+            penjahitMap[nama] = {
+              nama: nama,
+              grup: p.grup || '',
+              upah: 0,
+              waktuJahit: 0,
+              sesi: {
+                PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] },
+                SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] }
+              }
+            };
+          }
+        });
+      }
+
+      if (estimasi && Array.isArray(estimasi.penjahit)) {
+        estimasi.penjahit.forEach((p) => {
+          const nama = String(p.nama || '').trim().toUpperCase();
+          if (!nama) return;
+          if (!penjahitMap[nama]) {
+            penjahitMap[nama] = {
+              nama: nama,
+              grup: p.grup || '',
+              upah: 0,
+              waktuJahit: 0,
+              sesi: {
+                PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] },
+                SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] }
+              }
+            };
+          }
+          const entry = penjahitMap[nama];
+          entry.upah = Number(p.upah) || 0;
+          entry.waktuJahit = Number(p.waktuJahit) || 0;
+          if (p.sesi && p.sesi.PAGI) {
+            entry.sesi.PAGI.upah = Number(p.sesi.PAGI.upah) || 0;
+            entry.sesi.PAGI.waktuJahit = Number(p.sesi.PAGI.waktuJahit) || 0;
+            entry.sesi.PAGI.waktuPotong = Number(p.sesi.PAGI.waktuPotong) || 0;
+          }
+          if (p.sesi && p.sesi.SIANG) {
+            entry.sesi.SIANG.upah = Number(p.sesi.SIANG.upah) || 0;
+            entry.sesi.SIANG.waktuJahit = Number(p.sesi.SIANG.waktuJahit) || 0;
+            entry.sesi.SIANG.waktuPotong = Number(p.sesi.SIANG.waktuPotong) || 0;
+          }
+          if (Array.isArray(p.items)) {
+            p.items.forEach((it) => {
+              const s = (it.sesi === 'SIANG') ? 'SIANG' : 'PAGI';
+              entry.sesi[s].items.push(it);
+            });
+          }
+        });
+      }
+
+      const hasEstimasi = (totalWaktuJahit > 0 || totalUpah > 0);
+      if (!hasEstimasi && rekap && rekap.perPenjahit && rekap.perPenjahit.length > 0) {
+        const currentShift = (new Date().getHours() < 13) ? 'PAGI' : 'SIANG';
+        const rekapTotal = rekap.total || {};
+        totalUpah = Number(rekapTotal.upah) || 0;
+        totalWaktuJahit = Number(rekapTotal.waktuJahit) || 0;
+
+        if (currentShift === 'PAGI') {
+          sesiPagi.upah = totalUpah;
+          sesiPagi.waktuJahit = totalWaktuJahit;
+          sesiPagi.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
+        } else {
+          sesiSiang.upah = totalUpah;
+          sesiSiang.waktuJahit = totalWaktuJahit;
+          sesiSiang.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
+        }
+
+        rekap.perPenjahit.forEach((p) => {
+          const nama = String(p.nama || '').trim().toUpperCase();
+          if (!nama) return;
+          if (!penjahitMap[nama]) {
+            penjahitMap[nama] = {
+              nama: nama,
+              grup: p.grup || '',
+              upah: 0,
+              waktuJahit: 0,
+              sesi: {
+                PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] },
+                SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] }
+              }
+            };
+          }
+          const entry = penjahitMap[nama];
+          entry.upah = Number(p.upah) || 0;
+          entry.waktuJahit = Number(p.waktuJahit) || 0;
+          const targetSesi = entry.sesi[currentShift];
+          targetSesi.upah = Number(p.upah) || 0;
+          targetSesi.waktuJahit = Number(p.waktuJahit) || 0;
+          targetSesi.waktuPotong = Number(p.waktuPotong) || 0;
+          targetSesi.items = (p.items || []).map((it) => ({
+            sesi: currentShift,
+            sku: it.sku || '',
+            variasi: it.variasi || '',
+            jumlah: Number(it.qty) || 1,
+            waktuJahit: Number(it.waktuJahit) || 0,
+            waktuPotong: Number(it.waktuPotong) || 0,
+            upah: Number(it.hargaTotal || it.harga) || 0,
+            hargaSatuan: Number(it.harga) || 0,
+            noPesanan: it.noPesanan || ''
+          }));
+        });
+      }
+
+      return {
+        totalUpah: totalUpah,
+        totalWaktuJahit: totalWaktuJahit,
+        sesiPagi: sesiPagi,
+        sesiSiang: sesiSiang,
+        penjahit: Object.keys(penjahitMap).sort().map((k) => penjahitMap[k])
+      };
+    }
+
+    function renderKartuPenjahitPembagian_(payload) {
+      const data = kumpulkanDataKartu_(payload);
+
+      setText('card-total-upah', teksUangBagi_(data.totalUpah));
+      setText('card-total-estimasi-jahit', formatMenitJam_(data.totalWaktuJahit));
+
+      setText('card-sesi-pagi-upah', teksUangBagi_(data.sesiPagi.upah));
+      setText('card-sesi-pagi-jahit', formatMenitJam_(data.sesiPagi.waktuJahit));
+      setText('card-sesi-pagi-potong', formatEstimasiPotong_(data.sesiPagi.waktuPotong));
+
+      setText('card-sesi-siang-upah', teksUangBagi_(data.sesiSiang.upah));
+      setText('card-sesi-siang-jahit', formatMenitJam_(data.sesiSiang.waktuJahit));
+      setText('card-sesi-siang-potong', formatEstimasiPotong_(data.sesiSiang.waktuPotong));
+
+      const container = document.getElementById('pembagian-penjahit-cards');
+      if (!container) return;
+
+      if (!data.penjahit.length) {
+        container.innerHTML = '<div class="state" style="grid-column: 1 / -1; padding: 24px; text-align: center;">' +
+          '<div class="state-title">Belum ada penjahit aktif</div>' +
+          '<p class="state-note">Tambahkan data penjahit pada setelan di bawah atau sinkronkan aturan.</p>' +
+          '</div>';
+        return;
+      }
+
+      container.innerHTML = data.penjahit.map((p) => {
+        const pagi = p.sesi.PAGI;
+        const siang = p.sesi.SIANG;
+        const namaEsc = esc(p.nama);
+        const namaAttr = p.nama.replace(/'/g, "\\'");
+
+        return '<div class="penjahit-card">' +
+          '<div class="penjahit-card-head">' +
+            '<h3 class="penjahit-card-name">' + namaEsc + '</h3>' +
+            '<div class="penjahit-card-total-wrap">' +
+              '<div class="penjahit-card-total-label">TOTAL HARI</div>' +
+              '<div class="penjahit-card-total-val butuh-uang">' + teksUangBagi_(p.upah) + '</div>' +
+              '<div class="penjahit-card-total-est">' + formatMenitJam_(p.waktuJahit) + ' <span class="penjahit-card-est-sub">Estimasi Jahit</span></div>' +
+            '</div>' +
+          '</div>' +
+
+          '<!-- Sesi PAGI -->' +
+          '<div class="penjahit-sub-card">' +
+            '<div class="pembagian-sesi-title-pagi">SESI PAGI</div>' +
+            '<div class="pembagian-sesi-sub-grid">' +
+              '<div>' +
+                '<div class="pembagian-sesi-col-label">HARGA JAHIT</div>' +
+                '<div class="pembagian-sesi-col-val-green butuh-uang">' + teksUangBagi_(pagi.upah) + '</div>' +
+              '</div>' +
+              '<div>' +
+                '<div class="pembagian-sesi-col-label">ESTIMASI JAHIT</div>' +
+                '<div class="pembagian-sesi-col-val-blue">' + formatMenitJam_(pagi.waktuJahit) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="pembagian-potong-row">' +
+              '<div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>' +
+              '<div class="pembagian-potong-val">' + formatEstimasiPotong_(pagi.waktuPotong) + '</div>' +
+            '</div>' +
+            '<button type="button" class="btn-pdf-a6" onclick="unduhSpkPenjahitPdf(\'' + namaAttr + '\', \'PAGI\')">' +
+              '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF (A6)' +
+            '</button>' +
+          '</div>' +
+
+          '<!-- Sesi SIANG -->' +
+          '<div class="penjahit-sub-card">' +
+            '<div class="pembagian-sesi-title-siang">SESI SIANG</div>' +
+            '<div class="pembagian-sesi-sub-grid">' +
+              '<div>' +
+                '<div class="pembagian-sesi-col-label">HARGA JAHIT</div>' +
+                '<div class="pembagian-sesi-col-val-green butuh-uang">' + teksUangBagi_(siang.upah) + '</div>' +
+              '</div>' +
+              '<div>' +
+                '<div class="pembagian-sesi-col-label">ESTIMASI JAHIT</div>' +
+                '<div class="pembagian-sesi-col-val-blue">' + formatMenitJam_(siang.waktuJahit) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="pembagian-potong-row">' +
+              '<div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>' +
+              '<div class="pembagian-potong-val">' + formatEstimasiPotong_(siang.waktuPotong) + '</div>' +
+            '</div>' +
+            '<button type="button" class="btn-pdf-a6" onclick="unduhSpkPenjahitPdf(\'' + namaAttr + '\', \'SIANG\')">' +
+              '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF (A6)' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function unduhSpkPenjahitPdf(namaPenjahit, sesi) {
+      const data = kumpulkanDataKartu_(pembagianTerakhir);
+      const penjahitData = (data.penjahit || []).find((p) => p.nama === namaPenjahit);
+      const sesiData = (penjahitData && penjahitData.sesi && penjahitData.sesi[sesi]) || { items: [] };
+
+      const tanggal = (pembagianTerakhir && pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal)
+        || tanggalHariIni_();
+
+      let totalPcs = 0;
+      (sesiData.items || []).forEach((it) => {
+        totalPcs += Number(it.jumlah || it.qty) || 0;
+      });
+
+      const info = {
+        nama: namaPenjahit,
+        sesi: sesi,
+        tanggal: tanggal,
+        totalPcs: totalPcs,
+        estimasiJahit: formatMenitJam_(sesiData.waktuJahit),
+        estimasiPotong: formatEstimasiPotong_(sesiData.waktuPotong),
+        items: sesiData.items || []
+      };
+
+      showToast('Menyiapkan SPK Penjahit ' + namaPenjahit + ' (' + sesi + ')...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildSpkPenjahitPdf(JsPDF, info);
+        const filename = 'SPK_' + namaPenjahit + '_' + sesi + '_' + pdfKit.yyyymmdd(new Date());
+        const savedName = pdfKit.simpan(doc, filename);
+        showToast('SPK PDF siap: ' + savedName, 'success');
+      });
     }
 
     function renderTabelRingkasPembagian_(id, baris, pesanKosong) {
@@ -7288,6 +7895,158 @@
           LABEL_W - margin - 4, LABEL_H - margin - 3, { align: 'right' });
         doc.setTextColor(0);
       });
+
+      return doc;
+    }
+
+    function buildSpkPenjahitPdf(JsPDF, info) {
+      const pageW = 105;
+      const pageH = 148;
+      const margin = 6;
+      const width = pageW - (margin * 2);
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] });
+
+      let y = margin + 3;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('BEGOOD COLLECTION', pageW / 2, y, { align: 'center' });
+
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text('SURAT PERINTAH KERJA (SPK) PENJAHIT', pageW / 2, y, { align: 'center' });
+
+      y += 3;
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, margin + width, y);
+
+      y += 3;
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin, y, width, 18, 1.5, 1.5, 'F');
+      doc.setDrawColor(203, 213, 225);
+      doc.rect(margin, y, width, 18, 'S');
+
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Penjahit:', margin + 3, y + 4.5);
+      doc.text('Sesi:', margin + 3, y + 9);
+      doc.text('Tanggal:', margin + 3, y + 13.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(String(info.nama || '-'), margin + 17, y + 4.5);
+      doc.text(String(info.sesi || '-'), margin + 17, y + 9);
+      doc.text(String(info.tanggal || '-'), margin + 17, y + 13.5);
+
+      const col2X = margin + 48;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Total Pcs:', col2X, y + 4.5);
+      doc.text('Est. Jahit:', col2X, y + 9);
+      doc.text('Est. Potong:', col2X, y + 13.5);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(String(info.totalPcs || 0) + ' pcs', col2X + 16, y + 4.5);
+      doc.text(String(info.estimasiJahit || '-'), col2X + 16, y + 9);
+      doc.text(String(info.estimasiPotong || '-'), col2X + 16, y + 13.5);
+
+      y += 22;
+
+      const cols = [7, 43, 31, 12];
+      const startX = [margin];
+      for (let c = 1; c < cols.length; c++) {
+        startX.push(startX[c - 1] + cols[c - 1]);
+      }
+
+      function drawTableHeader(curY) {
+        doc.setFillColor(30, 41, 59);
+        doc.rect(margin, curY, width, 5.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text('NO', startX[0] + (cols[0] / 2), curY + 3.8, { align: 'center' });
+        doc.text('SKU', startX[1] + 1.5, curY + 3.8);
+        doc.text('VARIASI', startX[2] + 1.5, curY + 3.8);
+        doc.text('PCS', startX[3] + (cols[3] / 2), curY + 3.8, { align: 'center' });
+        return curY + 5.5;
+      }
+
+      y = drawTableHeader(y);
+
+      const items = info.items || [];
+      if (items.length === 0) {
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, y, width, 8, 'F');
+        doc.setDrawColor(226, 232, 240);
+        doc.rect(margin, y, width, 8, 'S');
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(148, 163, 184);
+        doc.text('Belum ada rincian pekerjaan untuk sesi ini.', pageW / 2, y + 5, { align: 'center' });
+        y += 8;
+      } else {
+        const rowH = 5.2;
+        const maxBottom = pageH - 24;
+
+        for (let i = 0; i < items.length; i++) {
+          if (y + rowH > maxBottom) {
+            doc.addPage([pageW, pageH], 'portrait');
+            y = margin + 3;
+            y = drawTableHeader(y);
+          }
+
+          const it = items[i];
+          const isEven = (i % 2 === 0);
+          if (isEven) {
+            doc.setFillColor(255, 255, 255);
+          } else {
+            doc.setFillColor(248, 250, 252);
+          }
+          doc.rect(margin, y, width, rowH, 'F');
+          doc.setDrawColor(226, 232, 240);
+          doc.rect(margin, y, width, rowH, 'S');
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(30, 41, 59);
+
+          doc.text(String(i + 1), startX[0] + (cols[0] / 2), y + 3.6, { align: 'center' });
+
+          pdfKit.fitText(doc, String(it.sku || '-'), cols[1] - 3, 6.5, 5);
+          doc.text(String(it.sku || '-'), startX[1] + 1.5, y + 3.6);
+
+          pdfKit.fitText(doc, String(it.variasi || '-'), cols[2] - 3, 6.5, 5);
+          doc.text(String(it.variasi || '-'), startX[2] + 1.5, y + 3.6);
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(6.5);
+          doc.text(String(it.jumlah || it.qty || 1), startX[3] + (cols[3] / 2), y + 3.6, { align: 'center' });
+
+          y += rowH;
+        }
+      }
+
+      const sigY = pageH - 18;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.5);
+      doc.setTextColor(71, 85, 105);
+
+      doc.text('Penjahit,', margin + 10, sigY);
+      doc.line(margin + 5, sigY + 9, margin + 35, sigY + 9);
+      doc.text('( ' + String(info.nama || '') + ' )', margin + 20, sigY + 12, { align: 'center' });
+
+      doc.text('Mandor / QC,', margin + width - 30, sigY);
+      doc.line(margin + width - 35, sigY + 9, margin + width - 5, sigY + 9);
+      doc.text('( _______________ )', margin + width - 20, sigY + 12, { align: 'center' });
+
+      doc.setFontSize(5);
+      doc.setTextColor(148, 163, 184);
+      doc.text('ERP BEGOOD - ' + pdfKit.yyyymmdd(new Date()), margin, pageH - 2.5);
 
       return doc;
     }

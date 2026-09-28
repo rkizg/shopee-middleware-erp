@@ -518,26 +518,26 @@ pada komentar bloknya), di bawah blok `DATA PROSES` dan `DATA JAHIT`.
 | 3380 | `skorPenjahit_()` |
 | 3387 | `pilihPenjahit_()` |
 | 3419 | `kumpulkanUnitPembagian_()` |
-| 3493 | `kumpulkanPcsAntrian_()`, pcs antrian dan ringkasannya per baris pesanan |
-| 3535 | `upahBarisBagi_()`, upah satu baris pembagian |
-| 3550 | `hargaTerbaruPcs_()`, harga terbaru per baris pesanan |
-| 3562 | `sesiMenurutJamWib_()`, sesi cadangan saat pemanggil tidak memilih |
-| 3568 | `hitungBebanKeDaftar_()` |
-| 3600 | `bagiPembagianJahit_()` |
-| 3806 | `tutupSesiJahit_()`, bagi + simpan hasil dalam satu kali jalan |
-| 3904 | `rekapPembagian_()` |
-| 4020 | `rekapPerPenjahit_()` |
-| 4093 | `rekapPerGrup_()` |
-| 4124 | `rekapPerToko_()` |
-| 4159 | `tanpaUangBagi_()` |
-| 4197 | `getPembagianJahit()` |
-| 4217 | `bagiPembagianDashboard()` |
-| 4269 | `tutupSesiJahit()` |
-| 4290 | `simpanPenjahitDashboard()` |
-| 4319 | `simpanAturanDashboard()` |
-| 4333 | `siapkanSettingProduksiPrompt()`, dipanggil menu |
-| 4360 | `tutupSesiJahitPrompt()`, dipanggil menu |
-| 4402 | `bagiPembagianJahitPrompt()`, dipanggil menu |
+| 3497 | `kumpulkanPcsAntrian_()`, pcs antrian dan ringkasannya per baris pesanan |
+| 3539 | `upahBarisBagi_()`, upah satu baris pembagian |
+| 3554 | `hargaTerbaruPcs_()`, harga terbaru per baris pesanan |
+| 3566 | `sesiMenurutJamWib_()`, sesi cadangan saat pemanggil tidak memilih |
+| 3572 | `hitungBebanKeDaftar_()` |
+| 3604 | `bagiPembagianJahit_()` |
+| 3810 | `tutupSesiJahit_()`, bagi + simpan hasil dalam satu kali jalan |
+| 3908 | `rekapPembagian_()` |
+| 4035 | `rekapPerPenjahit_()` |
+| 4118 | `rekapPerGrup_()` |
+| 4149 | `rekapPerToko_()` |
+| 4184 | `tanpaUangBagi_()` |
+| 4226 | `getPembagianJahit()` |
+| 4251 | `bagiPembagianDashboard()` |
+| 4303 | `tutupSesiJahit()` |
+| 4324 | `simpanPenjahitDashboard()` |
+| 4353 | `simpanAturanDashboard()` |
+| 4367 | `siapkanSettingProduksiPrompt()`, dipanggil menu |
+| 4394 | `tutupSesiJahitPrompt()`, dipanggil menu |
+| 4436 | `bagiPembagianJahitPrompt()`, dipanggil menu |
 
 Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 
@@ -545,23 +545,23 @@ Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 
 | Baris | Isi |
 |---|---|
-| 901 | Tombol tab `tab-pembagian` |
-| 1776 | Panel `content-pembagian` |
-| 4377 | `muatPembagianJahit()` |
-| 4421 | `teksUangBagi_()` |
-| 4426 | `renderPembagianJahit()` |
-| 4460 | `renderTabelPenjahitPembagian_()` |
-| 4505 | `renderPeringatanPembagian_()` |
-| 4532 | `renderUnitPembagian_()` |
-| 4575 | `tsvDariTabel_()` |
-| 4586 | `tabelDariTsv_()` |
-| 4731 | `isiSetelanPembagian_()` |
-| 4754 | `bagiJahitAction()` |
-| 4785 | `sesiDefaultKlien_()` |
-| 4789 | `siapkanSesiPembagian_()` |
-| 4802 | `tutupSesiJahitAction()` |
-| 4840 | `simpanPenjahitAction()` |
-| 4879 | `simpanAturanAction()` |
+| 1115 | Tombol tab `tab-pembagian` |
+| 1990 | Panel `content-pembagian` |
+| 4675 | `muatPembagianJahit()` |
+| 4719 | `teksUangBagi_()` |
+| 4724 | `renderPembagianJahit()` |
+| 4759 | `renderTabelPenjahitPembagian_()` |
+| 5110 | `renderPeringatanPembagian_()` |
+| 5137 | `renderUnitPembagian_()` |
+| 5180 | `tsvDariTabel_()` |
+| 5191 | `tabelDariTsv_()` |
+| 5336 | `isiSetelanPembagian_()` |
+| 5359 | `bagiJahitAction()` |
+| 5390 | `sesiDefaultKlien_()` |
+| 5394 | `siapkanSesiPembagian_()` |
+| 5407 | `tutupSesiJahitAction()` |
+| 5445 | `simpanPenjahitAction()` |
+| 5484 | `simpanAturanAction()` |
 
 Daftar tabnya ada pada `TAB_NAMES` dan `JUDUL_TAB`, dan `switchTab()` memanggil
 `muatPembagianJahit()` setiap kali tabnya dibuka.

@@ -925,10 +925,33 @@ function checkMiddlewareHealth() {
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase().trim() : '';
   if (page === 'packing' || page === 'scan') {
-    return HtmlService.createHtmlOutputFromFile('Packing')
-      .setTitle('Meja Packing Mobile - ERP Begood')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+    try {
+      return HtmlService.createHtmlOutputFromFile('Packing')
+        .setTitle('Meja Packing Mobile - ERP Begood')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+    } catch (errPacking) {
+      return HtmlService.createHtmlOutput(
+        '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Setup Packing.html - ERP Begood</title>' +
+        '<style>body{font-family:sans-serif;padding:20px;background:#090d16;color:#f8fafc;text-align:center;}' +
+        '.box{max-width:480px;margin:30px auto;background:#1e293b;padding:24px;border-radius:12px;border:1px solid #334155;text-align:left;}' +
+        'h2{color:#38bdf8;font-size:18px;margin-bottom:8px;text-align:center;}p{color:#94a3b8;font-size:13px;line-height:1.5;margin-bottom:12px;}' +
+        'ol{color:#cbd5e1;font-size:13px;line-height:1.8;padding-left:20px;margin-bottom:16px;}code{background:#0f172a;color:#f59e0b;padding:2px 6px;border-radius:4px;font-family:monospace;}' +
+        '.btn{display:block;text-align:center;background:#2563eb;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:14px;}' +
+        '</style></head><body><div class="box">' +
+        '<h2>Berkas Packing.html Belum Dibuat di Apps Script</h2>' +
+        '<p>Google Apps Script belum menemukan berkas <code>Packing.html</code> di editor proyek Anda:</p>' +
+        '<ol>' +
+        '<li>Buka editor Apps Script (<strong>Ekstensi &gt; Apps Script</strong>).</li>' +
+        '<li>Klik tombol <strong>+</strong> di samping Berkas &gt; pilih <strong>HTML</strong>.</li>' +
+        '<li>Beri nama: <code>Packing</code> (huruf besar P).</li>' +
+        '<li>Salin isi berkas <code>gas/Packing.html</code> ke dalamnya, lalu Simpan.</li>' +
+        '<li>Klik <strong>Deploy &gt; Kelola deployment &gt; Edit &gt; Versi baru &gt; Deploy</strong>.</li>' +
+        '</ol>' +
+        '<a class="btn" href="' + (ScriptApp.getService().getUrl() || '#') + '">Buka Dashboard Utama</a>' +
+        '</div></body></html>'
+      ).setTitle('Setup Packing.html - ERP Begood');
+    }
   }
 
   return HtmlService.createHtmlOutputFromFile('Index')

@@ -3029,7 +3029,7 @@
   <!-- ======================= MODAL: QR CODE PACKING MOBILE ======================= -->
   <div class="scrim" id="modal-qr-packing" role="dialog" aria-modal="true"
        aria-labelledby="qr-packing-title" hidden>
-    <div class="modal modal-sm" style="max-width: 400px; text-align: center;">
+    <div class="modal modal-sm" style="max-width: 440px; text-align: center;">
       <div class="modal-head">
         <h2 class="panel-title" id="qr-packing-title">Buka Meja Packing di HP</h2>
         <button type="button" class="btn btn-sm btn-icon btn-quiet" onclick="tutupModalQrPacking()" title="Tutup (Esc)">
@@ -3041,13 +3041,30 @@
         <p style="font-size: 13px; color: var(--ink-muted); margin: 0; line-height: 1.4;">
           Scan QR Code di bawah menggunakan kamera HP pegawai untuk membuka Meja Packing Mobile.
         </p>
+        <div id="qr-packing-warning" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid #f59e0b; border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #d97706; text-align: left; width: 100%; box-sizing: border-box; line-height: 1.45;">
+          <strong><i class="fa-solid fa-triangle-exclamation"></i> Perhatian:</strong>
+          <span id="qr-packing-warning-text">
+            URL terdeteksi di dalam iframe sandbox. Pastikan menggunakan URL Web App Apps Script resmi (<code>https://script.google.com/macros/s/.../exec</code>) agar tidak blank saat dibuka di HP.
+          </span>
+        </div>
         <div style="background: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid var(--line); display: inline-block;">
           <img id="qr-packing-img" src="" alt="QR Code Meja Packing Mobile" width="200" height="200" style="display: block; margin: 0 auto;">
         </div>
-        <div style="width: 100%; display: flex; gap: 6px; margin-top: 4px;">
-          <input type="text" id="qr-packing-url-input" readonly style="flex: 1; font-size: 12px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-subtle);" onclick="this.select()">
-          <button type="button" class="btn btn-sm btn-primary" onclick="salinLinkPackingMobile()">
-            <i class="fa-solid fa-copy" aria-hidden="true"></i> Salin
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; text-align: left;">
+          <label for="qr-packing-url-input" style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.5px;">URL Meja Packing:</label>
+          <div style="display: flex; gap: 6px;">
+            <input type="text" id="qr-packing-url-input" style="flex: 1; font-size: 12px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-subtle);" onclick="this.select()" oninput="perbaruiUrlPackingManual_(this.value)" placeholder="https://script.google.com/macros/s/.../exec?page=packing">
+            <button type="button" class="btn btn-sm btn-primary" onclick="salinLinkPackingMobile()" title="Salin URL ke clipboard">
+              <i class="fa-solid fa-copy" aria-hidden="true"></i> Salin
+            </button>
+          </div>
+        </div>
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 2px;">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="bukaTabBaruPackingMobile()" title="Uji link di tab baru browser komputer ini" style="font-size: 12px;">
+            <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Uji Buka di Tab Baru
+          </button>
+          <button type="button" class="btn btn-sm btn-quiet" onclick="resetUrlPackingMobile_()" title="Reset ke URL bawaan sistem" style="font-size: 11px; color: var(--ink-muted);">
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Reset URL
           </button>
         </div>
       </div>
@@ -7690,7 +7707,20 @@
     }
 
     /* ---- meja packing mobile qr ---- */
+    const KUNCI_STORAGE_PACKING_URL = 'begood_webapp_packing_url';
+
     function hitungUrlPackingMobile_() {
+      try {
+        const tersimpan = localStorage.getItem(KUNCI_STORAGE_PACKING_URL);
+        if (tersimpan && tersimpan.trim().startsWith('http')) {
+          let u = tersimpan.trim();
+          if (!u.includes('page=packing') && !u.includes('page=scan')) {
+            u += (u.indexOf('?') === -1 ? '?page=packing' : '&page=packing');
+          }
+          return u;
+        }
+      } catch (e) {}
+
       let base = window.location.href.split('#')[0].split('?')[0];
       if (base.endsWith('dashboard-preview.html') || base.endsWith('index.html')) {
         const lastSlash = base.lastIndexOf('/');
@@ -7699,15 +7729,95 @@
       return base + (base.indexOf('?') === -1 ? '?page=packing' : '&page=packing');
     }
 
-    function bukaModalQrPacking() {
-      const url = hitungUrlPackingMobile_();
+    function cekDanPeringatkanUrlSandbox_(url) {
+      const warnBox = document.getElementById('qr-packing-warning');
+      const warnText = document.getElementById('qr-packing-warning-text');
+      if (!warnBox) return;
+
+      const isGoogleUserContent = url.includes('googleusercontent.com');
+      const isFileProtocol = url.startsWith('file://');
+
+      if (isGoogleUserContent) {
+        warnBox.style.display = 'block';
+        if (warnText) {
+          warnText.innerHTML = 'URL ini berjalan di dalam sandbox <code>googleusercontent.com</code> yang <strong>tidak bisa dibuka langsung di HP (akan blank)</strong>.<br>Silakan salin URL Web App deployment Apps Script Anda (berawalan <code>https://script.google.com/macros/s/.../exec</code>) lalu tempel pada kotak input di bawah.';
+        }
+      } else if (isFileProtocol) {
+        warnBox.style.display = 'block';
+        if (warnText) {
+          warnText.innerHTML = 'Anda sedang membuka file lokal (<code>file://</code>). HP pegawai tidak bisa mengakses file komputer lokal ini.<br>Untuk mengetes di HP, gunakan URL Web App Apps Script resmi yang sudah di-deploy.';
+        }
+      } else {
+        warnBox.style.display = 'none';
+      }
+    }
+
+    function renderQrPacking_(url) {
       const img = document.getElementById('qr-packing-img');
       const inp = document.getElementById('qr-packing-url-input');
       if (inp) inp.value = url;
-      if (img) {
+      if (img && url) {
         img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(url);
       }
+      cekDanPeringatkanUrlSandbox_(url);
+    }
+
+    function perbaruiUrlPackingManual_(val) {
+      if (!val) return;
+      const url = val.trim();
+      try {
+        localStorage.setItem(KUNCI_STORAGE_PACKING_URL, url);
+      } catch (e) {}
+      renderQrPacking_(url);
+    }
+
+    function resetUrlPackingMobile_() {
+      try {
+        localStorage.removeItem(KUNCI_STORAGE_PACKING_URL);
+      } catch (e) {}
+      if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.getWebAppPackingUrl === 'function') {
+        google.script.run
+          .withSuccessHandler(function(serverUrl) {
+            if (serverUrl && serverUrl.startsWith('http')) {
+              try { localStorage.setItem(KUNCI_STORAGE_PACKING_URL, serverUrl); } catch (e) {}
+              renderQrPacking_(serverUrl);
+            } else {
+              renderQrPacking_(hitungUrlPackingMobile_());
+            }
+          })
+          .getWebAppPackingUrl();
+      } else {
+        renderQrPacking_(hitungUrlPackingMobile_());
+      }
+      showToast('URL Meja Packing direset ke default.');
+    }
+
+    function bukaModalQrPacking() {
+      const urlAwal = hitungUrlPackingMobile_();
+      renderQrPacking_(urlAwal);
       openModal('modal-qr-packing');
+
+      let butuhAmbilServer = true;
+      try {
+        if (localStorage.getItem(KUNCI_STORAGE_PACKING_URL)) butuhAmbilServer = false;
+      } catch (e) {}
+      if (urlAwal.includes('googleusercontent.com')) butuhAmbilServer = true;
+
+      if (butuhAmbilServer && typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.getWebAppPackingUrl === 'function') {
+        google.script.run
+          .withSuccessHandler(function(serverUrl) {
+            if (serverUrl && serverUrl.startsWith('https://script.google.com/')) {
+              try {
+                localStorage.setItem(KUNCI_STORAGE_PACKING_URL, serverUrl);
+              } catch (e) {}
+              renderQrPacking_(serverUrl);
+            }
+          })
+          .withFailureHandler(function(err) {
+            console.warn('Gagal mengambil getWebAppPackingUrl:', err);
+          })
+          .getWebAppPackingUrl();
+      }
     }
 
     function tutupModalQrPacking() {
@@ -7715,8 +7825,16 @@
     }
 
     function salinLinkPackingMobile() {
-      const url = hitungUrlPackingMobile_();
+      const inp = document.getElementById('qr-packing-url-input');
+      const url = (inp && inp.value) ? inp.value : hitungUrlPackingMobile_();
       copyToClipboard(url, 'Link Meja Packing Mobile disalin.');
+    }
+
+    function bukaTabBaruPackingMobile() {
+      const inp = document.getElementById('qr-packing-url-input');
+      const url = (inp && inp.value) ? inp.value : hitungUrlPackingMobile_();
+      if (!url) return;
+      window.open(url, '_blank');
     }
 
     /* ---- packing slip ----

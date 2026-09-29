@@ -2895,6 +2895,9 @@
           <span class="panel-note" id="scan-session-counter">Mode Scan Cepat Meja Packing</span>
         </div>
         <div class="toolbar-group">
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-scan-mobile-qr" onclick="bukaModalQrPacking()" title="Buka Meja Packing di HP Pegawai">
+            <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> Buka di HP
+          </button>
           <button type="button" class="btn btn-sm btn-quiet" id="btn-scan-sound-toggle" onclick="toggleScanSound_()" title="Aktif/Nonaktifkan Suara Bip Scanner" aria-pressed="true">
             Suara: ON
           </button>
@@ -3019,6 +3022,37 @@
             Tandai Siap Pickup
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= MODAL: QR CODE PACKING MOBILE ======================= -->
+  <div class="scrim" id="modal-qr-packing" role="dialog" aria-modal="true"
+       aria-labelledby="qr-packing-title" hidden>
+    <div class="modal modal-sm" style="max-width: 400px; text-align: center;">
+      <div class="modal-head">
+        <h2 class="panel-title" id="qr-packing-title">Buka Meja Packing di HP</h2>
+        <button type="button" class="btn btn-sm btn-icon btn-quiet" onclick="tutupModalQrPacking()" title="Tutup (Esc)">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          <span class="sr-only">Tutup</span>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <p style="font-size: 13px; color: var(--ink-muted); margin: 0; line-height: 1.4;">
+          Scan QR Code di bawah menggunakan kamera HP pegawai untuk membuka Meja Packing Mobile.
+        </p>
+        <div style="background: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid var(--line); display: inline-block;">
+          <img id="qr-packing-img" src="" alt="QR Code Meja Packing Mobile" width="200" height="200" style="display: block; margin: 0 auto;">
+        </div>
+        <div style="width: 100%; display: flex; gap: 6px; margin-top: 4px;">
+          <input type="text" id="qr-packing-url-input" readonly style="flex: 1; font-size: 12px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-subtle);" onclick="this.select()">
+          <button type="button" class="btn btn-sm btn-primary" onclick="salinLinkPackingMobile()">
+            <i class="fa-solid fa-copy" aria-hidden="true"></i> Salin
+          </button>
+        </div>
+      </div>
+      <div class="modal-foot" style="justify-content: center;">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="tutupModalQrPacking()">Tutup</button>
       </div>
     </div>
   </div>
@@ -6800,6 +6834,7 @@
       closeModal('pengguna-modal');
       closeModal('pengguna-konfirmasi-modal');
       closeModal('modal-scan-packing');
+      closeModal('modal-qr-packing');
       tutupSidebar();
       activeModalOrder = null;
       penggunaStatusTarget = null;
@@ -7384,6 +7419,37 @@
       setScanFeedback_('Pesanan ' + orderSn + ' selesai. Siap scan resi berikutnya.', 'success');
       focusScanInput_();
     }
+
+    /* ---- meja packing mobile qr ---- */
+    function hitungUrlPackingMobile_() {
+      let base = window.location.href.split('#')[0].split('?')[0];
+      if (base.endsWith('dashboard-preview.html') || base.endsWith('index.html')) {
+        const lastSlash = base.lastIndexOf('/');
+        return base.substring(0, lastSlash + 1) + 'packing-preview.html';
+      }
+      return base + (base.indexOf('?') === -1 ? '?page=packing' : '&page=packing');
+    }
+
+    function bukaModalQrPacking() {
+      const url = hitungUrlPackingMobile_();
+      const img = document.getElementById('qr-packing-img');
+      const inp = document.getElementById('qr-packing-url-input');
+      if (inp) inp.value = url;
+      if (img) {
+        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(url);
+      }
+      openModal('modal-qr-packing');
+    }
+
+    function tutupModalQrPacking() {
+      closeModal('modal-qr-packing');
+    }
+
+    function salinLinkPackingMobile() {
+      const url = hitungUrlPackingMobile_();
+      copyToClipboard(url, 'Link Meja Packing Mobile disalin.');
+    }
+
     /* ---- packing slip ----
        One function builds the sheet of paper, so single-print,
        print-from-modal and batch-print can never drift apart. ---- */

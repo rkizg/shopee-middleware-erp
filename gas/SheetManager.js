@@ -3213,6 +3213,81 @@ var SheetManager = (function() {
       }
       sheet.appendRow([key, val, 'Pemetaan nama toko ke kode singkat cetak SPK (JSON)']);
       return Object.keys(peta || {}).length;
+    },
+
+    /**
+     * Mencari pesanan berdasarkan resi atau nomor pesanan untuk meja packing mobile.
+     * Mengembalikan seluruh baris produk yang terkait dengan nomor pesanan tersebut.
+     *
+     * @param {string} barcode nomor resi atau nomor pesanan
+     * @param {string} [kodeToko] cakupan toko
+     * @return {Array<Object>} daftar baris item pesanan, atau larik kosong bila tidak ditemukan
+     */
+    findOrderForPacking: function(barcode, kodeToko) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var orderSheet = ss.getSheetByName(SHEETS.ORDERS);
+      if (!orderSheet) return [];
+
+      var lastRow = orderSheet.getLastRow();
+      if (lastRow < 2) return [];
+
+      var target = String(barcode || '').trim().toLowerCase();
+      if (!target || target === '-') return [];
+      var kode = String(kodeToko || '').trim().toUpperCase();
+
+      var jendelaBaca = Math.min(lastRow - 1, 6000);
+      var mulai = Math.max(2, lastRow - jendelaBaca + 1);
+      var nilai = orderSheet.getRange(mulai, 1, lastRow - mulai + 1, PESANAN_HEADERS.length).getValues();
+
+      var matchedSn = null;
+      for (var i = nilai.length - 1; i >= 0; i--) {
+        var r = nilai[i];
+        var sn = String(r[0] || '').trim();
+        var resi = String(r[12] || '').trim();
+        if (!sn) continue;
+        if (kode && !barisSesuaiToko_(r, kode)) continue;
+        if (sn.toLowerCase() === target || (resi && resi !== '-' && resi.toLowerCase() === target)) {
+          matchedSn = sn;
+          break;
+        }
+      }
+
+      if (!matchedSn && mulai > 2) {
+        var nilaiSisa = orderSheet.getRange(2, 1, mulai - 2, PESANAN_HEADERS.length).getValues();
+        for (var k = nilaiSisa.length - 1; k >= 0; k--) {
+          var rk = nilaiSisa[k];
+          var snK = String(rk[0] || '').trim();
+          var resiK = String(rk[12] || '').trim();
+          if (!snK) continue;
+          if (kode && !barisSesuaiToko_(rk, kode)) continue;
+          if (snK.toLowerCase() === target || (resiK && resiK !== '-' && resiK.toLowerCase() === target)) {
+            matchedSn = snK;
+            break;
+          }
+        }
+      }
+
+      if (!matchedSn) return [];
+
+      var hasil = [];
+      for (var j = 0; j < nilai.length; j++) {
+        var row = nilai[j];
+        if (String(row[0] || '').trim() === matchedSn) {
+          hasil.push(mapBarisPesanan_(row));
+        }
+      }
+
+      if (hasil.length === 0 && mulai > 2) {
+        var nilaiSisaSemua = orderSheet.getRange(2, 1, mulai - 2, PESANAN_HEADERS.length).getValues();
+        for (var m = 0; m < nilaiSisaSemua.length; m++) {
+          var rowSisa = nilaiSisaSemua[m];
+          if (String(rowSisa[0] || '').trim() === matchedSn) {
+            hasil.push(mapBarisPesanan_(rowSisa));
+          }
+        }
+      }
+
+      return hasil;
     }
   };
 })();

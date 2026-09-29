@@ -923,6 +923,14 @@ function checkMiddlewareHealth() {
  * Endpoint utama Web App Google Apps Script (Standalone Web App)
  */
 function doGet(e) {
+  var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase().trim() : '';
+  if (page === 'packing' || page === 'scan') {
+    return HtmlService.createHtmlOutputFromFile('Packing')
+      .setTitle('Meja Packing Mobile - ERP Begood')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+  }
+
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('ERP Begood - Dashboard Kontrol Shopee')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
@@ -1935,16 +1943,40 @@ function updateOrderStatusInternal(token, orderSn, newStatus) {
     throw new Error('No Pesanan atau status baru tidak valid.');
   }
 
-  var ok = SheetManager.updateInternalStatus(orderSn, newStatus);
-  if (!ok) {
-    throw new Error('Pesanan dengan No ' + orderSn + ' tidak ditemukan di sheet.');
+  var lock = null;
+  if (typeof LockService !== 'undefined' && LockService.getScriptLock) {
+    try {
+      lock = LockService.getScriptLock();
+      var hasLock = lock.tryLock(10000);
+      if (!hasLock) {
+        throw new Error('Sistem sedang sibuk memproses pesanan lain. Silakan coba sesaat lagi.');
+      }
+    } catch (eLock) {
+      if (String(eLock.message || '').indexOf('Sistem sedang sibuk') !== -1) {
+        throw eLock;
+      }
+      lock = null;
+    }
   }
 
-  SheetManager.logActivity('UPDATE_STATUS', 1, 'SUKSES',
-    'Status pesanan ' + orderSn + ' diubah menjadi "' + newStatus + '" via Dashboard.',
-    '', sesi.kode);
-  invalidateDashboardCache();
-  return { success: true };
+  try {
+    var ok = SheetManager.updateInternalStatus(orderSn, newStatus);
+    if (!ok) {
+      throw new Error('Pesanan dengan No ' + orderSn + ' tidak ditemukan di sheet.');
+    }
+
+    SheetManager.logActivity('UPDATE_STATUS', 1, 'SUKSES',
+      'Status pesanan ' + orderSn + ' diubah menjadi "' + newStatus + '" via Dashboard.',
+      '', sesi.kode);
+    invalidateDashboardCache();
+    return { success: true };
+  } finally {
+    if (lock) {
+      try {
+        lock.releaseLock();
+      } catch (eRel) {}
+    }
+  }
 }
 
 /**
@@ -1957,18 +1989,42 @@ function updateBatchOrderStatusInternal(token, orderSnList, newStatus) {
     throw new Error('Daftar nomor pesanan atau status baru tidak valid.');
   }
 
-  var ok = SheetManager.updateBatchInternalStatus(orderSnList, newStatus);
-  if (!ok) {
-    throw new Error('Gagal memperbarui status pesanan terpilih.');
+  var lock = null;
+  if (typeof LockService !== 'undefined' && LockService.getScriptLock) {
+    try {
+      lock = LockService.getScriptLock();
+      var hasLock = lock.tryLock(10000);
+      if (!hasLock) {
+        throw new Error('Sistem sedang sibuk memproses pesanan lain. Silakan coba sesaat lagi.');
+      }
+    } catch (eLock) {
+      if (String(eLock.message || '').indexOf('Sistem sedang sibuk') !== -1) {
+        throw eLock;
+      }
+      lock = null;
+    }
   }
 
-  /* Pelakunya dicatat. Inilah nilai utama pembatasan peran bagi operasi gudang:
-     perubahan status dapat ditelusuri ke orangnya, bukan hanya ke waktunya. */
-  SheetManager.logActivity('UPDATE_STATUS_BATCH', orderSnList.length, 'SUKSES',
-    'Status ' + orderSnList.length + ' pesanan diubah menjadi "' + newStatus + '" via Dashboard.',
-    '', sesi.kode);
-  invalidateDashboardCache();
-  return { success: true, count: orderSnList.length };
+  try {
+    var ok = SheetManager.updateBatchInternalStatus(orderSnList, newStatus);
+    if (!ok) {
+      throw new Error('Gagal memperbarui status pesanan terpilih.');
+    }
+
+    /* Pelakunya dicatat. Inilah nilai utama pembatasan peran bagi operasi gudang:
+       perubahan status dapat ditelusuri ke orangnya, bukan hanya ke waktunya. */
+    SheetManager.logActivity('UPDATE_STATUS_BATCH', orderSnList.length, 'SUKSES',
+      'Status ' + orderSnList.length + ' pesanan diubah menjadi "' + newStatus + '" via Dashboard.',
+      '', sesi.kode);
+    invalidateDashboardCache();
+    return { success: true, count: orderSnList.length };
+  } finally {
+    if (lock) {
+      try {
+        lock.releaseLock();
+      } catch (eRel) {}
+    }
+  }
 }
 
 /**
@@ -4563,4 +4619,97 @@ function bagiPembagianJahitPrompt() {
   } catch (err) {
     ui.alert('Gagal Membagi Pekerjaan', err.message || String(err), ui.ButtonSet.OK);
   }
+}
+
+/**
+ * RPC: Mencari pesanan dan memvalidasi kelayakannya untuk Meja Packing Mobile
+ */
+function lookupPackingOrder(token, barcode) {
+  var sesi = wajibSesi_(token, 'PACKING');
+  var code = String(barcode || '').trim();
+  if (!code) {
+    return { success: false, message: 'Barcode atau nomor resi tidak boleh kosong.' };
+  }
+
+  var rows = SheetManager.findOrderForPacking(code, sesi.toko);
+  if (!rows || rows.length === 0) {
+    return { success: false, message: 'Pesanan dengan barcode/resi "' + code + '" tidak ditemukan.' };
+  }
+
+  var head = rows[0];
+  var internalStatus = String(head.internalStatus || '').trim();
+  var shopeeStatus = String(head.shopeeStatus || '').trim().toUpperCase();
+
+  // Validasi pembatalan oleh pembeli atau sistem
+  var isBatal = internalStatus.toLowerCase().indexOf('batal') !== -1 ||
+                shopeeStatus === 'CANCELLED' || shopeeStatus === 'IN_CANCEL' ||
+                internalStatus.indexOf('[5]') !== -1;
+  if (isBatal) {
+    return {
+      success: false,
+      isCancelled: true,
+      orderSn: head.orderSn,
+      resi: head.resi,
+      message: 'PERINGATAN: Pesanan ' + head.orderSn + ' telah DIBATALKAN (' + (internalStatus || shopeeStatus) + '). Jangan dipacking!'
+    };
+  }
+
+  // Validasi status pesanan sudah dipacking / pickup / selesai
+  var sudahPacking = internalStatus.indexOf('[2]') !== -1 ||
+                     internalStatus.indexOf('[3]') !== -1 ||
+                     internalStatus.indexOf('[4]') !== -1 ||
+                     internalStatus.toLowerCase().indexOf('pickup') !== -1 ||
+                     internalStatus.toLowerCase().indexOf('selesai') !== -1;
+
+  var items = rows.map(function(r, idx) {
+    return {
+      id: idx,
+      sku: r.sku || '-',
+      variation: r.variation || '-',
+      name: r.items || '-',
+      targetQty: Math.max(1, parseInt(r.qty, 10) || 1),
+      scannedQty: 0
+    };
+  });
+
+  return {
+    success: true,
+    alreadyPacked: sudahPacking,
+    warning: sudahPacking ? 'Pesanan ini sudah berstatus "' + internalStatus + '".' : null,
+    order: {
+      orderSn: head.orderSn,
+      resi: head.resi || '-',
+      buyer: head.buyer || '-',
+      city: head.city || '-',
+      courier: head.courier || '-',
+      toko: head.toko || '-',
+      internalStatus: internalStatus,
+      shopeeStatus: shopeeStatus,
+      note: head.note || '',
+      items: items
+    }
+  };
+}
+
+/**
+ * RPC: Menyelesaikan packing pesanan dari Meja Packing Mobile
+ */
+function selesaikanPackingMobile(token, orderSn) {
+  var sesi = wajibSesi_(token, 'PACKING');
+  if (!orderSn) {
+    return { success: false, message: 'Nomor pesanan tidak valid.' };
+  }
+  return updateOrderStatusInternal(token, orderSn, '[2] Menunggu Pickup');
+}
+
+/**
+ * RPC: Mengambil URL Web App untuk Meja Packing Mobile
+ */
+function getWebAppPackingUrl() {
+  var baseUrl = '';
+  try {
+    baseUrl = ScriptApp.getService().getUrl() || '';
+  } catch (e) {}
+  if (!baseUrl) return '';
+  return baseUrl + (baseUrl.indexOf('?') === -1 ? '?page=packing' : '&page=packing');
 }

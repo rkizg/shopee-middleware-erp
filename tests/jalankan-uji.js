@@ -46,6 +46,7 @@ const URUTAN = [
   { berkas: 'htmlcheck.js',   isi: 'Id, nama fungsi, dan satuan angka di halaman' },
   { berkas: 'siapdeploy.js',  isi: 'Kesiapan berkas untuk ditempel ke Apps Script' },
   { berkas: 'doccheck.js',    isi: 'Nomor baris dan nama di dokumen pembagian jahit' },
+  { berkas: 'packingtest.js', isi: 'Meja packing mobile, proteksi LockService, dan QR code' },
 ];
 
 const KETERANGAN = {};

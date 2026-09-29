@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#090d16">
+  <title>Pratinjau Meja Packing Mobile - ERP Begood</title>
+
+  <!-- Font & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Scanner Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --bg-page: #090d16;
+      --bg-surface: #111827;
+      --bg-card: #1e293b;
+      --bg-card-subtle: #172033;
+      --bg-input: #0f172a;
+      --border-subtle: #334155;
+      --border-focus: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-active: #1e40af;
+      --ok: #16a34a;
+      --ok-bg: rgba(22, 163, 74, 0.15);
+      --ok-border: #22c55e;
+      --warn: #d97706;
+      --warn-bg: rgba(217, 119, 6, 0.15);
+      --warn-border: #f59e0b;
+      --danger: #dc2626;
+      --danger-bg: rgba(220, 38, 38, 0.15);
+      --danger-border: #ef4444;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Demo Ribbon */
+    .demo-ribbon {
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px 10px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Header Nav */
+    .app-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #fff;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+      background: var(--border-subtle);
+    }
+
+    .icon-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    /* User Profile Bar */
+    .user-bar {
+      background: var(--bg-card-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .user-badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-logout:active {
+      background: var(--danger-bg);
+    }
+
+    /* Main Container */
+    .main-content {
+      flex: 1;
+      padding: 16px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Input Section */
+    .scan-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .barcode-input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .barcode-input-wrapper i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 16px;
+      pointer-events: none;
+    }
+
+    .barcode-input {
+      width: 100%;
+      height: 48px;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 15px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      padding: 0 14px 0 40px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .barcode-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn-primary {
+      height: 48px;
+      min-width: 48px;
+      padding: 0 18px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary:active {
+      background: var(--primary-active);
+    }
+
+    .btn-primary:disabled {
+      background: var(--border-subtle);
+      color: var(--text-dim);
+      cursor: not-allowed;
+    }
+
+    .btn-camera-toggle {
+      width: 100%;
+      height: 46px;
+      margin-top: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .btn-camera-toggle:active {
+      background: var(--border-subtle);
+    }
+
+    /* Camera Container */
+    #camera-panel {
+      display: none;
+      background: #000;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-top: 12px;
+      position: relative;
+      border: 1px solid var(--border-subtle);
+    }
+
+    #reader {
+      width: 100%;
+      min-height: 250px;
+    }
+
+    .camera-toolbar {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .cam-action-btn {
+      height: 44px;
+      padding: 0 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .cam-action-btn:active {
+      background: rgba(30, 41, 59, 0.95);
+    }
+
+    /* Feedback Banner */
+    .feedback-banner {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      line-height: 1.35;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .feedback-info {
+      background: rgba(37, 99, 235, 0.12);
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+    }
+
+    .feedback-success {
+      background: var(--ok-bg);
+      border: 1px solid var(--ok-border);
+      color: #4ade80;
+    }
+
+    .feedback-warn {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: #fbbf24;
+    }
+
+    .feedback-danger {
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      color: #f87171;
+    }
+
+    /* Active Package Card */
+    .package-card {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .package-card.is-complete {
+      border-color: var(--ok-border);
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.2);
+    }
+
+    .package-header {
+      padding: 14px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .package-sn-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .package-sn {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      word-break: break-all;
+    }
+
+    .package-status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .status-siap {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid #0284c7;
+    }
+
+    .status-pickup {
+      background: var(--ok-bg);
+      color: #4ade80;
+      border: 1px solid var(--ok-border);
+    }
+
+    .status-batal {
+      background: var(--danger-bg);
+      color: #f87171;
+      border: 1px solid var(--danger-border);
+    }
+
+    .package-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .meta-item strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Note Banner */
+    .buyer-note-banner {
+      background: #78350f;
+      border-top: 1px solid #b45309;
+      border-bottom: 1px solid #b45309;
+      padding: 10px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: #fef3c7;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    /* Progress Section */
+    .progress-section {
+      padding: 12px 14px;
+      background: var(--bg-card-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .progress-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .progress-track {
+      height: 10px;
+      background: var(--bg-input);
+      border-radius: 5px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .progress-bar-fill.done {
+      background: var(--ok);
+    }
+
+    /* Checklist Items */
+    .items-list {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .item-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s ease;
+    }
+
+    .item-card.is-done {
+      border-color: var(--ok-border);
+      background: rgba(22, 163, 74, 0.05);
+    }
+
+    .item-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .item-sku {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      word-break: break-all;
+    }
+
+    .item-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .badge-pending {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .badge-partial {
+      background: var(--warn-bg);
+      color: #fbbf24;
+      border: 1px solid var(--warn-border);
+    }
+
+    .badge-complete {
+      background: var(--ok-bg);
+      color: #4ade80;
+      border: 1px solid var(--ok-border);
+    }
+
+    .item-name {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .item-variation {
+      font-size: 12px;
+      font-weight: 600;
+      color: #38bdf8;
+    }
+
+    .item-counter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-subtle);
+    }
+
+    .qty-display {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .qty-display span {
+      font-family: var(--font-mono);
+      font-size: 18px;
+    }
+
+    .counter-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .counter-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .counter-btn:active {
+      transform: scale(0.92);
+      background: var(--border-subtle);
+    }
+
+    .counter-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Actions Footer */
+    .package-footer {
+      padding: 14px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-finish {
+      height: 52px;
+      width: 100%;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-finish.is-complete {
+      background: var(--ok);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+    }
+
+    .btn-finish.is-complete:active {
+      background: #15803d;
+    }
+
+    .btn-finish.is-partial {
+      background: var(--warn);
+      color: #fff;
+    }
+
+    .btn-finish:disabled {
+      background: #475569 !important;
+      color: #94a3b8 !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
+    }
+
+    .btn-cancel-package {
+      height: 44px;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-cancel-package:active {
+      background: var(--danger-bg);
+      color: #ef4444;
+      border-color: var(--danger-border);
+    }
+
+    /* Empty State */
+    .empty-state {
+      padding: 40px 20px;
+      text-align: center;
+      background: var(--bg-surface);
+      border: 1.5px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--text-dim);
+    }
+
+    .empty-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .empty-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 320px;
+    }
+
+    /* Login Screen */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-page);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 20px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .login-header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .login-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .login-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .login-input {
+      height: 48px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 15px;
+      padding: 0 14px;
+      outline: none;
+      font-weight: 600;
+    }
+
+    .login-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    .login-error {
+      font-size: 13px;
+      color: #ef4444;
+      background: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+
+    /* Toast Notification */
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      left: 16px;
+      right: 16px;
+      z-index: 120;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      align-items: center;
+    }
+
+    .toast-msg {
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-subtle);
+      animation: popIn 0.2s ease;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Demo Ribbon -->
+  <div class="demo-ribbon">
+    <i class="fa-solid fa-flask"></i> MODE PRATINJAU MANDIRI (STANDALONE PREVIEW)
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-wrap">
+      <div class="brand-logo-icon">
+        <i class="fa-solid fa-box-archive"></i>
+      </div>
+      <div>
+        <h1 class="brand-title">Meja Packing</h1>
+        <div class="brand-sub">ERP Begood Gudang</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="icon-btn active" id="btn-sound-toggle" onclick="toggleSound()" title="Aktif/Bisu Suara" aria-label="Toggle Suara">
+        <i class="fa-solid fa-volume-high"></i>
+      </button>
+      <button type="button" class="icon-btn active" id="btn-vibrate-toggle" onclick="toggleVibration()" title="Aktif/Nonaktif Getar" aria-label="Toggle Getar">
+        <i class="fa-solid fa-mobile-screen"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- User Bar -->
+  <div class="user-bar" id="user-bar">
+    <div class="user-info">
+      <i class="fa-solid fa-user-check"></i>
+      <span id="label-user-name">Memuat operator...</span>
+      <span class="user-badge" id="label-user-role">PACKING</span>
+    </div>
+    <button type="button" class="btn-logout" onclick="logoutSession()">
+      <i class="fa-solid fa-right-from-bracket"></i> Keluar
+    </button>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+
+    <!-- Scan Input Card -->
+    <section class="scan-card">
+      <div class="input-row">
+        <div class="barcode-input-wrapper">
+          <i class="fa-solid fa-barcode"></i>
+          <input type="text" id="input-barcode" class="barcode-input"
+                 placeholder="Scan Resi atau Barcode SKU..."
+                 autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+                 onkeydown="handleInputKeydown(event)">
+        </div>
+        <button type="button" class="btn-primary" id="btn-submit-scan" onclick="submitManualInput()">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <button type="button" class="btn-camera-toggle" id="btn-toggle-camera" onclick="toggleCameraScanner()">
+        <i class="fa-solid fa-camera"></i> <span id="label-camera-toggle">Buka Kamera Scanner</span>
+      </button>
+
+      <!-- Camera Panel -->
+      <div id="camera-panel">
+        <div id="reader"></div>
+        <div class="camera-toolbar">
+          <button type="button" class="cam-action-btn" id="btn-torch" onclick="toggleTorch()">
+            <i class="fa-solid fa-bolt"></i> Senter
+          </button>
+          <button type="button" class="cam-action-btn" onclick="toggleCameraScanner()">
+            <i class="fa-solid fa-xmark"></i> Tutup Kamera
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feedback Banner -->
+    <div id="feedback-banner" class="feedback-banner feedback-info">
+      <i class="fa-solid fa-circle-info"></i>
+      <span id="feedback-text">Arahkan scanner ke barcode resi paket untuk memulai.</span>
+    </div>
+
+    <!-- Active Package Container -->
+    <div id="active-package-wrap" style="display: none;">
+      <article class="package-card" id="package-card">
+        <!-- Package Header -->
+        <div class="package-header">
+          <div class="package-sn-row">
+            <span class="package-sn" id="pkg-sn">SPXID00000000</span>
+            <span class="package-status-pill status-siap" id="pkg-status">SIAP PACKING</span>
+          </div>
+          <div class="package-meta-grid">
+            <div class="meta-item">No. Resi: <strong id="pkg-resi">-</strong></div>
+            <div class="meta-item">Kurir: <strong id="pkg-courier">-</strong></div>
+            <div class="meta-item">Toko: <strong id="pkg-toko">-</strong></div>
+            <div class="meta-item">Pembeli: <strong id="pkg-buyer">-</strong></div>
+            <div class="meta-item" style="grid-column: span 2">Kota: <strong id="pkg-city">-</strong></div>
+          </div>
+        </div>
+
+        <!-- Buyer Note (if any) -->
+        <div class="buyer-note-banner" id="pkg-note-wrap" style="display: none;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; margin-top: 2px;"></i>
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #fde68a;">Catatan Pembeli:</div>
+            <div id="pkg-note-text" style="color: #fff; margin-top: 2px;">-</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+          <div class="progress-label-row">
+            <span id="progress-text">Progres: 0 / 0 pcs (0%)</span>
+            <span id="progress-status-badge" style="color: var(--warn); font-weight: 700;">BELUM LENGKAP</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- Checklist Items -->
+        <div class="items-list" id="pkg-items-list">
+          <!-- Items will be injected here -->
+        </div>
+
+        <!-- Actions Footer -->
+        <div class="package-footer">
+          <button type="button" class="btn-finish is-partial" id="btn-finish-packing" onclick="submitFinishPacking()">
+            <i class="fa-solid fa-box-check"></i> <span id="label-finish-btn">Selesaikan Packing</span>
+          </button>
+          <button type="button" class="btn-cancel-package" onclick="cancelActivePackage()">
+            <i class="fa-solid fa-arrow-rotate-left"></i> Batal / Ganti Paket
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <i class="fa-solid fa-barcode"></i>
+      </div>
+      <div class="empty-title">Belum Ada Paket Aktif</div>
+      <div class="empty-desc">
+        Gunakan scanner fisik atau kamera HP untuk memindai barcode nomor resi pengiriman.
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Login Modal Overlay -->
+  <div id="login-overlay" style="display: none;">
+    <div class="login-box">
+      <div class="login-header">
+        <div class="brand-logo-icon" style="width: 48px; height: 48px; font-size: 24px;">
+          <i class="fa-solid fa-box-archive"></i>
+        </div>
+        <h2 style="font-size: 20px; font-weight: 800;">Masuk Meja Packing</h2>
+        <p style="font-size: 13px; color: var(--text-muted);">Masukkan kode pegawai dan PIN Anda untuk memulai sesi packing gudang.</p>
+      </div>
+
+      <div class="login-error" id="login-error-msg"></div>
+
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="login-form-group">
+          <label for="login-kode" class="login-label">Kode Pegawai</label>
+          <input type="text" id="login-kode" class="login-input" placeholder="Misal: PACKING1" autocomplete="username" autocapitalize="characters" value="PACKING1" required>
+        </div>
+
+        <div class="login-form-group" style="margin-top: 12px;">
+          <label for="login-pin" class="login-label">PIN / Sandi</label>
+          <input type="password" id="login-pin" class="login-input" placeholder="PIN" autocomplete="current-password" value="1234" required>
+        </div>
+
+        <button type="submit" class="btn-primary" id="btn-login-submit" style="width: 100%; height: 50px; margin-top: 20px;">
+          <span id="label-login-btn">Masuk ke Meja Packing</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       PRATINJAU MEJA PACKING MOBILE (STANDALONE MOCK RPCs)
+       ========================================================================== */
+
+    const STORAGE_KEY = 'begood_packing_mobile_session';
+    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+
+    let appSession = null;
+    let activePackage = null;
+    let html5QrScanner = null;
+    let cameraActive = false;
+    let torchActive = false;
+
+    let soundEnabled = true;
+    let vibrateEnabled = true;
+    let audioCtx = null;
+
+    /* Mock Database Pesanan untuk Pengujian */
+    const MOCK_ORDERS = [
+      {
+        orderSn: '240929ABC1001',
+        resi: 'SPXID04829182918',
+        buyer: 'Rizki Agustian',
+        city: 'Bandung',
+        courier: 'SPX Standard',
+        toko: 'BEGOOD OFFICIAL',
+        internalStatus: '[1] Siap Packing',
+        note: 'Tolong pastikan jahitan kuat ya kak.',
+        items: [
+          { id: 0, sku: 'BGD-BLOUSE-01', variation: 'Hitam / L', name: 'Blouse Wanita Katun Rayon Premium', targetQty: 2, scannedQty: 0 },
+          { id: 1, sku: 'BGD-SKIRT-03', variation: 'Mocca / Allsize', name: 'Rok Plisket Panjang Elegan', targetQty: 1, scannedQty: 0 }
+        ]
+      },
+      {
+        orderSn: '240929ABC1002',
+        resi: 'SPXID09999999999',
+        buyer: 'Andi Saputra',
+        city: 'Surabaya',
+        courier: 'J&T Express',
+        toko: 'BEGOOD OFFICIAL',
+        internalStatus: '[2] Menunggu Pickup',
+        note: '',
+        items: [
+          { id: 0, sku: 'BGD-DRESS-02', variation: 'Navy / M', name: 'Midi Dress Casual Floral', targetQty: 1, scannedQty: 1 }
+        ]
+      },
+      {
+        orderSn: '240929ABC1003',
+        resi: 'SPXID08888888888',
+        buyer: 'Citra Dewi',
+        city: 'Jakarta Selatan',
+        courier: 'SiCepat REG',
+        toko: 'BEGOOD STORE',
+        internalStatus: 'Batal',
+        note: 'Pembeli membatalkan pesanan',
+        items: [
+          { id: 0, sku: 'BGD-CULOTTE-01', variation: 'Sage / L', name: 'Kulot Linen Highwaist', targetQty: 1, scannedQty: 0 }
+        ]
+      }
+    ];
+
+    /* ---- Inisialisasi Audio Web Audio API ---- */
+    function initAudio() {
+      if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btn-sound-toggle');
+      if (btn) {
+        btn.className = 'icon-btn' + (soundEnabled ? ' active' : '');
+        btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
+      }
+      showToast(soundEnabled ? 'Suara diaktifkan' : 'Suara dibisukan');
+    }
+
+    function toggleVibration() {
+      vibrateEnabled = !vibrateEnabled;
+      const btn = document.getElementById('btn-vibrate-toggle');
+      if (btn) {
+        btn.className = 'icon-btn' + (vibrateEnabled ? ' active' : '');
+      }
+      showToast(vibrateEnabled ? 'Getar diaktifkan' : 'Getar dinonaktifkan');
+    }
+
+    function playBeep(type) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+
+        const ctx = audioCtx;
+        const now = ctx.currentTime;
+
+        if (type === 'success') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (type === 'complete') {
+          const freqs = [587.33, 880, 1174.66];
+          freqs.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const t = now + (idx * 0.1);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.25, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.15);
+          });
+        } else if (type === 'error') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        }
+      } catch (e) {}
+    }
+
+    function triggerVibrate(type) {
+      if (!vibrateEnabled || !navigator.vibrate) return;
+      try {
+        if (type === 'success') {
+          navigator.vibrate(80);
+        } else if (type === 'complete') {
+          navigator.vibrate([100, 50, 100, 50, 150]);
+        } else if (type === 'error') {
+          navigator.vibrate([300, 100, 300]);
+        }
+      } catch (e) {}
+    }
+
+    /* ---- Toast Notifications ---- */
+    function showToast(message, duration) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      toast.innerText = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, duration || 2600);
+    }
+
+    function setFeedback(text, type) {
+      const banner = document.getElementById('feedback-banner');
+      const label = document.getElementById('feedback-text');
+      if (!banner || !label) return;
+
+      banner.className = 'feedback-banner feedback-' + (type || 'info');
+      let icon = 'circle-info';
+      if (type === 'success') icon = 'circle-check';
+      if (type === 'warn') icon = 'triangle-exclamation';
+      if (type === 'danger') icon = 'circle-xmark';
+
+      banner.innerHTML = '<i class="fa-solid fa-' + icon + '"></i><span>' + text + '</span>';
+    }
+
+    /* ---- Manajemen Sesi & Autentikasi ---- */
+    function muatSesi() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (data && data.token && data.expiresAt && Date.now() < data.expiresAt) {
+          return data;
+        }
+        localStorage.removeItem(STORAGE_KEY);
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function simpanSesi(token, pengguna) {
+      const data = {
+        token: token,
+        kode: pengguna.kode,
+        nama: pengguna.nama,
+        peran: pengguna.peran,
+        toko: pengguna.toko || '',
+        expiresAt: Date.now() + TWELVE_HOURS_MS
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      appSession = data;
+      perbaruiTampilanSesi();
+    }
+
+    function perbaruiTampilanSesi() {
+      const overlay = document.getElementById('login-overlay');
+      const nameEl = document.getElementById('label-user-name');
+      const roleEl = document.getElementById('label-user-role');
+
+      if (!appSession) {
+        if (overlay) overlay.style.display = 'flex';
+        return;
+      }
+
+      if (overlay) overlay.style.display = 'none';
+      if (nameEl) nameEl.innerText = appSession.nama || appSession.kode;
+      if (roleEl) roleEl.innerText = appSession.peran + (appSession.toko ? ' (' + appSession.toko + ')' : '');
+
+      fokusInputScan();
+    }
+
+    function logoutSession() {
+      const ya = confirm('Yakin ingin keluar dari akun Meja Packing ini?');
+      if (!ya) return;
+      localStorage.removeItem(STORAGE_KEY);
+      appSession = null;
+      activePackage = null;
+      renderActivePackage();
+      perbaruiTampilanSesi();
+    }
+
+    function handleLoginSubmit(e) {
+      e.preventDefault();
+      initAudio();
+
+      const kodeInp = document.getElementById('login-kode');
+      const pinInp = document.getElementById('login-pin');
+      const errBox = document.getElementById('login-error-msg');
+      const btn = document.getElementById('btn-login-submit');
+      const btnLabel = document.getElementById('label-login-btn');
+
+      const kode = kodeInp ? kodeInp.value.trim().toUpperCase() : '';
+      const pin = pinInp ? pinInp.value.trim() : '';
+
+      if (!kode || !pin) {
+        if (errBox) {
+          errBox.innerText = 'Kode pegawai dan PIN wajib diisi.';
+          errBox.style.display = 'block';
+        }
+        return;
+      }
+
+      if (errBox) errBox.style.display = 'none';
+      if (btn) btn.disabled = true;
+      if (btnLabel) btnLabel.innerText = 'Memverifikasi...';
+
+      /* Simulasi login di pratinjau */
+      setTimeout(() => {
+        if (btn) btn.disabled = false;
+        if (btnLabel) btnLabel.innerText = 'Masuk ke Meja Packing';
+        simpanSesi('demo-token-123', { kode: kode, nama: kode === 'PACKING1' ? 'Budi Packing' : kode, peran: 'PACKING', toko: 'BEGOOD' });
+        playBeep('success');
+        showToast('Berhasil masuk sebagai ' + kode);
+      }, 350);
+    }
+
+    /* ---- Logika Pemindaian Barcode ---- */
+    function fokusInputScan() {
+      const inp = document.getElementById('input-barcode');
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+    }
+
+    function handleInputKeydown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitManualInput();
+      }
+    }
+
+    function submitManualInput() {
+      initAudio();
+      const inp = document.getElementById('input-barcode');
+      if (!inp) return;
+      const val = inp.value.trim().toUpperCase();
+      inp.value = '';
+      if (!val) return;
+      tanganiBarcode(val);
+    }
+
+    function tanganiBarcode(rawCode) {
+      initAudio();
+      const code = String(rawCode || '').trim().toUpperCase();
+      if (!code) return;
+
+      /* Jika belum ada paket aktif: cari dan buka paket */
+      if (!activePackage) {
+        bukaPaketDenganBarcode(code);
+        return;
+      }
+
+      /* Jika ada paket aktif: verifikasi SKU produk */
+      const hasilItem = verifikasiItemProduk(code);
+      if (hasilItem.cocok) {
+        return;
+      }
+
+      /* Barcode tidak cocok dengan SKU: cek apakah ini resi paket lain */
+      playBeep('error');
+      triggerVibrate('error');
+      setFeedback('Barcode "' + code + '" tidak cocok dengan produk di paket saat ini.', 'danger');
+      fokusInputScan();
+    }
+
+    function bukaPaketDenganBarcode(code) {
+      if (!appSession) {
+        showToast('Silakan masuk terlebih dahulu.');
+        return;
+      }
+
+      setFeedback('Mengecek pesanan "' + code + '" di server...', 'info');
+      const submitBtn = document.getElementById('btn-submit-scan');
+      if (submitBtn) submitBtn.disabled = true;
+
+      setTimeout(() => {
+        if (submitBtn) submitBtn.disabled = false;
+
+        const target = code.toLowerCase();
+        let found = MOCK_ORDERS.find(o => o.orderSn.toLowerCase() === target || o.resi.toLowerCase() === target);
+
+        if (!found) {
+          /* Generator otomatis untuk nomor barcode bebas di pratinjau */
+          found = {
+            orderSn: '240929ABC' + Math.floor(1000 + Math.random() * 9000),
+            resi: code,
+            buyer: 'Pelanggan Shopee',
+            city: 'Bandung',
+            courier: 'SPX Express',
+            toko: 'BEGOOD OFFICIAL',
+            internalStatus: '[1] Siap Packing',
+            note: 'Pesanan demo hasil scan barcode.',
+            items: [
+              { id: 0, sku: 'BGD-BLOUSE-01', variation: 'Hitam / L', name: 'Blouse Wanita Katun Rayon Premium', targetQty: 2, scannedQty: 0 },
+              { id: 1, sku: 'BGD-SKIRT-03', variation: 'Mocca / Allsize', name: 'Rok Plisket Panjang Elegan', targetQty: 1, scannedQty: 0 }
+            ]
+          };
+        }
+
+        if (found.internalStatus.toLowerCase().includes('batal')) {
+          playBeep('error');
+          triggerVibrate('error');
+          setFeedback('PERINGATAN: Pesanan ' + found.orderSn + ' telah DIBATALKAN oleh pembeli! Jangan dipacking.', 'danger');
+          fokusInputScan();
+          return;
+        }
+
+        const isSudah = found.internalStatus.includes('[2]') || found.internalStatus.includes('Pickup');
+        activePackage = JSON.parse(JSON.stringify(found));
+
+        playBeep('success');
+        triggerVibrate('success');
+
+        if (isSudah) {
+          setFeedback('Perhatian: Pesanan ' + found.orderSn + ' sudah berstatus [2] Menunggu Pickup.', 'warn');
+        } else {
+          setFeedback('Paket dibuka: ' + found.orderSn + '. Silakan scan barcode setiap produk fisik.', 'info');
+        }
+
+        renderActivePackage();
+        fokusInputScan();
+      }, 400);
+    }
+
+    /* ---- Verifikasi Item Fisik ---- */
+    function verifikasiItemProduk(code) {
+      if (!activePackage || !activePackage.items) return { cocok: false };
+      const items = activePackage.items;
+      const c = code.toLowerCase().trim();
+
+      /* Cari SKU yang belum lengkap terlebih dahulu */
+      let targetIdx = items.findIndex((it) => {
+        if (it.scannedQty >= it.targetQty) return false;
+        const sku = String(it.sku || '').toLowerCase().trim();
+        const variation = String(it.variation || '').toLowerCase().trim();
+        return (sku && sku === c) || (variation && variation === c);
+      });
+
+      /* Pencocokan parsial bila tidak sama persis */
+      if (targetIdx === -1) {
+        targetIdx = items.findIndex((it) => {
+          if (it.scannedQty >= it.targetQty) return false;
+          const sku = String(it.sku || '').toLowerCase().trim();
+          const variation = String(it.variation || '').toLowerCase().trim();
+          const name = String(it.name || '').toLowerCase().trim();
+          return (sku && (sku.includes(c) || c.includes(sku))) ||
+                 (variation && (variation.includes(c) || c.includes(variation))) ||
+                 (name && name.includes(c));
+        });
+      }
+
+      if (targetIdx !== -1) {
+        const item = items[targetIdx];
+        item.scannedQty++;
+
+        const totalTarget = items.reduce((acc, it) => acc + it.targetQty, 0);
+        const totalScan = items.reduce((acc, it) => acc + it.scannedQty, 0);
+        const semuaLengkap = items.every((it) => it.scannedQty >= it.targetQty);
+
+        if (semuaLengkap) {
+          playBeep('complete');
+          triggerVibrate('complete');
+          setFeedback('SEMUA ITEM LENGKAP (' + totalScan + '/' + totalTarget + ' pcs)! Tekan tombol selesaikan packing.', 'success');
+        } else {
+          playBeep('success');
+          triggerVibrate('success');
+          setFeedback('Cocok: ' + item.sku + ' (' + item.scannedQty + '/' + item.targetQty + ' pcs). Total: ' + totalScan + '/' + totalTarget + ' pcs.', 'info');
+        }
+
+        renderActivePackage();
+        fokusInputScan();
+        return { cocok: true };
+      }
+
+      /* Jika item sudah lengkap */
+      const sudahLengkapIdx = items.findIndex((it) => {
+        const sku = String(it.sku || '').toLowerCase().trim();
+        return sku && (sku === c || sku.includes(c) || c.includes(sku));
+      });
+
+      if (sudahLengkapIdx !== -1) {
+        const item = items[sudahLengkapIdx];
+        playBeep('error');
+        triggerVibrate('error');
+        setFeedback('Item ' + item.sku + ' sudah lengkap (' + item.targetQty + ' pcs). Jangan scan berlebih!', 'warn');
+        fokusInputScan();
+        return { cocok: true };
+      }
+
+      return { cocok: false };
+    }
+
+    function ubahItemManual(idx, selisih) {
+      if (!activePackage || !activePackage.items[idx]) return;
+      const item = activePackage.items[idx];
+      const target = item.targetQty;
+      const baru = item.scannedQty + selisih;
+
+      if (baru < 0 || baru > target) return;
+      item.scannedQty = baru;
+
+      const totalTarget = activePackage.items.reduce((acc, it) => acc + it.targetQty, 0);
+      const totalScan = activePackage.items.reduce((acc, it) => acc + it.scannedQty, 0);
+      const semuaLengkap = activePackage.items.every((it) => it.scannedQty >= it.targetQty);
+
+      if (semuaLengkap) {
+        playBeep('complete');
+        triggerVibrate('complete');
+        setFeedback('SEMUA ITEM LENGKAP (' + totalScan + '/' + totalTarget + ' pcs)!', 'success');
+      } else {
+        playBeep('success');
+        setFeedback('Manual: ' + item.sku + ' (' + item.scannedQty + '/' + target + ' pcs).', 'info');
+      }
+
+      renderActivePackage();
+      fokusInputScan();
+    }
+
+    function cancelActivePackage() {
+      if (!activePackage) return;
+      const totalScan = activePackage.items.reduce((acc, it) => acc + it.scannedQty, 0);
+      if (totalScan > 0) {
+        const ya = confirm('Paket sedang diproses (' + totalScan + ' item terverifikasi). Yakin ingin membatalkan paket ini?');
+        if (!ya) return;
+      }
+      activePackage = null;
+      renderActivePackage();
+      setFeedback('Paket ditutup. Silakan scan nomor resi baru.', 'info');
+      fokusInputScan();
+    }
+
+    /* ---- Render Tampilan Paket ---- */
+    function renderActivePackage() {
+      const wrap = document.getElementById('active-package-wrap');
+      const emptyState = document.getElementById('empty-state');
+      const card = document.getElementById('package-card');
+
+      if (!activePackage) {
+        if (wrap) wrap.style.display = 'none';
+        if (emptyState) emptyState.style.display = 'flex';
+        return;
+      }
+
+      if (wrap) wrap.style.display = 'block';
+      if (emptyState) emptyState.style.display = 'none';
+
+      const p = activePackage;
+      const totalTarget = p.items.reduce((acc, it) => acc + it.targetQty, 0);
+      const totalScan = p.items.reduce((acc, it) => acc + it.scannedQty, 0);
+      const persen = totalTarget > 0 ? Math.min(100, Math.round((totalScan / totalTarget) * 100)) : 0;
+      const semuaLengkap = p.items.every((it) => it.scannedQty >= it.targetQty);
+
+      if (card) {
+        if (semuaLengkap) {
+          card.classList.add('is-complete');
+        } else {
+          card.classList.remove('is-complete');
+        }
+      }
+
+      document.getElementById('pkg-sn').innerText = p.orderSn || '-';
+      document.getElementById('pkg-resi').innerText = p.resi || '-';
+      document.getElementById('pkg-courier').innerText = p.courier || '-';
+      document.getElementById('pkg-toko').innerText = p.toko || '-';
+      document.getElementById('pkg-buyer').innerText = p.buyer || '-';
+      document.getElementById('pkg-city').innerText = p.city || '-';
+
+      const statusEl = document.getElementById('pkg-status');
+      if (statusEl) {
+        statusEl.innerText = p.internalStatus || 'SIAP PACKING';
+        if (p.internalStatus.includes('[2]') || p.internalStatus.includes('Pickup')) {
+          statusEl.className = 'package-status-pill status-pickup';
+        } else if (p.internalStatus.toLowerCase().includes('batal')) {
+          statusEl.className = 'package-status-pill status-batal';
+        } else {
+          statusEl.className = 'package-status-pill status-siap';
+        }
+      }
+
+      /* Catatan Pembeli */
+      const noteWrap = document.getElementById('pkg-note-wrap');
+      const noteText = document.getElementById('pkg-note-text');
+      if (noteWrap && noteText) {
+        if (p.note && p.note.trim()) {
+          noteWrap.style.display = 'flex';
+          noteText.innerText = p.note;
+        } else {
+          noteWrap.style.display = 'none';
+        }
+      }
+
+      /* Progress Bar */
+      const progressText = document.getElementById('progress-text');
+      const progressFill = document.getElementById('progress-bar-fill');
+      const progressBadge = document.getElementById('progress-status-badge');
+
+      if (progressText) {
+        progressText.innerText = 'Progres: ' + totalScan + ' / ' + totalTarget + ' pcs (' + persen + '%)';
+      }
+      if (progressFill) {
+        progressFill.style.width = persen + '%';
+        if (semuaLengkap) {
+          progressFill.classList.add('done');
+        } else {
+          progressFill.classList.remove('done');
+        }
+      }
+      if (progressBadge) {
+        if (semuaLengkap) {
+          progressBadge.innerText = 'LENGKAP';
+          progressBadge.style.color = 'var(--ok)';
+        } else {
+          progressBadge.innerText = (totalTarget - totalScan) + ' KURANG';
+          progressBadge.style.color = 'var(--warn)';
+        }
+      }
+
+      /* Daftar Item */
+      const itemsContainer = document.getElementById('pkg-items-list');
+      if (itemsContainer) {
+        itemsContainer.innerHTML = p.items.map((it, idx) => {
+          const isDone = it.scannedQty >= it.targetQty;
+          let badgeHtml = '';
+          if (isDone) {
+            badgeHtml = '<span class="item-badge badge-complete"><i class="fa-solid fa-check"></i> LENGKAP</span>';
+          } else if (it.scannedQty > 0) {
+            badgeHtml = '<span class="item-badge badge-partial">' + (it.targetQty - it.scannedQty) + ' KURANG</span>';
+          } else {
+            badgeHtml = '<span class="item-badge badge-pending">BELUM SCAN</span>';
+          }
+
+          return '<div class="item-card' + (isDone ? ' is-done' : '') + '">' +
+            '<div class="item-head">' +
+              '<div>' +
+                '<div class="item-sku">' + it.sku + '</div>' +
+                '<div class="item-variation">' + it.variation + '</div>' +
+              '</div>' +
+              badgeHtml +
+            '</div>' +
+            '<div class="item-name">' + it.name + '</div>' +
+            '<div class="item-counter-row">' +
+              '<div class="qty-display">Scan: <span style="color:' + (isDone ? 'var(--ok)' : 'inherit') + '">' + it.scannedQty + '</span> / ' + it.targetQty + ' pcs</div>' +
+              '<div class="counter-actions">' +
+                '<button type="button" class="counter-btn" onclick="ubahItemManual(' + idx + ', -1)" ' + (it.scannedQty <= 0 ? 'disabled' : '') + ' aria-label="Kurangi kuantitas">-</button>' +
+                '<button type="button" class="counter-btn" onclick="ubahItemManual(' + idx + ', 1)" ' + (isDone ? 'disabled' : '') + ' aria-label="Tambah kuantitas">+</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      /* Tombol Selesaikan */
+      const btnFinish = document.getElementById('btn-finish-packing');
+      const labelFinish = document.getElementById('label-finish-btn');
+      if (btnFinish && labelFinish) {
+        btnFinish.disabled = false;
+        if (semuaLengkap) {
+          btnFinish.className = 'btn-finish is-complete';
+          labelFinish.innerText = 'Selesaikan & Tandai Siap Pickup';
+        } else {
+          btnFinish.className = 'btn-finish is-partial';
+          labelFinish.innerText = 'Tandai Siap Pickup (Belum Lengkap)';
+        }
+      }
+    }
+
+    /* ---- Submit Selesaikan Packing (Pencegahan Double Submit) ---- */
+    function submitFinishPacking() {
+      if (!activePackage) return;
+      const p = activePackage;
+      const semuaLengkap = p.items.every((it) => it.scannedQty >= it.targetQty);
+
+      if (!semuaLengkap) {
+        const lanjut = confirm('Ada item yang belum terverifikasi lengkap. Tetap tandai pesanan ' + p.orderSn + ' sebagai [2] Menunggu Pickup?');
+        if (!lanjut) return;
+      }
+
+      const btnFinish = document.getElementById('btn-finish-packing');
+      const labelFinish = document.getElementById('label-finish-btn');
+
+      /* Langsung ubah tombol menjadi disabled abu-abu dengan animasi loading untuk mencegah double submit */
+      if (btnFinish) {
+        btnFinish.disabled = true;
+        btnFinish.style.opacity = '0.55';
+        btnFinish.style.cursor = 'not-allowed';
+      }
+      if (labelFinish) {
+        labelFinish.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke server...';
+      }
+
+      setFeedback('Menyimpan status pesanan ' + p.orderSn + '...', 'info');
+
+      /* Simulasi simpan di pratinjau */
+      setTimeout(() => {
+        playBeep('complete');
+        triggerVibrate('complete');
+        showToast('Pesanan ' + p.orderSn + ' berhasil diselesaikan! (Demo)');
+        setFeedback('Pesanan ' + p.orderSn + ' selesai. Siap scan resi berikutnya.', 'success');
+        activePackage = null;
+        renderActivePackage();
+        fokusInputScan();
+      }, 700);
+    }
+
+    /* ---- Kamera Scanner (html5-qrcode) ---- */
+    function toggleCameraScanner() {
+      initAudio();
+      const panel = document.getElementById('camera-panel');
+      const labelToggle = document.getElementById('label-camera-toggle');
+
+      if (cameraActive) {
+        stopCameraScanner();
+        if (panel) panel.style.display = 'none';
+        if (labelToggle) labelToggle.innerText = 'Buka Kamera Scanner';
+        cameraActive = false;
+        fokusInputScan();
+      } else {
+        if (panel) panel.style.display = 'block';
+        if (labelToggle) labelToggle.innerText = 'Tutup Kamera Scanner';
+        startCameraScanner();
+      }
+    }
+
+    function startCameraScanner() {
+      if (typeof Html5Qrcode === 'undefined') {
+        showToast('Pustaka scanner belum selesai dimuat. Tunggu sejenak.');
+        return;
+      }
+
+      html5QrScanner = new Html5Qrcode('reader');
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 160 },
+        aspectRatio: 1.333
+      };
+
+      html5QrScanner.start(
+        { facingMode: 'environment' },
+        config,
+        (decodedText) => {
+          tanganiBarcode(decodedText);
+        },
+        (error) => {}
+      ).then(() => {
+        cameraActive = true;
+      }).catch((err) => {
+        cameraActive = false;
+        const panel = document.getElementById('camera-panel');
+        if (panel) panel.style.display = 'none';
+        const labelToggle = document.getElementById('label-camera-toggle');
+        if (labelToggle) labelToggle.innerText = 'Buka Kamera Scanner';
+        showToast('Tidak dapat mengakses kamera: ' + (err.message || String(err)));
+      });
+    }
+
+    function stopCameraScanner() {
+      if (html5QrScanner) {
+        try {
+          html5QrScanner.stop().then(() => {
+            html5QrScanner.clear();
+            html5QrScanner = null;
+          }).catch(() => {
+            html5QrScanner = null;
+          });
+        } catch (e) {
+          html5QrScanner = null;
+        }
+      }
+      cameraActive = false;
+      torchActive = false;
+    }
+
+    function toggleTorch() {
+      if (!cameraActive || !html5QrScanner) return;
+      torchActive = !torchActive;
+      try {
+        html5QrScanner.applyVideoConstraints({
+          advanced: [{ torch: torchActive }]
+        }).then(() => {
+          const btn = document.getElementById('btn-torch');
+          if (btn) {
+            btn.innerHTML = torchActive ? '<i class="fa-solid fa-bolt" style="color:#f59e0b"></i> Senter: ON' : '<i class="fa-solid fa-bolt"></i> Senter';
+          }
+        }).catch(() => {
+          showToast('Senter/Flash tidak didukung di perangkat ini.');
+        });
+      } catch (e) {
+        showToast('Senter tidak didukung.');
+      }
+    }
+
+    /* Inisialisasi Saat Halaman Terbuka */
+    window.addEventListener('DOMContentLoaded', () => {
+      /* Inisialisasi sesi pratinjau otomatis jika belum ada */
+      let s = muatSesi();
+      if (!s) {
+        simpanSesi('demo-token-123', { kode: 'PACKING1', nama: 'Budi Packing', peran: 'PACKING', toko: 'BEGOOD' });
+      } else {
+        appSession = s;
+        perbaruiTampilanSesi();
+      }
+      renderActivePackage();
+
+      /* Buka audio context pada sentuhan pertama pengguna */
+      document.body.addEventListener('touchstart', initAudio, { once: true });
+      document.body.addEventListener('click', initAudio, { once: true });
+    });
+  </script>
+</body>
+</html>

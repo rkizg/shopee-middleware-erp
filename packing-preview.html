@@ -308,6 +308,22 @@
       background: var(--border-subtle);
     }
 
+    .camera-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn-camera-snap {
+      background: var(--primary);
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .btn-camera-snap:active {
+      background: var(--primary-active);
+    }
+
     /* Camera Container */
     #camera-panel {
       display: none;
@@ -922,9 +938,17 @@
         </button>
       </div>
 
-      <button type="button" class="btn-camera-toggle" id="btn-toggle-camera" onclick="toggleCameraScanner()">
-        <i class="fa-solid fa-camera"></i> <span id="label-camera-toggle">Buka Kamera Scanner</span>
-      </button>
+      <!-- Tombol Pemindai Kamera -->
+      <div class="camera-btn-row">
+        <button type="button" class="btn-camera-toggle btn-camera-snap" id="btn-snap-camera" onclick="bukaKameraFoto()" style="margin-top: 0; flex: 1.2;">
+          <i class="fa-solid fa-camera"></i> <span>Foto Barcode (HP)</span>
+        </button>
+        <button type="button" class="btn-camera-toggle" id="btn-toggle-camera" onclick="toggleCameraScanner()" style="margin-top: 0; flex: 1;">
+          <i class="fa-solid fa-video"></i> <span id="label-camera-toggle">Live Scanner</span>
+        </button>
+      </div>
+
+      <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display: none;" onchange="tanganiFileGambarBarcode(this)">
 
       <!-- Camera Panel -->
       <div id="camera-panel">
@@ -1058,6 +1082,28 @@
           <span id="label-login-btn">Masuk ke Meja Packing</span>
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal Panduan Izin Kamera -->
+  <div id="modal-izin-kamera" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="login-box" style="max-width: 380px; text-align: center;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #60a5fa; font-size: 22px;">
+        <i class="fa-solid fa-camera"></i>
+      </div>
+      <h3 style="font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 8px;">Kamera Live Dibatasi Browser</h3>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; text-align: left;">
+        Google Apps Script berjalan dalam sandbox iframe, sehingga browser HP Anda memblokir izin video streaming langsung.
+        <br><br>
+        <strong>Solusi Praktis:</strong><br>
+        Gunakan tombol <strong>Foto Barcode (HP)</strong>. Kamera HP akan terbuka secara native dan langsung memindai barcode seketika.
+      </p>
+      <button type="button" class="btn-primary" id="btn-buka-foto-modal" onclick="tutupModalIzinKameraDanBukaFoto()" style="width: 100%; height: 46px; margin-bottom: 8px;">
+        <i class="fa-solid fa-camera"></i> Buka Kamera Foto Sekarang
+      </button>
+      <button type="button" class="btn-logout" id="btn-tutup-modal-izin" onclick="tutupModalIzinKamera()" style="width: 100%; color: var(--text-muted); padding: 8px;">
+        Tutup
+      </button>
     </div>
   </div>
 
@@ -1781,7 +1827,92 @@
       }, 700);
     }
 
-    /* ---- Kamera Scanner (html5-qrcode) ---- */
+    /* ---- Kamera Scanner & Foto Barcode (html5-qrcode) ---- */
+    let cameraStarting = false;
+
+    function bukaKameraFoto() {
+      initAudio();
+      var fileInput = document.getElementById('camera-file-input');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    }
+
+    function tanganiFileGambarBarcode(input) {
+      if (!input || !input.files || input.files.length === 0) return;
+      var file = input.files[0];
+
+      setFeedback('Memindai barcode dari foto...', 'info');
+      showToast('Memindai gambar barcode...');
+
+      if (typeof Html5Qrcode === 'undefined') {
+        showToast('Pustaka scanner belum selesai dimuat. Tunggu sejenak.');
+        return;
+      }
+
+      /* Hentikan live scanner bila sedang berjalan agar reader tidak bentrok */
+      if (cameraActive) {
+        stopCameraScanner();
+      }
+
+      var scanner = html5QrScanner;
+      var dibuatBaru = false;
+      if (!scanner) {
+        try {
+          scanner = new Html5Qrcode('reader');
+          dibuatBaru = true;
+        } catch (eInit) {
+          showToast('Gagal menyiapkan pembaca barcode: ' + (eInit.message || String(eInit)));
+          return;
+        }
+      }
+
+      scanner.scanFile(file, false)
+        .then(function(decodedText) {
+          if (!decodedText || !String(decodedText).trim()) {
+            throw new Error('Barcode kosong');
+          }
+          playBeep('scan');
+          triggerVibrate('scan');
+          tanganiBarcode(decodedText);
+        })
+        .catch(function(err) {
+          playBeep('error');
+          triggerVibrate('error');
+          setFeedback('Barcode tidak terdeteksi pada foto. Pastikan kamera fokus, terang, dan barcode terlihat utuh.', 'danger');
+          showToast('Barcode tidak terdeteksi di foto. Coba foto lebih dekat dan tegak.');
+        })
+        .finally(function() {
+          input.value = '';
+          if (dibuatBaru && scanner) {
+            try {
+              scanner.clear();
+            } catch (eClr) {}
+            if (html5QrScanner === scanner) {
+              html5QrScanner = null;
+            }
+          }
+        });
+    }
+
+    function tampilkanModalIzinKamera_() {
+      var modal = document.getElementById('modal-izin-kamera');
+      if (modal) modal.style.display = 'flex';
+      setFeedback('Kamera streaming dibatasi oleh sistem. Gunakan tombol "Foto Barcode (HP)".', 'warn');
+    }
+
+    function tutupModalIzinKamera() {
+      var modal = document.getElementById('modal-izin-kamera');
+      if (modal) modal.style.display = 'none';
+      fokusInputScan();
+    }
+
+    function tutupModalIzinKameraDanBukaFoto() {
+      tutupModalIzinKamera();
+      bukaKameraFoto();
+    }
+
     function toggleCameraScanner() {
       initAudio();
       const panel = document.getElementById('camera-panel');
@@ -1790,23 +1921,34 @@
       if (cameraActive) {
         stopCameraScanner();
         if (panel) panel.style.display = 'none';
-        if (labelToggle) labelToggle.innerText = 'Buka Kamera Scanner';
+        if (labelToggle) labelToggle.innerText = 'Live Scanner';
         cameraActive = false;
         fokusInputScan();
       } else {
         if (panel) panel.style.display = 'block';
-        if (labelToggle) labelToggle.innerText = 'Tutup Kamera Scanner';
+        if (labelToggle) labelToggle.innerText = 'Tutup Scanner';
         startCameraScanner();
       }
     }
 
     function startCameraScanner() {
+      if (cameraStarting) return;
       if (typeof Html5Qrcode === 'undefined') {
         showToast('Pustaka scanner belum selesai dimuat. Tunggu sejenak.');
         return;
       }
 
-      html5QrScanner = new Html5Qrcode('reader');
+      cameraStarting = true;
+      if (!html5QrScanner) {
+        try {
+          html5QrScanner = new Html5Qrcode('reader');
+        } catch (eInit) {
+          cameraStarting = false;
+          showToast('Gagal menyiapkan scanner: ' + (eInit.message || String(eInit)));
+          return;
+        }
+      }
+
       const config = {
         fps: 10,
         qrbox: { width: 250, height: 160 },
@@ -1822,13 +1964,21 @@
         (error) => {}
       ).then(() => {
         cameraActive = true;
+        cameraStarting = false;
       }).catch((err) => {
         cameraActive = false;
+        cameraStarting = false;
         const panel = document.getElementById('camera-panel');
         if (panel) panel.style.display = 'none';
         const labelToggle = document.getElementById('label-camera-toggle');
-        if (labelToggle) labelToggle.innerText = 'Buka Kamera Scanner';
-        showToast('Tidak dapat mengakses kamera: ' + (err.message || String(err)));
+        if (labelToggle) labelToggle.innerText = 'Live Scanner';
+
+        var errStr = String((err && (err.message || err.name || err)) || '');
+        if (errStr.indexOf('NotAllowedError') !== -1 || errStr.indexOf('Permission') !== -1 || errStr.indexOf('not allowed') !== -1) {
+          tampilkanModalIzinKamera_();
+        } else {
+          showToast('Tidak dapat mengakses kamera: ' + errStr);
+        }
       });
     }
 

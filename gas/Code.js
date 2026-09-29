@@ -1379,20 +1379,23 @@ function masukDenganKode(kode, sandi) {
       MENIT_KUNCI_GAGAL + ' menit sebelum mencoba lagi.');
   }
 
-  var pengguna = SheetManager.periksaSandi(kodeBersih, sandi);
+  var hasilPeriksa = SheetManager.periksaSandiDetail
+    ? SheetManager.periksaSandiDetail(kodeBersih, sandi)
+    : (SheetManager.periksaSandi(kodeBersih, sandi) ? { berhasil: true, pengguna: SheetManager.periksaSandi(kodeBersih, sandi) } : { berhasil: false, pesan: 'Kode atau sandi salah.' });
 
-  if (!pengguna) {
+  if (!hasilPeriksa || !hasilPeriksa.berhasil) {
     cache.put(kunciGagal, String(jumlahGagal + 1), MENIT_KUNCI_GAGAL * 60);
+    var pesanGalat = (hasilPeriksa && hasilPeriksa.pesan) || 'Kode atau sandi salah.';
     SheetManager.logActivity('MASUK_GAGAL', 0, 'GAGAL',
-      'Percobaan masuk gagal untuk kode ' + kodeBersih + ' (percobaan ke-' + (jumlahGagal + 1) + ').');
-    throw new Error('Kode atau sandi salah.');
+      'Percobaan masuk gagal untuk kode ' + kodeBersih + ' (percobaan ke-' + (jumlahGagal + 1) + '): ' + pesanGalat, '', kodeBersih);
+    throw new Error(pesanGalat);
   }
 
   cache.remove(kunciGagal);
 
-  var sesi = buatSesi_(pengguna);
-  SheetManager.catatMasuk(pengguna.kode);
-  SheetManager.logActivity('MASUK', 0, 'SUKSES', 'Masuk memakai kode dan sandi.', '', pengguna.kode);
+  var sesi = buatSesi_(hasilPeriksa.pengguna);
+  SheetManager.catatMasuk(hasilPeriksa.pengguna.kode);
+  SheetManager.logActivity('MASUK', 0, 'SUKSES', 'Masuk memakai kode dan sandi.', '', hasilPeriksa.pengguna.kode);
 
   return { berhasil: true, success: true, token: sesi.token, pengguna: sesi.pengguna };
 }
@@ -4736,3 +4739,43 @@ function getWebAppPackingUrl() {
   if (!baseUrl) return '';
   return baseUrl + (baseUrl.indexOf('?') === -1 ? '?page=packing' : '&page=packing');
 }
+
+/**
+ * RPC: Mendiagnosa status akun pegawai untuk membantu penanganan kendala masuk
+ */
+function diagnosaAkunPacking(kodeInput) {
+  var cari = String(kodeInput || '').trim();
+  var rec = cari ? SheetManager.getPenggunaByKode(cari) : null;
+  var cache = CacheService.getScriptCache();
+  var kunciGagal = cari ? ('GAGAL_MASUK_' + cari.toUpperCase()) : '';
+  var jumlahGagal = kunciGagal ? Number(cache.get(kunciGagal) || 0) : 0;
+  var diag = SheetManager.diagnosaPengguna ? SheetManager.diagnosaPengguna() : null;
+
+  return {
+    success: true,
+    kodeDicari: cari,
+    ditemukan: Boolean(rec),
+    pengguna: rec ? {
+      kode: rec.kode,
+      nama: rec.nama,
+      peran: rec.peran,
+      aktif: rec.aktif,
+      adaHash: Boolean(rec.sandi_hash),
+      adaSalt: Boolean(rec.sandi_salt)
+    } : null,
+    terkunci: jumlahGagal >= BATAS_GAGAL_MASUK,
+    jumlahGagal: jumlahGagal,
+    ringkasan: diag ? diag.ringkas : ''
+  };
+}
+
+/**
+ * RPC: Membersihkan status penguncian akun akibat percobaan gagal
+ */
+function resetKunciGagalPacking(kodeInput) {
+  var cari = String(kodeInput || '').trim().toUpperCase();
+  if (!cari) return { success: false, message: 'Kode tidak boleh kosong.' };
+  CacheService.getScriptCache().remove('GAGAL_MASUK_' + cari);
+  return { success: true, message: 'Kunci gagal untuk ' + cari + ' berhasil direset.' };
+}
+

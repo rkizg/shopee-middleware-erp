@@ -491,17 +491,17 @@ grep -n "BAGI_HEADERS" gas/SheetManager.js
 | 162 | `BAGI_HEADERS` (10 kolom hasil pembagian: Qty dan Harga Total) |
 | 186 | `PENJAHIT_DEFAULT`, isi bawaan sheet setelan (4 penjahit) |
 | 201 | `RULES_DEFAULT`, isi bawaan sheet aturan (14 aturan) |
-| 732 | `bacaBarisPenjahit_()` |
-| 764 | `bacaBarisAturan_()` |
-| 790 | `bacaBarisPembagian_()` |
-| 862 | `kunciPembagian_()`, kunci baris per penjahit |
-| 881 | `rapikanPembagianLama_()`, penggabungan baris bentuk lama |
-| 978 | `isiBawaanBilaKosong_()` |
-| 2892 | `pastikanSettingProduksi()` |
-| 2956 | `simpanQtyPembagian()`, penulis satu-satunya PEMBAGIAN JAHIT |
-| 3050 | `perbaruiHargaPembagian()`, mengisi harga baris lama yang masih kosong |
-| 3111 | `simpanPenjahit()` |
-| 3147 | `simpanAturanSku()` |
+| 788 | `bacaBarisPenjahit_()` |
+| 820 | `bacaBarisAturan_()` |
+| 846 | `bacaBarisPembagian_()` |
+| 918 | `kunciPembagian_()`, kunci baris per penjahit |
+| 937 | `rapikanPembagianLama_()`, penggabungan baris bentuk lama |
+| 1034 | `isiBawaanBilaKosong_()` |
+| 3023 | `pastikanSettingProduksi()` |
+| 3087 | `simpanQtyPembagian()`, penulis satu-satunya PEMBAGIAN JAHIT |
+| 3181 | `perbaruiHargaPembagian()`, mengisi harga baris lama yang masih kosong |
+| 3242 | `simpanPenjahit()` |
+| 3278 | `simpanAturanSku()` |
 
 Blok inisialisasi ketiga sheet ada di dalam `initAllSheets()` (bagian 8, 9, dan 10
 pada komentar bloknya), di bawah blok `DATA PROSES` dan `DATA JAHIT`.

@@ -392,8 +392,40 @@ var SheetManager = (function() {
    * Sandi asli tidak pernah disimpan, sehingga pembandingannya lewat hasil hash.
    */
   function sandiCocok_(sandi, rec) {
-    if (!rec || !rec.sandi_hash || !rec.sandi_salt) return false;
-    return hashSandi_(sandi, rec.sandi_salt, PUTARAN_HASH) === rec.sandi_hash;
+    if (!rec) return false;
+    var inputSandi = String(sandi || '');
+    if (!inputSandi) return false;
+
+    // 1. Jalur utama: sandi terenkripsi hash dengan salt
+    if (rec.sandi_salt && rec.sandi_hash) {
+      if (hashSandi_(inputSandi, rec.sandi_salt, PUTARAN_HASH) === rec.sandi_hash) {
+        return true;
+      }
+    }
+
+    // 2. Jalur toleran: jika admin / pengguna menulis sandi teks polos langsung di sheet
+    var sandiDiSheet = String(rec.sandi_hash || '').trim();
+    if (sandiDiSheet && (sandiDiSheet === inputSandi || sandiDiSheet === inputSandi.trim())) {
+      try {
+        var saltBaru = acakSalt_();
+        var hashBaru = hashSandi_(inputSandi, saltBaru, PUTARAN_HASH);
+        var sheet = getOrCreateSheet(SHEETS.PENGGUNA);
+        var lastRow = sheet ? sheet.getLastRow() : 0;
+        if (lastRow >= 2) {
+          var kodes = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+          for (var r = 0; r < kodes.length; r++) {
+            if (String(kodes[r][0] || '').trim().toUpperCase() === rec.kode) {
+              sheet.getRange(r + 2, 5).setValue(hashBaru);
+              sheet.getRange(r + 2, 6).setValue(saltBaru);
+              break;
+            }
+          }
+        }
+      } catch (eUp) {}
+      return true;
+    }
+
+    return false;
   }
 
   function hitungKondisiToken_(rec) {
@@ -428,8 +460,32 @@ var SheetManager = (function() {
 
   function getOrCreateSheet(sheetName) {
     var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
+    if (!ss) return null;
+    var sheet = (ss.getSheetByName && typeof ss.getSheetByName === 'function') ? ss.getSheetByName(sheetName) : null;
+    if (sheet) return sheet;
+
+    // Pencarian toleran terhadap huruf besar/kecil dan spasi tambahan
+    var target = String(sheetName || '').trim().toLowerCase();
+    var allSheets = (ss.getSheets && typeof ss.getSheets === 'function') ? ss.getSheets() : [];
+    for (var i = 0; i < allSheets.length; i++) {
+      if (allSheets[i] && allSheets[i].getName) {
+        var sName = String(allSheets[i].getName() || '').trim().toLowerCase();
+        if (sName === target) {
+          return allSheets[i];
+        }
+      }
+    }
+    // Jika sheet Pengguna dicari tapi belum ketemu nama persis, cek variasi nama umum
+    if (target === 'pengguna') {
+      for (var j = 0; j < allSheets.length; j++) {
+        var n = String(allSheets[j].getName() || '').trim().toLowerCase();
+        if (n === 'users' || n === 'user' || n === 'data pengguna' || n === 'pegawai') {
+          return allSheets[j];
+        }
+      }
+    }
+
+    if (ss.insertSheet && typeof ss.insertSheet === 'function') {
       sheet = ss.insertSheet(sheetName);
     }
     return sheet;
@@ -2628,21 +2684,66 @@ var SheetManager = (function() {
       if (!cari) return null;
 
       var sheet = getOrCreateSheet(SHEETS.PENGGUNA);
+      if (!sheet) return null;
       var lastRow = sheet.getLastRow();
-      if (lastRow < 2) return null;
+      if (lastRow < 1) return null;
 
-      var nilai = sheet.getRange(2, 1, lastRow - 1, PENGGUNA_HEADERS.length).getValues();
+      var lastCol = Math.max(sheet.getLastColumn ? (sheet.getLastColumn() || 0) : PENGGUNA_HEADERS.length, PENGGUNA_HEADERS.length);
+      // Baca header kolom di baris 1 untuk pemetaan dinamis
+      var colKode = 0, colNama = 1, colPeran = 2, colEmail = 3, colHash = 4, colSalt = 5, colAktif = 6;
+      var rowAwal = 2;
+
+      var hRow = (lastRow >= 1) ? (sheet.getRange(1, 1, 1, lastCol).getValues()[0] || []) : [];
+      var headerDitemukan = false;
+      for (var h = 0; h < hRow.length; h++) {
+        var t = String(hRow[h] || '').trim().toLowerCase();
+        if (t === 'kode' || t === 'kode pegawai' || t === 'username' || t === 'id') { colKode = h; headerDitemukan = true; }
+        else if (t === 'nama' || t === 'nama pegawai' || t === 'name') { colNama = h; headerDitemukan = true; }
+        else if (t === 'peran' || t === 'role' || t === 'jabatan') { colPeran = h; headerDitemukan = true; }
+        else if (t === 'email') { colEmail = h; headerDitemukan = true; }
+        else if (t.indexOf('salt') !== -1) { colSalt = h; headerDitemukan = true; }
+        else if (t.indexOf('sandi') !== -1 || t === 'pin' || t === 'password' || t.indexOf('hash') !== -1) { colHash = h; headerDitemukan = true; }
+        else if (t === 'aktif' || t === 'status') { colAktif = h; headerDitemukan = true; }
+      }
+
+      // Jika baris 1 bukan header (data langsung dimulai di baris 1)
+      if (!headerDitemukan && lastRow >= 1) {
+        var ujiBaris1 = String(hRow[0] || '').trim().toUpperCase();
+        if (ujiBaris1 === cari) {
+          rowAwal = 1;
+        }
+      }
+
+      if (lastRow < rowAwal) return null;
+
+      var jmlBaris = lastRow - rowAwal + 1;
+      var nilai = sheet.getRange(rowAwal, 1, jmlBaris, lastCol).getValues();
+
       for (var i = 0; i < nilai.length; i++) {
-        if (String(nilai[i][0] || '').trim().toUpperCase() !== cari) continue;
+        var row = nilai[i] || [];
+        var valKode = String(row[colKode] || '').trim().toUpperCase();
+        var valNama = String(row[colNama] || '').trim().toUpperCase();
+        var valEmail = String(row[colEmail] || '').trim().toLowerCase();
+
+        // Cocokkan terhadap Kode, Nama, atau Email
+        if (valKode !== cari && valNama !== cari && valEmail !== cari.toLowerCase()) {
+          continue;
+        }
+
+        var peranMentah = String(row[colPeran] || '').trim().toUpperCase();
+        var peran = (peranMentah === 'SUPERADMIN' || peranMentah === 'ADMIN') ? peranMentah : PERAN.PACKING;
+
+        var aktifMentah = String(row[colAktif] || '').trim().toUpperCase();
+        var aktif = (aktifMentah === 'TIDAK' || aktifMentah === 'NONAKTIF' || aktifMentah === 'OFF') ? 'TIDAK' : 'YA';
 
         return {
-          kode: cari,
-          nama: String(nilai[i][1] || '').trim(),
-          peran: String(nilai[i][2] || '').trim().toUpperCase() || PERAN.PACKING,
-          email: String(nilai[i][3] || '').trim().toLowerCase(),
-          sandi_hash: String(nilai[i][4] || '').trim(),
-          sandi_salt: String(nilai[i][5] || '').trim(),
-          aktif: String(nilai[i][6] || '').trim().toUpperCase() || 'YA'
+          kode: valKode || cari,
+          nama: String(row[colNama] || valKode || cari).trim(),
+          peran: peran,
+          email: String(row[colEmail] || '').trim().toLowerCase(),
+          sandi_hash: String(row[colHash] || '').trim(),
+          sandi_salt: String(row[colSalt] || '').trim(),
+          aktif: aktif
         };
       }
 
@@ -2862,21 +2963,51 @@ var SheetManager = (function() {
      *
      * @return {Object|null} pengguna bila cocok dan aktif, atau null
      */
-    periksaSandi: function(kode, sandi) {
-      if (!String(sandi || '')) return null;
+    periksaSandiDetail: function(kode, sandi) {
+      if (!String(sandi || '')) {
+        return { berhasil: false, alasan: 'SANDI_KOSONG', pesan: 'Sandi atau PIN wajib diisi.' };
+      }
 
       var rec = this.getPenggunaByKode(kode);
-      if (!rec) return null;
-      if (rec.aktif !== 'YA') return null;
-      if (!sandiCocok_(sandi, rec)) return null;
+      if (!rec) {
+        return {
+          berhasil: false,
+          alasan: 'PENGGUNA_TIDAK_DITEMUKAN',
+          pesan: 'Kode atau nama pegawai "' + kode + '" tidak ditemukan di sheet Pengguna.'
+        };
+      }
+
+      if (rec.aktif !== 'YA') {
+        return {
+          berhasil: false,
+          alasan: 'AKUN_TIDAK_AKTIF',
+          pesan: 'Akun ' + rec.kode + ' (' + rec.nama + ') berstatus TIDAK AKTIF di sheet Pengguna.'
+        };
+      }
+
+      if (!sandiCocok_(sandi, rec)) {
+        return {
+          berhasil: false,
+          alasan: 'SANDI_SALAH',
+          pesan: 'Sandi atau PIN untuk kode ' + rec.kode + ' salah.'
+        };
+      }
 
       return {
-        kode: rec.kode,
-        nama: rec.nama,
-        peran: rec.peran,
-        email: rec.email,
-        aktif: rec.aktif
+        berhasil: true,
+        pengguna: {
+          kode: rec.kode,
+          nama: rec.nama,
+          peran: rec.peran,
+          email: rec.email,
+          aktif: rec.aktif
+        }
       };
+    },
+
+    periksaSandi: function(kode, sandi) {
+      var d = this.periksaSandiDetail(kode, sandi);
+      return (d && d.berhasil) ? d.pengguna : null;
     },
 
     /**

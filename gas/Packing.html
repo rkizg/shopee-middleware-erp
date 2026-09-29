@@ -1012,7 +1012,15 @@
         <p style="font-size: 13px; color: var(--text-muted);">Masukkan kode pegawai dan PIN Anda untuk memulai sesi packing gudang.</p>
       </div>
 
-      <div class="login-error" id="login-error-msg"></div>
+      <div class="login-error" id="login-error-msg">
+        <div id="login-error-text"></div>
+        <div id="diag-akun-wrap" style="display: none; margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(239, 68, 68, 0.4); font-size: 11px;">
+          <button type="button" id="btn-diag-akun" onclick="cekDiagnosaAkun_()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">
+            <i class="fa-solid fa-stethoscope"></i> Cek Status Akun Saya di Server
+          </button>
+          <div id="diag-akun-result" style="margin-top: 6px; font-family: monospace; display: none;"></div>
+        </div>
+      </div>
 
       <form onsubmit="handleLoginSubmit(event)">
         <div class="login-form-group">
@@ -1254,6 +1262,84 @@
       }
     }
 
+    function tampilkanGalatLoginDanOpsi_(pesan) {
+      const errBox = document.getElementById('login-error-msg');
+      const errText = document.getElementById('login-error-text');
+      const diagWrap = document.getElementById('diag-akun-wrap');
+      const diagRes = document.getElementById('diag-akun-result');
+      if (!errBox) return;
+
+      if (errText) errText.innerText = pesan;
+      else errBox.innerText = pesan;
+
+      if (diagRes) {
+        diagRes.innerHTML = '';
+        diagRes.style.display = 'none';
+      }
+      if (diagWrap) {
+        diagWrap.style.display = (typeof google !== 'undefined' && google.script && google.script.run) ? 'block' : 'none';
+      }
+      errBox.style.display = 'block';
+    }
+
+    function cekDiagnosaAkun_() {
+      const kodeInp = document.getElementById('login-kode');
+      const kode = kodeInp ? kodeInp.value.trim() : '';
+      const resBox = document.getElementById('diag-akun-result');
+      const btnDiag = document.getElementById('btn-diag-akun');
+      if (resBox) {
+        resBox.style.display = 'block';
+        resBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memeriksa data akun di spreadsheet...';
+      }
+      if (btnDiag) btnDiag.disabled = true;
+
+      if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.diagnosaAkunPacking === 'function') {
+        google.script.run
+          .withSuccessHandler((d) => {
+            if (btnDiag) btnDiag.disabled = false;
+            if (!resBox) return;
+            if (!d) {
+              resBox.innerHTML = 'Respon server kosong.';
+              return;
+            }
+            if (!d.ditemukan) {
+              resBox.innerHTML = '<span style="color: #fca5a5;">Kode "' + d.kodeDicari + '" TIDAK ADA di sheet Pengguna.</span><br>' +
+                'Daftar sheet: ' + (d.daftarSheet ? d.daftarSheet.join(', ') : '-') + '<br>' +
+                '<span style="color: #cbd5e1;">Pastikan akun telah dibuat di menu Kelola Pengguna atau ditambahkan pada sheet Pengguna.</span>';
+              return;
+            }
+            const p = d.pengguna;
+            let info = '<span style="color: #86efac;">Akun "' + p.kode + '" DITEMUKAN.</span><br>' +
+              'Nama: ' + p.nama + ' | Peran: ' + p.peran + ' | Aktif: ' + p.aktif + '<br>' +
+              'Status Sandi di Sheet: ' + (p.adaHash ? 'Tersedia' : 'Belum Ada') + '<br>';
+            if (p.aktif !== 'YA') {
+              info += '<span style="color: #fca5a5;">Perhatian: Akun berstatus NONAKTIF. Ubah kolom Aktif menjadi YA di sheet Pengguna.</span><br>';
+            }
+            if (d.terkunci) {
+              info += '<span style="color: #fbbf24;">Akun terkunci karena ' + d.jumlahGagal + 'x salah sandi.</span> ' +
+                '<button type="button" onclick="bukaKunciAkun_(\'' + p.kode + '\')" style="background:#f59e0b; color:#000; border:none; padding:2px 6px; border-radius:3px; font-size:10px; cursor:pointer;">Reset Kunci</button><br>';
+            }
+            resBox.innerHTML = info;
+          })
+          .withFailureHandler((err) => {
+            if (btnDiag) btnDiag.disabled = false;
+            if (resBox) resBox.innerHTML = 'Gagal diagnosa: ' + (err.message || String(err));
+          })
+          .diagnosaAkunPacking(kode);
+      }
+    }
+
+    function bukaKunciAkun_(kode) {
+      if (typeof google !== 'undefined' && google.script && google.script.run && typeof google.script.run.resetKunciGagalPacking === 'function') {
+        google.script.run
+          .withSuccessHandler((r) => {
+            showToast(r.message || 'Kunci berhasil dibuka.');
+            cekDiagnosaAkun_();
+          })
+          .resetKunciGagalPacking(kode);
+      }
+    }
+
     function handleLoginSubmit(e) {
       e.preventDefault();
       initAudio();
@@ -1268,10 +1354,7 @@
       const pin = pinInp ? pinInp.value.trim() : '';
 
       if (!kode || !pin) {
-        if (errBox) {
-          errBox.innerText = 'Kode pegawai dan PIN wajib diisi.';
-          errBox.style.display = 'block';
-        }
+        tampilkanGalatLoginDanOpsi_('Kode pegawai dan PIN wajib diisi.');
         return;
       }
 
@@ -1287,10 +1370,7 @@
 
             const isSukses = Boolean(res && (res.berhasil || res.success));
             if (!res || !isSukses) {
-              if (errBox) {
-                errBox.innerText = (res && (res.pesan || res.message)) || 'Kode atau PIN salah.';
-                errBox.style.display = 'block';
-              }
+              tampilkanGalatLoginDanOpsi_((res && (res.pesan || res.message)) || 'Kode atau PIN salah.');
               playBeep('error');
               triggerVibrate('error');
               return;
@@ -1298,18 +1378,12 @@
 
             const pengguna = res.pengguna;
             if (!pengguna) {
-              if (errBox) {
-                errBox.innerText = 'Data akun pengguna tidak ditemukan.';
-                errBox.style.display = 'block';
-              }
+              tampilkanGalatLoginDanOpsi_('Data akun pengguna tidak ditemukan.');
               return;
             }
 
             if (pengguna.peran !== 'PACKING' && pengguna.peran !== 'ADMIN' && pengguna.peran !== 'SUPERADMIN') {
-              if (errBox) {
-                errBox.innerText = 'Akun ' + pengguna.kode + ' (' + (pengguna.peran || 'UMUM') + ') tidak memiliki hak akses meja packing. Hubungi Superadmin.';
-                errBox.style.display = 'block';
-              }
+              tampilkanGalatLoginDanOpsi_('Akun ' + pengguna.kode + ' (' + (pengguna.peran || 'UMUM') + ') tidak memiliki hak akses meja packing. Hubungi Superadmin.');
               return;
             }
 
@@ -1320,10 +1394,8 @@
           .withFailureHandler((err) => {
             if (btn) btn.disabled = false;
             if (btnLabel) btnLabel.innerText = 'Masuk ke Meja Packing';
-            if (errBox) {
-              errBox.innerText = (err && err.message) ? err.message : 'Gagal terhubung ke server.';
-              errBox.style.display = 'block';
-            }
+            const msg = (err && err.message) ? err.message : 'Gagal terhubung ke server.';
+            tampilkanGalatLoginDanOpsi_(msg);
             playBeep('error');
             triggerVibrate('error');
           })

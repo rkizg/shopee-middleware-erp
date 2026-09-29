@@ -1028,7 +1028,15 @@
         <p style="font-size: 13px; color: var(--text-muted);">Masukkan kode pegawai dan PIN Anda untuk memulai sesi packing gudang.</p>
       </div>
 
-      <div class="login-error" id="login-error-msg"></div>
+      <div class="login-error" id="login-error-msg">
+        <div id="login-error-text"></div>
+        <div id="diag-akun-wrap" style="display: none; margin-top: 8px; padding-top: 6px; border-top: 1px dashed rgba(239, 68, 68, 0.4); font-size: 11px;">
+          <button type="button" id="btn-diag-akun" onclick="cekDiagnosaAkun_()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer;">
+            <i class="fa-solid fa-stethoscope"></i> Cek Status Akun Saya di Server
+          </button>
+          <div id="diag-akun-result" style="margin-top: 6px; font-family: monospace; display: none;"></div>
+        </div>
+      </div>
 
       <form onsubmit="handleLoginSubmit(event)">
         <div class="login-form-group">
@@ -1312,6 +1320,41 @@
           icon.classList.add('fa-eye');
         }
       }
+    }
+
+    function tampilkanGalatLoginDanOpsi_(pesan) {
+      const errBox = document.getElementById('login-error-msg');
+      const errText = document.getElementById('login-error-text');
+      const diagWrap = document.getElementById('diag-akun-wrap');
+      const diagRes = document.getElementById('diag-akun-result');
+      if (!errBox) return;
+
+      if (errText) errText.innerText = pesan;
+      else errBox.innerText = pesan;
+
+      if (diagRes) {
+        diagRes.innerHTML = '';
+        diagRes.style.display = 'none';
+      }
+      if (diagWrap) {
+        diagWrap.style.display = 'block';
+      }
+      errBox.style.display = 'block';
+    }
+
+    function cekDiagnosaAkun_() {
+      const kodeInp = document.getElementById('login-kode');
+      const kode = kodeInp ? kodeInp.value.trim() : '';
+      const resBox = document.getElementById('diag-akun-result');
+      if (resBox) {
+        resBox.style.display = 'block';
+        resBox.innerHTML = '<span style="color:#86efac;">[Demo Pratinjau] Akun "' + (kode || 'PACKING1') + '" siap digunakan.</span><br>' +
+          'Peran: PACKING | Aktif: YA | Sandi: Bebas di pratinjau.';
+      }
+    }
+
+    function bukaKunciAkun_(kode) {
+      showToast('Kunci direset (simulasi).');
     }
 
     function handleLoginSubmit(e) {

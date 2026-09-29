@@ -546,23 +546,23 @@ Dua menu pada `onOpen()` ada di bagian atas berkas, di kelompok `ERP Begood`.
 
 | Baris | Isi |
 |---|---|
-| 1115 | Tombol tab `tab-pembagian` |
-| 1990 | Panel `content-pembagian` |
-| 4746 | `muatPembagianJahit()` |
-| 4790 | `teksUangBagi_()` |
-| 4795 | `renderPembagianJahit()` |
-| 4830 | `renderTabelPenjahitPembagian_()` |
-| 5292 | `renderPeringatanPembagian_()` |
-| 5319 | `renderUnitPembagian_()` |
-| 5362 | `tsvDariTabel_()` |
-| 5373 | `tabelDariTsv_()` |
-| 5651 | `isiSetelanPembagian_()` |
-| 5694 | `bagiJahitAction()` |
-| 5725 | `sesiDefaultKlien_()` |
-| 5729 | `siapkanSesiPembagian_()` |
-| 5742 | `tutupSesiJahitAction()` |
-| 5780 | `simpanPenjahitAction()` |
-| 5819 | `simpanAturanAction()` |
+| 1159 | Tombol tab `tab-pembagian` |
+| 2041 | Panel `content-pembagian` |
+| 4938 | `muatPembagianJahit()` |
+| 4982 | `teksUangBagi_()` |
+| 4987 | `renderPembagianJahit()` |
+| 5022 | `renderTabelPenjahitPembagian_()` |
+| 5484 | `renderPeringatanPembagian_()` |
+| 5511 | `renderUnitPembagian_()` |
+| 5554 | `tsvDariTabel_()` |
+| 5565 | `tabelDariTsv_()` |
+| 5843 | `isiSetelanPembagian_()` |
+| 5886 | `bagiJahitAction()` |
+| 5917 | `sesiDefaultKlien_()` |
+| 5921 | `siapkanSesiPembagian_()` |
+| 5934 | `tutupSesiJahitAction()` |
+| 5972 | `simpanPenjahitAction()` |
+| 6011 | `simpanAturanAction()` |
 
 Daftar tabnya ada pada `TAB_NAMES` dan `JUDUL_TAB`, dan `switchTab()` memanggil
 `muatPembagianJahit()` setiap kali tabnya dibuka.

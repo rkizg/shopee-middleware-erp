@@ -1079,6 +1079,50 @@
       .slip { border-color: #d1d5db; border-width: 1px; border-radius: 0; break-after: page; }
       .slip:last-child { break-after: auto; }
     }
+
+    /* ---------- meja packing (scan & pack) ---------- */
+    .scan-modal-container { max-width: 820px; max-height: 92vh; }
+    .scan-head-title { display: flex; flex-direction: column; gap: 3px; }
+    .scan-badge-title { display: flex; align-items: center; gap: 8px; }
+    .scan-badge-title i { color: var(--accent-fill); font-size: 18px; }
+    .scan-input-section { padding: 14px 16px; background: var(--desk); border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; }
+    .scan-input-wrapper { display: flex; align-items: center; gap: 8px; background: var(--paper); border: 2px solid var(--rule-strong); border-radius: var(--r-surface); padding: 2px 4px 2px 12px; }
+    .scan-input-wrapper:focus-within { border-color: var(--accent-fill); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+    .scan-input-icon { font-size: 18px; color: var(--ink-muted); }
+    .scan-field { flex: 1 1 auto; border: none; outline: none; background: transparent; font-size: 16px; font-family: var(--mono); font-weight: 600; color: var(--ink); padding: 10px 4px; min-height: 44px; }
+    .scan-field::placeholder { font-family: var(--sans); font-weight: 400; color: var(--ink-muted); font-size: 14px; }
+    .scan-feedback-banner { font-size: 13px; font-weight: 500; padding: 8px 12px; border-radius: var(--r-surface); background: var(--paper); border: 1px solid var(--rule); color: var(--ink); display: flex; align-items: center; gap: 8px; min-height: 36px; }
+    .scan-feedback-banner.is-error { background: #fef2f2; border-color: #f87171; color: #991b1b; }
+    .scan-feedback-banner.is-success { background: #f0fdf4; border-color: #86efac; color: #166534; }
+    .scan-feedback-banner.is-warning { background: #fffbeb; border-color: #fde047; color: #854d0e; }
+    .scan-modal-body { padding: 16px; min-height: 280px; }
+    .scan-pkg-card { border: 1px solid var(--rule); border-radius: var(--r-surface); background: var(--paper); overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+    .scan-pkg-header { padding: 12px 14px; background: var(--desk); border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .scan-pkg-meta { display: flex; flex-direction: column; gap: 3px; }
+    .scan-pkg-title { font-size: 16px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+    .scan-pkg-sub { font-size: 12px; color: var(--ink-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+    .scan-pkg-note { margin: 0 14px; padding: 8px 12px; background: #fef9c3; border: 1px solid #facc15; border-radius: var(--r-surface); font-size: 12px; color: #713f12; display: flex; gap: 8px; align-items: flex-start; }
+    .scan-progress-wrap { padding: 0 14px; display: flex; flex-direction: column; gap: 6px; }
+    .scan-progress-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--ink); }
+    .scan-progress-track { height: 8px; background: var(--rule); border-radius: 999px; overflow: hidden; }
+    .scan-progress-bar { height: 100%; background: var(--accent-fill); width: 0%; transition: width .2s ease, background-color .2s ease; }
+    .scan-progress-bar.is-complete { background: var(--ok); }
+    .scan-checklist-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .scan-checklist-table th { background: var(--desk); text-align: left; padding: 8px 12px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .scan-checklist-table td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+    .scan-row.is-complete { background: #f0fdf4; }
+    .scan-row-check { width: 36px; text-align: center; font-size: 18px; }
+    .scan-row-sku { font-weight: 700; font-family: var(--mono); color: var(--ink); font-size: 14px; }
+    .scan-row-var { font-size: 12px; color: var(--ink-muted); }
+    .scan-qty-badge { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 14px; padding: 4px 8px; border-radius: var(--r-surface); background: var(--desk); border: 1px solid var(--rule); }
+    .scan-row.is-complete .scan-qty-badge { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .scan-btn-inc { min-width: 44px; min-height: 38px; padding: 6px 12px; font-weight: 700; font-size: 13px; }
+    .scan-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 36px 16px; gap: 12px; }
+    .scan-empty-icon { font-size: 48px; color: var(--ink-muted); opacity: .6; }
+    .scan-pending-list { margin-top: 14px; width: 100%; max-width: 580px; text-align: left; border: 1px solid var(--rule); border-radius: var(--r-surface); background: var(--paper); overflow: hidden; }
+    .scan-pending-item { padding: 8px 12px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; font-size: 12px; }
+    .scan-pending-item:hover { background: var(--desk); }
+    .scan-pending-item:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -1257,6 +1301,9 @@
         <div class="queue-do">
           <button type="button" class="btn btn-primary" onclick="filterByQuickCard('[1] Siap Packing')">
             Buka antrian packing
+          </button>
+          <button type="button" class="btn btn-accent" onclick="bukaModalScanPacking()" title="Buka meja kerja scan barcode packing (Alt+S)" style="background:var(--accent-fill);color:#fff;font-weight:600;">
+            <i class="fa-solid fa-barcode" aria-hidden="true"></i> Mode Scan Meja Packing (Alt+S)
           </button>
           <button type="button" class="btn btn-quiet" onclick="filterByQuickCard('ALL')">
             Tampilkan semua pesanan
@@ -1474,6 +1521,10 @@
               <option value="100">100 baris</option>
               <option value="ALL">Semua baris</option>
             </select>
+
+            <button type="button" class="btn btn-sm" onclick="bukaModalScanPacking()" title="Buka meja kerja scan barcode packing (Alt+S)" style="background:var(--accent-fill);color:#fff;font-weight:600;">
+              <i class="fa-solid fa-barcode" aria-hidden="true"></i> Scan Packing (Alt+S)
+            </button>
           </div>
         </div>
       </div>
@@ -2828,6 +2879,147 @@
         </div>
       </div>
       <div class="modal-scroll" id="print-area"></div>
+    </div>
+  </div>
+
+  <!-- ======================= MODAL: MEJA PACKING (SCAN & PACK) ======================= -->
+  <div class="scrim" id="modal-scan-packing" role="dialog" aria-modal="true"
+       aria-labelledby="scan-modal-title" hidden>
+    <div class="modal scan-modal-container">
+      <div class="modal-head">
+        <div class="scan-head-title">
+          <div class="scan-badge-title">
+            <i class="fa-solid fa-barcode" aria-hidden="true"></i>
+            <h2 class="panel-title" id="scan-modal-title">Meja Packing: Scan &amp; Verifikasi</h2>
+          </div>
+          <span class="panel-note" id="scan-session-counter">Mode Scan Cepat Meja Packing</span>
+        </div>
+        <div class="toolbar-group">
+          <button type="button" class="btn btn-sm btn-quiet" id="btn-scan-sound-toggle" onclick="toggleScanSound_()" title="Aktif/Nonaktifkan Suara Bip Scanner" aria-pressed="true">
+            Suara: ON
+          </button>
+          <button type="button" class="btn btn-sm btn-icon btn-quiet" onclick="tutupModalScanPacking()" title="Tutup meja packing (Esc)">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            <span class="sr-only">Tutup</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="scan-input-section">
+        <label for="scan-barcode-input" class="sr-only">Input Barcode Scanner</label>
+        <div class="scan-input-wrapper">
+          <div class="scan-input-icon">
+            <i class="fa-solid fa-barcode" aria-hidden="true"></i>
+          </div>
+          <input type="text" id="scan-barcode-input" class="scan-field" autocomplete="off"
+                 placeholder="Scan No. Resi, No. Pesanan, atau Barcode SKU..."
+                 onkeydown="handleScanInputKeydown_(event)">
+          <button type="button" class="btn btn-primary btn-scan-submit" onclick="submitScanInputManual_()" title="Kirim input manual">
+            Submit
+          </button>
+        </div>
+        <div class="scan-feedback-banner" id="scan-feedback-banner">
+          Arahkan barcode scanner ke nomor resi atau nomor pesanan paket.
+        </div>
+      </div>
+
+      <div class="modal-scroll scan-modal-body" id="scan-workspace-area">
+        <!-- Keadaan Kosong (Menunggu Scan Resi) -->
+        <div class="scan-empty-state" id="scan-workspace-empty">
+          <div class="scan-empty-icon">
+            <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+          </div>
+          <h3 class="scan-empty-title">Belum Ada Paket Dibuka</h3>
+          <p class="scan-empty-desc">
+            Tembak barcode nomor resi (SPX, J&amp;T, SiCepat) atau nomor pesanan untuk memuat rincian item yang harus dipacking.
+          </p>
+        </div>
+
+        <!-- Keadaan Aktif (Paket Terbuka) -->
+        <div class="scan-active-workspace" id="scan-workspace-active" hidden>
+          <div class="scan-meta-grid">
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">No. Pesanan</span>
+              <span class="scan-meta-val" id="scan-info-sn">-</span>
+            </div>
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">No. Resi</span>
+              <span class="scan-meta-val" id="scan-info-resi">-</span>
+            </div>
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">Pembeli</span>
+              <span class="scan-meta-val" id="scan-info-buyer">-</span>
+            </div>
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">Kota Tujuan</span>
+              <span class="scan-meta-val" id="scan-info-city">-</span>
+            </div>
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">Ekspedisi</span>
+              <span class="scan-meta-val" id="scan-info-courier">-</span>
+            </div>
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">Toko</span>
+              <span class="scan-meta-val" id="scan-info-toko">-</span>
+            </div>
+            <div class="scan-meta-item">
+              <span class="scan-meta-label">Status Saat Ini</span>
+              <span class="scan-meta-val" id="scan-info-status">-</span>
+            </div>
+            <div class="scan-meta-item scan-meta-note" id="scan-info-note-row" hidden>
+              <span class="scan-meta-label">Catatan Pembeli</span>
+              <span class="scan-meta-val" id="scan-info-note">-</span>
+            </div>
+          </div>
+
+          <div class="scan-progress-card">
+            <div class="scan-progress-header">
+              <span class="scan-progress-title">Progres Checklist Fisik Produk</span>
+              <span class="scan-badge-counter" id="scan-badge-pcs">0 / 0 pcs</span>
+            </div>
+            <div class="scan-progress-track">
+              <div class="scan-progress-bar-fill" id="scan-progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <span class="scan-progress-hint" id="scan-progress-text">Menunggu scan barcode produk...</span>
+          </div>
+
+          <div class="scan-table-wrapper">
+            <table class="scan-checklist-table">
+              <thead>
+                <tr>
+                  <th scope="col" style="width:25%">SKU Produk</th>
+                  <th scope="col" style="width:30%">Variasi &amp; Nama</th>
+                  <th scope="col" style="width:10%;text-align:center">Target</th>
+                  <th scope="col" style="width:10%;text-align:center">Scan</th>
+                  <th scope="col" style="width:13%;text-align:center">Status</th>
+                  <th scope="col" style="width:12%;text-align:center">Koreksi</th>
+                </tr>
+              </thead>
+              <tbody id="scan-checklist-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-foot scan-modal-foot" id="scan-modal-foot">
+        <div class="scan-foot-left">
+          <button type="button" class="btn btn-quiet" onclick="batalPaketScan_()" title="Batal atau ganti paket yang sedang dipacking">
+            Batal / Ganti Paket
+          </button>
+        </div>
+        <div class="toolbar-group" id="scan-footer-actions" hidden>
+          <button type="button" class="btn btn-secondary" onclick="cetakSlipPackingScan_()" title="Cetak slip packing PDF">
+            Cetak Slip
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="cetakLabelThermalScan_()" title="Cetak label alamat thermal A6">
+            Cetak Label Thermal
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-scan-selesai" onclick="selesaikanPackingScan_()" title="Selesaikan packing dan ubah status ke Menunggu Pickup">
+            Tandai Siap Pickup
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -6544,12 +6736,18 @@
     }
 
     document.addEventListener('keydown', (event) => {
+      if (event.altKey && (event.key === 's' || event.key === 'S')) {
+        event.preventDefault();
+        bukaModalScanPacking();
+        return;
+      }
       if (event.key !== 'Escape') return;
       closeModal('order-detail-modal');
       closeModal('print-modal');
       closeModal('auth-modal');
       closeModal('pengguna-modal');
       closeModal('pengguna-konfirmasi-modal');
+      closeModal('modal-scan-packing');
       tutupSidebar();
       activeModalOrder = null;
       penggunaStatusTarget = null;
@@ -6619,6 +6817,484 @@
         return;
       }
       copyToClipboard(activeModalOrder.resi, 'Nomor resi disalin.');
+    }
+
+    /* ---- meja packing scan ---- */
+    let scanPackingPaketAktif = null;
+    let scanAudioAktif = true;
+    let scanAudioCtx = null;
+
+    function initScanAudio_() {
+      if (!scanAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        scanAudioCtx = new AudioCtx();
+      }
+      if (scanAudioCtx && scanAudioCtx.state === 'suspended') {
+        scanAudioCtx.resume();
+      }
+    }
+
+    function toggleScanSound_() {
+      scanAudioAktif = !scanAudioAktif;
+      const btn = document.getElementById('btn-scan-sound-toggle');
+      if (btn) {
+        btn.innerText = scanAudioAktif ? 'Suara: ON' : 'Suara: OFF';
+        btn.setAttribute('aria-pressed', scanAudioAktif ? 'true' : 'false');
+      }
+      showToast(scanAudioAktif ? 'Suara scan diaktifkan.' : 'Suara scan dibisukan.');
+    }
+
+    function playScanSound_(tipe) {
+      if (!scanAudioAktif) return;
+      try {
+        initScanAudio_();
+        if (!scanAudioCtx) return;
+
+        const ctx = scanAudioCtx;
+        const now = ctx.currentTime;
+
+        if (tipe === 'success') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        } else if (tipe === 'complete') {
+          const notes = [587.33, 880, 1174.66];
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const t = now + (idx * 0.12);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.2, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.15);
+          });
+        } else if (tipe === 'error') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.linearRampToValueAtTime(130, now + 0.25);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        }
+      } catch (e) {
+        /* Abaikan galat bila audio dibatasi oleh peramban */
+      }
+    }
+
+    function setScanFeedback_(pesan, tipe) {
+      const banner = document.getElementById('scan-feedback-banner');
+      if (!banner) return;
+      banner.className = 'scan-feedback-banner ' + (tipe || 'info');
+      banner.innerText = pesan || '';
+    }
+
+    function focusScanInput_() {
+      const inp = document.getElementById('scan-barcode-input');
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+    }
+
+    function bukaModalScanPacking() {
+      openModal('modal-scan-packing');
+      initScanAudio_();
+      if (!scanPackingPaketAktif) {
+        renderScanWorkspaceEmpty_();
+      } else {
+        renderScanWorkspaceActive_();
+      }
+      setTimeout(focusScanInput_, 60);
+    }
+
+    function tutupModalScanPacking() {
+      closeModal('modal-scan-packing');
+    }
+
+    function handleScanInputKeydown_(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitScanInputManual_();
+      }
+    }
+
+    function submitScanInputManual_() {
+      const inp = document.getElementById('scan-barcode-input');
+      if (!inp) return;
+      const text = inp.value.trim();
+      inp.value = '';
+      if (!text) return;
+      processScanInput_(text);
+    }
+
+    function processScanInput_(rawText) {
+      const code = String(rawText || '').trim();
+      if (!code) return;
+
+      if (!scanPackingPaketAktif) {
+        cariDanBukaPaketScan_(code);
+        return;
+      }
+
+      const hasilItem = verifikasiItemFisikScan_(code);
+      if (hasilItem.cocok) {
+        return;
+      }
+
+      const paketLain = semuaBarisPesanan_().find((o) => {
+        const r = (o.resi || '').toLowerCase().trim();
+        const sn = (o.orderSn || '').toLowerCase().trim();
+        const c = code.toLowerCase();
+        return (r && r === c) || (sn && sn === c);
+      });
+
+      if (paketLain) {
+        playScanSound_('error');
+        setScanFeedback_('Barcode terdeteksi sebagai pesanan lain (' + (paketLain.orderSn || code) + '). Selesaikan atau batalkan paket saat ini terlebih dahulu.', 'warn');
+        focusScanInput_();
+        return;
+      }
+
+      playScanSound_('error');
+      setScanFeedback_('Barcode "' + code + '" tidak cocok dengan produk atau pesanan mana pun.', 'error');
+      focusScanInput_();
+    }
+
+    function cariDanBukaPaketScan_(code) {
+      const c = code.toLowerCase().trim();
+      const semua = semuaBarisPesanan_();
+      const rows = semua.filter((o) => {
+        const r = String(o.resi || '').toLowerCase().trim();
+        const sn = String(o.orderSn || '').toLowerCase().trim();
+        return (r && r === c) || (sn && sn === c);
+      });
+
+      if (!rows || rows.length === 0) {
+        playScanSound_('error');
+        setScanFeedback_('Pesanan dengan resi atau No. Pesanan "' + code + '" tidak ditemukan di daftar pesanan.', 'error');
+        focusScanInput_();
+        return;
+      }
+
+      const orderHead = rows[0];
+      const itemsList = rows.map((r, idx) => ({
+        id: idx,
+        sku: r.sku || '-',
+        variation: r.variation || '-',
+        name: r.items || '-',
+        targetQty: Math.max(1, parseInt(r.qty, 10) || 1),
+        scannedQty: 0
+      }));
+
+      scanPackingPaketAktif = {
+        orderSn: orderHead.orderSn,
+        resi: orderHead.resi || '-',
+        buyer: orderHead.buyer || '-',
+        city: orderHead.city || '-',
+        courier: orderHead.courier || '-',
+        toko: orderHead.toko || '-',
+        internalStatus: orderHead.internalStatus || '-',
+        note: orderHead.note || '',
+        items: itemsList
+      };
+
+      playScanSound_('success');
+      const sudahSiap = orderHead.internalStatus === '[2] Menunggu Pickup' || orderHead.internalStatus === '[3] Dikirim' || orderHead.internalStatus === '[4] Selesai';
+      if (sudahSiap) {
+        setScanFeedback_('Perhatian: Pesanan ' + orderHead.orderSn + ' saat ini sudah berstatus "' + orderHead.internalStatus + '".', 'warn');
+      } else {
+        setScanFeedback_('Paket terbuka: ' + orderHead.orderSn + ' (' + itemsList.length + ' jenis produk). Silakan scan barcode setiap produk fisik.', 'info');
+      }
+
+      renderScanWorkspaceActive_();
+      focusScanInput_();
+    }
+
+    function bukaPaketDariKlikLangsung_(orderSn) {
+      bukaModalScanPacking();
+      cariDanBukaPaketScan_(orderSn);
+    }
+
+    function verifikasiItemFisikScan_(code) {
+      if (!scanPackingPaketAktif || !scanPackingPaketAktif.items) return { cocok: false };
+      const items = scanPackingPaketAktif.items;
+      const c = code.toLowerCase().trim();
+
+      let targetIdx = items.findIndex((it) => {
+        if (it.scannedQty >= it.targetQty) return false;
+        const sku = String(it.sku || '').toLowerCase().trim();
+        const variation = String(it.variation || '').toLowerCase().trim();
+        return (sku && sku === c) || (variation && variation === c);
+      });
+
+      if (targetIdx === -1) {
+        targetIdx = items.findIndex((it) => {
+          if (it.scannedQty >= it.targetQty) return false;
+          const sku = String(it.sku || '').toLowerCase().trim();
+          const variation = String(it.variation || '').toLowerCase().trim();
+          const name = String(it.name || '').toLowerCase().trim();
+          return (sku && (sku.includes(c) || c.includes(sku))) ||
+                 (variation && (variation.includes(c) || c.includes(variation))) ||
+                 (name && name.includes(c));
+        });
+      }
+
+      if (targetIdx !== -1) {
+        const item = items[targetIdx];
+        item.scannedQty++;
+
+        const totalTarget = items.reduce((acc, it) => acc + it.targetQty, 0);
+        const totalScan = items.reduce((acc, it) => acc + it.scannedQty, 0);
+        const semuaLengkap = items.every((it) => it.scannedQty >= it.targetQty);
+
+        if (semuaLengkap) {
+          playScanSound_('complete');
+          setScanFeedback_('SEMUA ITEM LENGKAP (' + totalScan + '/' + totalTarget + ' pcs)! Paket siap dipacking dan dikonfirmasi.', 'success');
+        } else {
+          playScanSound_('success');
+          setScanFeedback_('Cocok: ' + item.sku + ' (' + item.scannedQty + '/' + item.targetQty + ' pcs). Total: ' + totalScan + '/' + totalTarget + ' pcs.', 'info');
+        }
+
+        renderScanWorkspaceActive_();
+        focusScanInput_();
+        return { cocok: true };
+      }
+
+      const sudahLengkapIdx = items.findIndex((it) => {
+        const sku = String(it.sku || '').toLowerCase().trim();
+        const variation = String(it.variation || '').toLowerCase().trim();
+        return (sku && (sku === c || sku.includes(c) || c.includes(sku))) ||
+               (variation && (variation === c || variation.includes(c)));
+      });
+
+      if (sudahLengkapIdx !== -1) {
+        const item = items[sudahLengkapIdx];
+        playScanSound_('error');
+        setScanFeedback_('Item ' + item.sku + ' sudah lengkap (' + item.targetQty + ' pcs)! Jangan scan berlebih.', 'warn');
+        focusScanInput_();
+        return { cocok: true };
+      }
+
+      return { cocok: false };
+    }
+
+    function tambahItemManualScan_(idx) {
+      if (!scanPackingPaketAktif || !scanPackingPaketAktif.items[idx]) return;
+      const item = scanPackingPaketAktif.items[idx];
+      if (item.scannedQty >= item.targetQty) {
+        showToast('Kuantitas ' + item.sku + ' sudah mencapai batas target.', 'warn');
+        return;
+      }
+      item.scannedQty++;
+      const totalTarget = scanPackingPaketAktif.items.reduce((acc, it) => acc + it.targetQty, 0);
+      const totalScan = scanPackingPaketAktif.items.reduce((acc, it) => acc + it.scannedQty, 0);
+      const semuaLengkap = scanPackingPaketAktif.items.every((it) => it.scannedQty >= it.targetQty);
+
+      if (semuaLengkap) {
+        playScanSound_('complete');
+        setScanFeedback_('SEMUA ITEM LENGKAP (' + totalScan + '/' + totalTarget + ' pcs)! Paket siap dipacking.', 'success');
+      } else {
+        playScanSound_('success');
+        setScanFeedback_('Ditambahkan manual: ' + item.sku + ' (' + item.scannedQty + '/' + item.targetQty + ' pcs).', 'info');
+      }
+      renderScanWorkspaceActive_();
+      focusScanInput_();
+    }
+
+    function kurangItemManualScan_(idx) {
+      if (!scanPackingPaketAktif || !scanPackingPaketAktif.items[idx]) return;
+      const item = scanPackingPaketAktif.items[idx];
+      if (item.scannedQty <= 0) return;
+      item.scannedQty--;
+      setScanFeedback_('Dikurangi: ' + item.sku + ' (' + item.scannedQty + '/' + item.targetQty + ' pcs).', 'warn');
+      renderScanWorkspaceActive_();
+      focusScanInput_();
+    }
+
+    function batalPaketScan_() {
+      if (scanPackingPaketAktif) {
+        const totalScan = scanPackingPaketAktif.items.reduce((acc, it) => acc + it.scannedQty, 0);
+        if (totalScan > 0) {
+          const ya = confirm('Paket sedang dalam proses scan (' + totalScan + ' item terverifikasi). Yakin ingin membatalkan paket ini?');
+          if (!ya) return;
+        }
+      }
+      scanPackingPaketAktif = null;
+      renderScanWorkspaceEmpty_();
+      setScanFeedback_('Paket dibatalkan. Silakan scan resi atau no. pesanan baru.', 'info');
+      focusScanInput_();
+    }
+
+    function renderScanWorkspaceEmpty_() {
+      const emptyEl = document.getElementById('scan-workspace-empty');
+      const activeEl = document.getElementById('scan-workspace-active');
+      const footerActions = document.getElementById('scan-footer-actions');
+      const badgePcs = document.getElementById('scan-badge-pcs');
+      const progressFill = document.getElementById('scan-progress-bar-fill');
+      const progressText = document.getElementById('scan-progress-text');
+
+      if (emptyEl) emptyEl.hidden = false;
+      if (activeEl) activeEl.hidden = true;
+      if (footerActions) footerActions.hidden = true;
+      if (badgePcs) badgePcs.innerText = '0 / 0 pcs';
+      if (progressFill) progressFill.style.width = '0%';
+      if (progressText) progressText.innerText = 'Menunggu scan resi/pesanan...';
+    }
+
+    function renderScanWorkspaceActive_() {
+      const emptyEl = document.getElementById('scan-workspace-empty');
+      const activeEl = document.getElementById('scan-workspace-active');
+      const footerActions = document.getElementById('scan-footer-actions');
+      const badgePcs = document.getElementById('scan-badge-pcs');
+      const progressFill = document.getElementById('scan-progress-bar-fill');
+      const progressText = document.getElementById('scan-progress-text');
+
+      if (!scanPackingPaketAktif) {
+        renderScanWorkspaceEmpty_();
+        return;
+      }
+
+      if (emptyEl) emptyEl.hidden = true;
+      if (activeEl) activeEl.hidden = false;
+      if (footerActions) footerActions.hidden = false;
+
+      const p = scanPackingPaketAktif;
+      setText('scan-info-sn', p.orderSn || '-');
+      setText('scan-info-resi', p.resi || '-');
+      setText('scan-info-buyer', p.buyer || '-');
+      setText('scan-info-city', p.city || '-');
+      setText('scan-info-courier', p.courier || '-');
+      setText('scan-info-toko', p.toko || '-');
+      setText('scan-info-status', p.internalStatus || '-');
+
+      const noteRow = document.getElementById('scan-info-note-row');
+      const noteEl = document.getElementById('scan-info-note');
+      if (noteRow && noteEl) {
+        if (p.note && p.note.trim()) {
+          noteRow.hidden = false;
+          noteEl.innerText = p.note;
+        } else {
+          noteRow.hidden = true;
+        }
+      }
+
+      const totalTarget = p.items.reduce((acc, it) => acc + it.targetQty, 0);
+      const totalScan = p.items.reduce((acc, it) => acc + it.scannedQty, 0);
+      const persen = totalTarget > 0 ? Math.min(100, Math.round((totalScan / totalTarget) * 100)) : 0;
+      const semuaLengkap = p.items.every((it) => it.scannedQty >= it.targetQty);
+
+      if (badgePcs) badgePcs.innerText = totalScan + ' / ' + totalTarget + ' pcs';
+      if (progressFill) {
+        progressFill.style.width = persen + '%';
+        progressFill.style.background = semuaLengkap ? 'var(--ok, #16a34a)' : 'var(--accent, #f97316)';
+      }
+      if (progressText) {
+        progressText.innerText = persen + '% Terverifikasi (' + totalScan + ' dari ' + totalTarget + ' pcs)';
+      }
+
+      const tbody = document.getElementById('scan-checklist-tbody');
+      if (tbody) {
+        tbody.innerHTML = p.items.map((it, idx) => {
+          const isItemDone = it.scannedQty >= it.targetQty;
+          const trClass = isItemDone ? 'scan-row-complete' : (it.scannedQty > 0 ? 'scan-row-partial' : '');
+          const statusBadge = isItemDone
+            ? '<span class="scan-pill-done">&#10003; LENGKAP</span>'
+            : (it.scannedQty > 0
+                ? '<span class="scan-pill-partial">' + (it.targetQty - it.scannedQty) + ' KURANG</span>'
+                : '<span class="scan-pill-pending">BELUM SCAN</span>');
+
+          return '<tr class="' + trClass + '">' +
+            '<td><span class="scan-row-sku">' + esc(it.sku) + '</span></td>' +
+            '<td><span class="scan-row-variation">' + esc(it.variation) + '</span><br><small style="color:var(--ink-muted)">' + esc(it.name) + '</small></td>' +
+            '<td style="text-align:center;font-weight:700">' + esc(it.targetQty) + '</td>' +
+            '<td style="text-align:center;font-weight:700;font-size:1.15rem;color:' + (isItemDone ? 'var(--ok)' : 'var(--ink)') + '">' + esc(it.scannedQty) + '</td>' +
+            '<td style="text-align:center">' + statusBadge + '</td>' +
+            '<td style="text-align:center">' +
+              '<div class="scan-manual-counter">' +
+                '<button type="button" class="scan-counter-btn" onclick="kurangItemManualScan_(' + idx + ')" ' + (it.scannedQty <= 0 ? 'disabled' : '') + ' aria-label="Kurangi kuantitas item ' + esc(it.sku) + '">-</button>' +
+                '<button type="button" class="scan-counter-btn" onclick="tambahItemManualScan_(' + idx + ')" ' + (isItemDone ? 'disabled' : '') + ' aria-label="Tambah kuantitas item ' + esc(it.sku) + '">+</button>' +
+              '</div>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      renderScanFooterActions_(semuaLengkap);
+    }
+
+    function renderScanFooterActions_(isComplete) {
+      const btnSelesai = document.getElementById('btn-scan-selesai');
+      if (btnSelesai) {
+        if (isComplete) {
+          btnSelesai.disabled = false;
+          btnSelesai.className = 'btn-complete';
+          btnSelesai.innerText = 'Selesaikan & Tandai Siap Pickup';
+        } else {
+          btnSelesai.disabled = false;
+          btnSelesai.className = 'btn-secondary';
+          btnSelesai.innerText = 'Tandai Siap Pickup (Belum Lengkap)';
+        }
+      }
+    }
+
+    function cetakSlipPackingScan_() {
+      if (!scanPackingPaketAktif) return;
+      exportSlipPdf(scanPackingPaketAktif.orderSn);
+    }
+
+    function cetakLabelThermalScan_() {
+      if (!scanPackingPaketAktif) return;
+      if (!dataSiapUntukPdf_()) return;
+      const orderSn = scanPackingPaketAktif.orderSn;
+      const kelompokList = groupOrdersBySn(
+        semuaBarisPesanan_().filter((order) => order.orderSn === orderSn)
+      );
+      if (kelompokList.length === 0) {
+        showToast('Pesanan ' + orderSn + ' tidak ada di data yang sedang tampil.', 'error');
+        return;
+      }
+      showToast('Menyiapkan label thermal...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildLabelPdf(JsPDF, kelompokList);
+        const nama = pdfKit.simpan(doc, 'LabelPaket_' + orderSn);
+        showToast('Label thermal siap: ' + nama);
+      });
+    }
+
+    function selesaikanPackingScan_() {
+      if (!scanPackingPaketAktif) return;
+      const p = scanPackingPaketAktif;
+      const semuaLengkap = p.items.every((it) => it.scannedQty >= it.targetQty);
+
+      if (!semuaLengkap) {
+        const lanjut = confirm('Ada item yang belum terverifikasi lengkap. Tetap tandai pesanan ' + p.orderSn + ' sebagai [2] Menunggu Pickup?');
+        if (!lanjut) return;
+      }
+
+      const orderSn = p.orderSn;
+      changeInternalStatus(orderSn, '[2] Menunggu Pickup');
+      playScanSound_('complete');
+      showToast('Pesanan ' + orderSn + ' berhasil diselesaikan di Meja Packing.');
+      scanPackingPaketAktif = null;
+      renderScanWorkspaceEmpty_();
+      setScanFeedback_('Pesanan ' + orderSn + ' selesai. Siap scan resi berikutnya.', 'success');
+      focusScanInput_();
     }
     /* ---- packing slip ----
        One function builds the sheet of paper, so single-print,

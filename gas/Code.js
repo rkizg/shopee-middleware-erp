@@ -1394,7 +1394,7 @@ function masukDenganKode(kode, sandi) {
   SheetManager.catatMasuk(pengguna.kode);
   SheetManager.logActivity('MASUK', 0, 'SUKSES', 'Masuk memakai kode dan sandi.', '', pengguna.kode);
 
-  return { berhasil: true, token: sesi.token, pengguna: sesi.pengguna };
+  return { berhasil: true, success: true, token: sesi.token, pengguna: sesi.pengguna };
 }
 
 /**

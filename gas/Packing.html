@@ -1022,7 +1022,12 @@
 
         <div class="login-form-group" style="margin-top: 12px;">
           <label for="login-pin" class="login-label">PIN / Sandi</label>
-          <input type="password" id="login-pin" class="login-input" placeholder="PIN" autocomplete="current-password" required>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="login-pin" class="login-input" placeholder="Masukkan PIN / Sandi" autocomplete="current-password" required style="width: 100%; padding-right: 44px; box-sizing: border-box;">
+            <button type="button" id="btn-toggle-pin" onclick="toggleLihatSandi_()" style="position: absolute; right: 8px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 8px; font-size: 16px; display: flex; align-items: center; justify-content: center;" title="Lihat/Sembunyikan Sandi">
+              <i class="fa-solid fa-eye" id="icon-toggle-pin" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
 
         <button type="submit" class="btn-primary" id="btn-login-submit" style="width: 100%; height: 50px; margin-top: 20px;">
@@ -1230,6 +1235,25 @@
       perbaruiTampilanSesi();
     }
 
+    function toggleLihatSandi_() {
+      const pinInp = document.getElementById('login-pin');
+      const icon = document.getElementById('icon-toggle-pin');
+      if (!pinInp) return;
+      if (pinInp.type === 'password') {
+        pinInp.type = 'text';
+        if (icon) {
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        }
+      } else {
+        pinInp.type = 'password';
+        if (icon) {
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      }
+    }
+
     function handleLoginSubmit(e) {
       e.preventDefault();
       initAudio();
@@ -1261,9 +1285,10 @@
             if (btn) btn.disabled = false;
             if (btnLabel) btnLabel.innerText = 'Masuk ke Meja Packing';
 
-            if (!res || !res.success) {
+            const isSukses = Boolean(res && (res.berhasil || res.success));
+            if (!res || !isSukses) {
               if (errBox) {
-                errBox.innerText = (res && res.message) || 'Kode atau PIN salah.';
+                errBox.innerText = (res && (res.pesan || res.message)) || 'Kode atau PIN salah.';
                 errBox.style.display = 'block';
               }
               playBeep('error');
@@ -1272,9 +1297,17 @@
             }
 
             const pengguna = res.pengguna;
+            if (!pengguna) {
+              if (errBox) {
+                errBox.innerText = 'Data akun pengguna tidak ditemukan.';
+                errBox.style.display = 'block';
+              }
+              return;
+            }
+
             if (pengguna.peran !== 'PACKING' && pengguna.peran !== 'ADMIN' && pengguna.peran !== 'SUPERADMIN') {
               if (errBox) {
-                errBox.innerText = 'Akun Anda tidak memiliki hak akses meja packing.';
+                errBox.innerText = 'Akun ' + pengguna.kode + ' (' + (pengguna.peran || 'UMUM') + ') tidak memiliki hak akses meja packing. Hubungi Superadmin.';
                 errBox.style.display = 'block';
               }
               return;
@@ -1282,13 +1315,13 @@
 
             simpanSesi(res.token, pengguna);
             playBeep('success');
-            showToast('Selamat datang, ' + pengguna.nama + '!');
+            showToast('Selamat datang, ' + (pengguna.nama || pengguna.kode) + '!');
           })
           .withFailureHandler((err) => {
             if (btn) btn.disabled = false;
             if (btnLabel) btnLabel.innerText = 'Masuk ke Meja Packing';
             if (errBox) {
-              errBox.innerText = err.message || 'Gagal terhubung ke server.';
+              errBox.innerText = (err && err.message) ? err.message : 'Gagal terhubung ke server.';
               errBox.style.display = 'block';
             }
             playBeep('error');

@@ -64,6 +64,8 @@ console.log('=== F: RPC Server untuk Meja Packing Mobile ===');
 cek('RPC lookupPackingOrder terdefinisi di Code.js', codeJs.includes('function lookupPackingOrder('));
 cek('RPC selesaikanPackingMobile terdefinisi di Code.js', codeJs.includes('function selesaikanPackingMobile('));
 cek('RPC getWebAppPackingUrl terdefinisi di Code.js', codeJs.includes('function getWebAppPackingUrl('));
+cek('masukDenganKode di Code.js mengembalikan berhasil dan success', codeJs.includes('berhasil: true, success: true'));
+cek('penanganan hasil login di Packing.html mendukung res.berhasil dan res.success', packingHtml.includes('res.berhasil') && packingHtml.includes('res.success'));
 cek('SheetManager memiliki fungsi findOrderForPacking', smJs.includes('findOrderForPacking: function('));
 
 console.log('=== G: Integrasi Dashboard (Tombol dan Modal QR Code) ===');

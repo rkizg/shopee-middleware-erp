@@ -1483,7 +1483,7 @@
           <div class="search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <label class="sr-only" for="order-search">Cari pesanan</label>
-            <input type="text" id="order-search" class="field" oninput="filterOrdersTable()"
+            <input type="text" id="order-search" class="field" oninput="filterOrdersTableDebounced()"
                    placeholder="Cari No. Pesanan, pembeli, produk, SKU, resi, kurir, atau kota">
           </div>
 
@@ -4047,10 +4047,48 @@
       loadDashboard(false);
     }
 
+    /* ---- cache peramban & debounce ---- */
+    const SNAPSHOT_KEY_ = 'erp_begood_dashboard_snapshot';
+
+    function simpanSnapshotDashboard_(data) {
+      if (!data || typeof sessionStorage === 'undefined') return;
+      try {
+        sessionStorage.setItem(SNAPSHOT_KEY_, JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    function bacaSnapshotDashboard_() {
+      if (typeof sessionStorage === 'undefined') return null;
+      try {
+        const raw = sessionStorage.getItem(SNAPSHOT_KEY_);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    let orderSearchDebounceTimer_ = null;
+    function filterOrdersTableDebounced() {
+      if (orderSearchDebounceTimer_) clearTimeout(orderSearchDebounceTimer_);
+      orderSearchDebounceTimer_ = setTimeout(function() {
+        filterOrdersTable();
+      }, 200);
+    }
+
     function loadDashboard(isManual) {
       const icon = document.getElementById('refresh-icon');
       if (icon) icon.classList.add('fa-spin');
       if (isManual) showToast('Mengambil data terbaru dari Google Sheets…', 'loading');
+
+      // Stale-While-Revalidate: render seketika bila ada snapshot tersimpan
+      if (!globalData && !isManual) {
+        const snapshot = bacaSnapshotDashboard_();
+        if (snapshot && (!scopedToko || String(snapshot.cakupan || '') === scopedToko)) {
+          globalData = snapshot;
+          statusOptionsList = snapshot.statusOptions || [];
+          renderDashboard(snapshot);
+        }
+      }
 
       google.script.run
         .withSuccessHandler((data) => {
@@ -4062,6 +4100,7 @@
           if (data && String(data.cakupan || '') !== scopedToko) return;
 
           globalData = data;
+          simpanSnapshotDashboard_(data);
           // Data sheet baru dibaca, sehingga cache per status ikut disegarkan
           cacheBarisStatus = {};
           rpcStatusGagal = false;
@@ -6865,24 +6904,37 @@
     }
 
     function changeInternalStatus(orderSn, newStatus) {
-      showToast('Menyimpan status baru untuk ' + orderSn + '…', 'loading');
+      if (!orderSn || !newStatus) return;
+
+      /* Pembaruan optimistik: simpan status lama untuk antisipasi rollback */
+      let statusLama = null;
+      semuaBarisPesanan_().forEach((order) => {
+        if (order.orderSn === orderSn) {
+          if (!statusLama) statusLama = order.internalStatus;
+          order.internalStatus = newStatus;
+        }
+      });
+
+      /* Terapkan ke tabel seketika (0 ms) */
+      cacheBarisStatus = {};
+      filterOrdersTable();
+      showToast('Status ' + orderSn + ' diperbarui ke "' + newStatus + '". Menyinkronkan…', 'loading');
+
       google.script.run
         .withSuccessHandler(() => {
           showToast('Pesanan ' + orderSn + ' kini berstatus "' + newStatus + '".');
-          // Seluruh salinan baris pesanan ini diperbarui, termasuk yang berasal
-          // dari cache per status, agar tampilan tidak kembali ke nilai lama.
-          semuaBarisPesanan_().forEach((order) => {
-            if (order.orderSn === orderSn) order.internalStatus = newStatus;
-          });
-          // Status di sheet berubah, sehingga cache per status tidak lagi valid.
-          // Bila filter status sedang aktif, filterOrdersTable() akan mengambil
-          // ulang daftarnya supaya baris yang berpindah status ikut hilang.
-          cacheBarisStatus = {};
-          filterOrdersTable();
         })
         .withFailureHandler((err) => {
+          /* Rollback bila server gagal */
+          if (statusLama) {
+            semuaBarisPesanan_().forEach((order) => {
+              if (order.orderSn === orderSn) order.internalStatus = statusLama;
+            });
+            cacheBarisStatus = {};
+            filterOrdersTable();
+          }
           if (tanganiGalatRpc_(err)) return;
-          showToast('Status gagal diubah: ' + ((err && err.message) ? err.message : err), 'error');
+          showToast('Status gagal diubah di server: ' + ((err && err.message) ? err.message : err) + '. Status dikembalikan.', 'error');
           loadDashboard(false);
         })
         .updateOrderStatusInternal(sesiToken, orderSn, newStatus);
@@ -7181,7 +7233,32 @@
       }
     }
 
+    let scanBarcodeIndex_ = null;
+
+    function bangunIndeksBarcodeScan_() {
+      const index = new Map();
+      const semua = semuaBarisPesanan_();
+      for (let i = 0; i < semua.length; i++) {
+        const o = semua[i];
+        const tambah = (val) => {
+          if (!val) return;
+          const k = String(val).trim().toLowerCase();
+          if (!k || k === '-') return;
+          let arr = index.get(k);
+          if (!arr) {
+            arr = [];
+            index.set(k, arr);
+          }
+          arr.push(o);
+        };
+        tambah(o.orderSn);
+        tambah(o.resi);
+      }
+      scanBarcodeIndex_ = index;
+    }
+
     function bukaModalScanPacking() {
+      bangunIndeksBarcodeScan_();
       openModal('modal-scan-packing');
       initScanAudio_();
       if (!scanPackingPaketAktif) {
@@ -7226,12 +7303,18 @@
         return;
       }
 
-      const paketLain = semuaBarisPesanan_().find((o) => {
-        const r = (o.resi || '').toLowerCase().trim();
-        const sn = (o.orderSn || '').toLowerCase().trim();
-        const c = code.toLowerCase();
-        return (r && r === c) || (sn && sn === c);
-      });
+      const c = code.toLowerCase();
+      let paketLain = null;
+      if (scanBarcodeIndex_ && scanBarcodeIndex_.has(c)) {
+        const list = scanBarcodeIndex_.get(c);
+        paketLain = list && list[0];
+      } else {
+        paketLain = semuaBarisPesanan_().find((o) => {
+          const r = (o.resi || '').toLowerCase().trim();
+          const sn = (o.orderSn || '').toLowerCase().trim();
+          return (r && r === c) || (sn && sn === c);
+        });
+      }
 
       if (paketLain) {
         playScanSound_('error');
@@ -7247,12 +7330,17 @@
 
     function cariDanBukaPaketScan_(code) {
       const c = code.toLowerCase().trim();
-      const semua = semuaBarisPesanan_();
-      const rows = semua.filter((o) => {
-        const r = String(o.resi || '').toLowerCase().trim();
-        const sn = String(o.orderSn || '').toLowerCase().trim();
-        return (r && r === c) || (sn && sn === c);
-      });
+      let rows = null;
+      if (scanBarcodeIndex_ && scanBarcodeIndex_.has(c)) {
+        rows = scanBarcodeIndex_.get(c);
+      } else {
+        const semua = semuaBarisPesanan_();
+        rows = semua.filter((o) => {
+          const r = String(o.resi || '').toLowerCase().trim();
+          const sn = String(o.orderSn || '').toLowerCase().trim();
+          return (r && r === c) || (sn && sn === c);
+        });
+      }
 
       if (!rows || rows.length === 0) {
         playScanSound_('error');

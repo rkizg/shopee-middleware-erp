@@ -2083,6 +2083,7 @@ var SheetManager = (function() {
       var harianOmzet = {};
       var statusCounts = {};
       var tokoCounts = {};
+      var rowStatusCounts = {};
 
       if (orderLastRow >= 2) {
         var numRows = orderLastRow - 1;
@@ -2109,6 +2110,10 @@ var SheetManager = (function() {
 
           // Baris di luar cakupan tidak ikut dihitung pada statistik
           if (kode && tokoBaris !== kode) continue;
+
+          var stRow = String(row[3] || '').trim();
+          if (!stRow) stRow = '(kolom D kosong)';
+          rowStatusCounts[stRow] = (rowStatusCounts[stRow] || 0) + 1;
 
           var dateStr = String(row[1] || '');
           var shopeeStatus = String(row[2] || '');
@@ -2358,6 +2363,14 @@ var SheetManager = (function() {
         return daftar.slice(0, batas);
       };
 
+      var statusInventoryList = [];
+      for (var stKey in rowStatusCounts) {
+        if (Object.prototype.hasOwnProperty.call(rowStatusCounts, stKey)) {
+          statusInventoryList.push({ status: stKey, jumlah: rowStatusCounts[stKey] });
+        }
+      }
+      statusInventoryList.sort(function(a, b) { return b.jumlah - a.jumlah; });
+
       return {
         stats: stats,
         orders: ordersList,
@@ -2366,6 +2379,7 @@ var SheetManager = (function() {
         seriHarian: seriHarian,
         statusStats: jadikanSebaran(statusCounts, 6),
         tokoStats: jadikanSebaran(tokoCounts, 6),
+        statusInventory: statusInventoryList,
         token: tokenStatus,
         tokoList: tokoList,
         cakupan: kode,
@@ -2503,6 +2517,71 @@ var SheetManager = (function() {
 
       hasil.sort(function(a, b) { return b.jumlah - a.jumlah; });
       return hasil;
+    },
+
+    /**
+     * Memindahkan pesanan lama berstatus [4] Selesai atau Dibatalkan ke sheet Pesanan Arsip.
+     * Menjaga sheet utama Pesanan Masuk tetap ramping, cepat dibaca, dan bebas lag.
+     * @param {number} [hariBatas=30] usia pesanan dalam hari untuk diarsipkan
+     * @return {object} { berhasil: boolean, dipindahkan: number, sisa: number }
+     */
+    arsipPesananLama: function(hariBatas) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var orderSheet = ss.getSheetByName(SHEETS.ORDERS);
+      if (!orderSheet) return { berhasil: false, dipindahkan: 0, sisa: 0 };
+
+      var lastRow = orderSheet.getLastRow();
+      if (lastRow < 2) return { berhasil: true, dipindahkan: 0, sisa: 0 };
+
+      var arsipSheet = ss.getSheetByName('Pesanan Arsip');
+      if (!arsipSheet) {
+        arsipSheet = ss.insertSheet('Pesanan Arsip');
+        arsipSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setValues([PESANAN_HEADERS]);
+        arsipSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setFontWeight('bold');
+        arsipSheet.setFrozenRows(1);
+      }
+
+      var batasHari = Number(hariBatas) || 30;
+      var batasWaktuMs = Date.now() - (batasHari * 24 * 60 * 60 * 1000);
+      var batasTanggalStr = Utilities.formatDate(new Date(batasWaktuMs), 'Asia/Jakarta', 'yyyy-MM-dd');
+
+      var values = orderSheet.getRange(2, 1, lastRow - 1, PESANAN_HEADERS.length).getValues();
+      var tetap = [];
+      var pindah = [];
+
+      for (var i = 0; i < values.length; i++) {
+        var row = values[i];
+        var sn = String(row[0] || '').trim();
+        if (!sn) continue;
+
+        var tgl = String(row[1] || '').substring(0, 10);
+        var st = String(row[3] || '');
+        var bisaDiarsip = (st.indexOf('Selesai') !== -1 || st.indexOf('Batal') !== -1) && (tgl && tgl < batasTanggalStr);
+
+        if (bisaDiarsip) {
+          pindah.push(row);
+        } else {
+          tetap.push(row);
+        }
+      }
+
+      if (pindah.length === 0) {
+        return { berhasil: true, dipindahkan: 0, sisa: tetap.length };
+      }
+
+      var arsipLastRow = arsipSheet.getLastRow();
+      arsipSheet.getRange(arsipLastRow + 1, 1, pindah.length, PESANAN_HEADERS.length).setValues(pindah);
+
+      orderSheet.clearContents();
+      orderSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setValues([PESANAN_HEADERS]);
+      orderSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setFontWeight('bold');
+      if (tetap.length > 0) {
+        orderSheet.getRange(2, 1, tetap.length, PESANAN_HEADERS.length).setValues(tetap);
+      }
+
+      this.logActivity('ARSIP_PESANAN', pindah.length, 'SUKSES', pindah.length + ' baris diarsipkan (> ' + batasHari + ' hari).', '', 'SISTEM');
+
+      return { berhasil: true, dipindahkan: pindah.length, sisa: tetap.length };
     },
 
     /**

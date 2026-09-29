@@ -1003,6 +1003,33 @@ function openDashboardModal() {
 }
 
 /**
+ * Menyimpan data string besar ke CacheService dengan pemecahan partisi (chunking)
+ * agar tidak gagal jika ukuran string melampaui batas 90 KB Apps Script.
+ */
+function simpanCacheBesar_(cache, key, str, ttl) {
+  if (!str) return;
+  if (str.length < 90000) {
+    cache.put(key, str, ttl);
+    try { cache.remove(key + '_p2'); } catch (e) {}
+    return;
+  }
+  var p1 = str.substring(0, 85000);
+  var p2 = str.substring(85000);
+  cache.put(key, p1, ttl);
+  cache.put(key + '_p2', p2, ttl);
+}
+
+/**
+ * Membaca data string dari CacheService, menggabungkan kembali jika terpecah 2 bagian.
+ */
+function bacaCacheBesar_(cache, key) {
+  var p1 = cache.get(key);
+  if (!p1) return null;
+  var p2 = cache.get(key + '_p2');
+  return p2 ? p1 + p2 : p1;
+}
+
+/**
  * RPC: Mengambil seluruh ringkasan metrik, pesanan, token, dan log untuk dashboard
  * Terlindungi dengan CacheService berkecepatan milidetik
  */
@@ -1014,7 +1041,7 @@ function getDashboardData(token, forceRefresh, kodeToko) {
   var cacheKey = kunciCacheDashboard_(cakupan);
 
   if (!forceRefresh) {
-    var cached = cache.get(cacheKey);
+    var cached = bacaCacheBesar_(cache, cacheKey);
     if (cached) {
       try {
         var dariCache = JSON.parse(cached);
@@ -1027,8 +1054,10 @@ function getDashboardData(token, forceRefresh, kodeToko) {
   if (data) {
     try {
       var jsonStr = JSON.stringify(data);
-      if (jsonStr.length < 95000) {
-        cache.put(cacheKey, jsonStr, 180); // Cache 3 menit
+      simpanCacheBesar_(cache, cacheKey, jsonStr, 180); // Cache 3 menit
+
+      if (data.statusInventory) {
+        cache.put(kunciCacheStatusInventory_(cakupan), JSON.stringify(data.statusInventory), 180);
       }
     } catch (e) {}
   }
@@ -1051,6 +1080,15 @@ function kunciCacheDashboard_(cakupan) {
   var cache = CacheService.getScriptCache();
   var generasi = cache.get('ERP_DASHBOARD_GENERASI') || '1';
   return 'ERP_DASHBOARD_' + generasi + '_' + (cakupan || 'SEMUA');
+}
+
+/**
+ * Kunci cache untuk inventaris status internal.
+ */
+function kunciCacheStatusInventory_(cakupan) {
+  var cache = CacheService.getScriptCache();
+  var generasi = cache.get('ERP_DASHBOARD_GENERASI') || '1';
+  return 'ERP_INV_' + generasi + '_' + (cakupan || 'SEMUA');
 }
 
 /**
@@ -2435,7 +2473,32 @@ function getOrderRowsByStatus(token, statusKeyword, limit, kodeToko) {
 function getStatusInventory(token, kodeToko) {
   wajibSesi_(token, 'PACKING');
 
-  return SheetManager.getStatusInventory(kodeToko);
+  var cakupan = String(kodeToko || '').trim().toUpperCase();
+  var cache = CacheService.getScriptCache();
+  var key = kunciCacheStatusInventory_(cakupan);
+  var cached = cache.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  var hasil = SheetManager.getStatusInventory(kodeToko);
+  if (hasil) {
+    try {
+      cache.put(key, JSON.stringify(hasil), 180);
+    } catch (e) {}
+  }
+  return hasil;
+}
+
+/**
+ * RPC: Memindahkan pesanan lama berstatus Selesai atau Dibatalkan ke sheet Pesanan Arsip.
+ * Menjaga performa spreadsheet tetap cepat dan responsif. Hanya untuk SUPERADMIN.
+ */
+function arsipkanPesananOtomatis(token, hariBatas) {
+  wajibSesi_(token, 'SUPERADMIN');
+  return SheetManager.arsipPesananLama(hariBatas);
 }
 
 /* ============================================================================

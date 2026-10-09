@@ -89,6 +89,20 @@ const cekEmDash = (nama, konten) => {
 cekEmDash('gas/Packing.html', packingHtml);
 cekEmDash('packing-preview.html', previewHtml);
 
+console.log('=== I: Mitigasi Bom Waktu & Efisiensi Lapangan (Pagi/Siang, A6 Batch, Label Toko, Variasi 2-Tier) ===');
+cek('SheetManager bersihkanVariasi_ menangani ukuran di depan koma (adalahUkuranVariasi_)', smJs.includes('function adalahUkuranVariasi_('));
+cek('SheetManager upsertOrders menyelaraskan status pembatalan Shopee (tentukanStatusInternalBaru_)', smJs.includes('function tentukanStatusInternalBaru_('));
+cek('SheetManager getDashboardSummary menyaring pesanan batal/belum bayar dari omzet', smJs.includes('isBatalAtauBelumBayar') && smJs.includes("shopeeUpper === 'CANCELLED'"));
+cek('SheetManager arsipPesananLama dilindungi LockService dan penimpaan non-destruktif', smJs.includes('ambilKunciSkrip_(15000)') && smJs.includes('rangeSisa.clearContent()'));
+cek('Code.js wajibSesi_ tetap menegakkan peran token meski WAJIB_LOGIN=TIDAK', codeJs.includes('identitas dan batas peran akun tersebut tetap ditegakkan'));
+cek('Code.js STATUS_ANTRIAN_PRODUKSI mencakup Siap Packing dan Menunggu Pickup', codeJs.includes("STATUS_ANTRIAN_PRODUKSI = 'Siap Packing|Menunggu Pickup'"));
+cek('Code.js lookupPackingOrder menyertakan kodeLabel toko', codeJs.includes('kodeLabel: kodeLabel'));
+cek('Index.html memiliki tombol Download Semua PDF A6 per sesi (PAGI & SIANG)', indexHtml.includes('id="btn-pdf-a6-semua-pagi"') && indexHtml.includes('id="btn-pdf-a6-semua-siang"'));
+cek('Index.html memiliki fungsi unduhSemuaSpkPenjahitPdf dan gabungItemSpk_', indexHtml.includes('function unduhSemuaSpkPenjahitPdf(') && indexHtml.includes('function gabungItemSpk_('));
+cek('Packing.html menyelaraskan durasi sesi 6 jam dengan server dan menampilkan lencana LABEL toko', packingHtml.includes('SIX_HOURS_MS = 6 * 60 * 60 * 1000') && packingHtml.includes('resolveKodeLabelPacking_'));
+cek('Packing.html memproteksi verifikasiItemProduk terhadap nilai strip (-)', packingHtml.includes("if (!c || c === '-') return { cocok: false };"));
+
 console.log('');
 console.log('HASIL PENGUJIAN PACKING MOBILE: ' + (gagal === 0 ? 'SEMUA LULUS' : gagal + ' GAGAL'));
 process.exit(gagal === 0 ? 0 : 1);
+

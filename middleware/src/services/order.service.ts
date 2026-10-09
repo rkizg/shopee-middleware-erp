@@ -1,4 +1,5 @@
 import { createShopeeClient } from '../lib/shopee.js';
+import { TokenService } from './token.service.js';
 import type { ERPOrder, ERPOrderItem } from '../lib/types.js';
 import type { AccessToken } from '@congminh1254/shopee-sdk/schemas';
 
@@ -55,16 +56,19 @@ function formatWIB(input?: Date | number): string {
 }
 
 /**
- * Map Shopee API status to Begood Internal ERP status
+ * Map Shopee API status to Begood Internal ERP status.
+ * Catatan alur gudang Begood:
+ * Baik READY_TO_SHIP (belum diatur pengiriman) maupun PROCESSED (sudah cetak resi di Shopee)
+ * masuk sebagai '[1] Siap Packing' karena secara fisik barang masih dalam tahap jahit/packing.
+ * Status '[2] Menunggu Pickup' baru diberikan saat pegawai selesai men-scan di Meja Packing.
  */
 function mapInternalStatus(shopeeStatus?: string): string {
   switch (shopeeStatus?.toUpperCase()) {
     case 'UNPAID':
       return '[0] Menunggu Pembayaran';
     case 'READY_TO_SHIP':
-      return '[1] Siap Packing';
     case 'PROCESSED':
-      return '[2] Menunggu Pickup';
+      return '[1] Siap Packing';
     case 'SHIPPED':
       return '[3] Sedang Dikirim';
     case 'COMPLETED':
@@ -72,9 +76,10 @@ function mapInternalStatus(shopeeStatus?: string): string {
     case 'IN_CANCEL':
       return '[5] Pengajuan Batal';
     case 'CANCELLED':
+    case 'TO_RETURN':
       return '[6] Dibatalkan';
     default:
-      return shopeeStatus || '[1] Pesanan Masuk';
+      return shopeeStatus || '[1] Siap Packing';
   }
 }
 
@@ -108,23 +113,39 @@ export class OrderService {
       throw new Error('Access token tidak ditemukan. Pastikan token sudah tersimpan di sheet DB_Token.');
     }
 
-    // Pastikan expired_at selalu dalam milidetik dan berada di masa depan
-    // agar Shopee SDK tidak memicu refreshToken prematur yang menyebabkan "No access token found"
+    let activeAccessToken = params.access_token;
+    let activeRefreshToken = params.refresh_token || '';
     let tokenExpiredAt = Date.now() + 14400 * 1000;
+    let proactivelyRefreshedToken: AccessToken | null = null;
+
     if (params.expired_at) {
       const exp = Number(params.expired_at);
       if (!isNaN(exp) && exp > 0) {
         const expMs = exp < 10000000000 ? exp * 1000 : exp;
         if (expMs > Date.now() + 60 * 1000) {
           tokenExpiredAt = expMs;
+        } else if (activeRefreshToken) {
+          // Token sudah kedaluwarsa atau akan habis dalam <60 detik:
+          // Lakukan auto-refresh terlebih dahulu agar panggilan API tidak gagal
+          try {
+            const refreshed = await TokenService.refreshToken(activeRefreshToken, params.shop_id);
+            if (refreshed && refreshed.access_token) {
+              activeAccessToken = refreshed.access_token;
+              activeRefreshToken = refreshed.refresh_token || activeRefreshToken;
+              tokenExpiredAt = refreshed.expired_at || (Date.now() + (refreshed.expire_in || 14400) * 1000);
+              proactivelyRefreshedToken = refreshed;
+            }
+          } catch (refreshErr: any) {
+            console.warn('Auto-refresh token sebelum fetch orders gagal, melanjutkan dengan token saat ini:', refreshErr?.message || refreshErr);
+          }
         }
       }
     }
 
-    // Initialize SDK with passed token
+    // Initialize SDK with active token
     const initialToken: Partial<AccessToken> = {
-      access_token: params.access_token,
-      refresh_token: params.refresh_token || '',
+      access_token: activeAccessToken,
+      refresh_token: activeRefreshToken,
       expired_at: tokenExpiredAt,
       shop_id: params.shop_id,
     };
@@ -133,6 +154,10 @@ export class OrderService {
       shopId: params.shop_id,
       initialToken,
     });
+
+    if (proactivelyRefreshedToken) {
+      await storage.store(proactivelyRefreshedToken);
+    }
 
     const orderSnSet = new Set<string>();
     const diagnosticsErrors: string[] = [];

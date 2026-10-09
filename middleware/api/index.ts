@@ -10,9 +10,6 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   // Jika diakses melalui browser (Accept: text/html)
   const acceptHeader = req.headers.accept || '';
   if (acceptHeader.includes('text/html')) {
-    const secret = process.env.BEGOOD_API_SECRET || 'begood_secret_pass_2026';
-    const authUrlLink = `/api/auth/url?secret=${encodeURIComponent(secret)}`;
-
     const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -27,6 +24,13 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
   </style>
+  <script>
+    function bukaOtorisasiShopee() {
+      var kunci = window.prompt('Masukkan API Secret ERP Begood (x-begood-secret) untuk membuka halaman otorisasi Shopee:');
+      if (!kunci || !kunci.trim()) return;
+      window.location.href = '/api/auth/url?secret=' + encodeURIComponent(kunci.trim());
+    }
+  </script>
 </head>
 <body class="bg-[#0b0f19] text-slate-100 min-h-screen flex flex-col justify-between antialiased selection:bg-orange-500/30 selection:text-orange-200">
 
@@ -69,10 +73,10 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         </p>
 
         <div class="pt-2 flex flex-wrap gap-3 text-xs">
-          <a href="${authUrlLink}" class="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl transition flex items-center gap-2 shadow-lg shadow-orange-600/30">
+          <button type="button" onclick="bukaOtorisasiShopee()" class="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl transition flex items-center gap-2 shadow-lg shadow-orange-600/30 cursor-pointer">
             <i class="fa-solid fa-key"></i>
             <span>Buka Otorisasi Shopee</span>
-          </a>
+          </button>
           <a href="/api/health" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl border border-slate-700 transition flex items-center gap-2">
             <i class="fa-solid fa-stethoscope text-sky-400"></i>
             <span>Periksa Variabel & Konfigurasi</span>

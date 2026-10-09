@@ -642,18 +642,78 @@ var SheetManager = (function() {
       .toLowerCase();
   }
 
+  function ambilKunciSkrip_(timeoutMs) {
+    if (typeof LockService !== 'undefined' && LockService && typeof LockService.getScriptLock === 'function') {
+      var lock = LockService.getScriptLock();
+      if (lock && typeof lock.tryLock === 'function') {
+        lock.tryLock(Number(timeoutMs) || 15000);
+        return lock;
+      }
+    }
+    return null;
+  }
+
+  function lepasKunciSkrip_(lock) {
+    if (lock && typeof lock.releaseLock === 'function') {
+      try {
+        lock.releaseLock();
+      } catch (e) {}
+    }
+  }
+
+  function tentukanStatusInternalBaru_(statusLama, statusShopee, statusMasuk) {
+    var lama = String(statusLama || '').trim();
+    var shopee = String(statusShopee || '').trim().toUpperCase();
+    var masuk = String(statusMasuk || '').trim() || '[1] Siap Packing';
+
+    if (shopee === 'CANCELLED' || shopee === 'TO_RETURN') {
+      return '[6] Dibatalkan';
+    }
+    if (shopee === 'IN_CANCEL') {
+      return '[5] Pengajuan Batal';
+    }
+    if (shopee === 'COMPLETED') {
+      return '[4] Selesai';
+    }
+    if (shopee === 'SHIPPED') {
+      if (lama.indexOf('[4]') !== -1 || lama.indexOf('Selesai') !== -1) return lama;
+      return '[3] Sedang Dikirim';
+    }
+    if (shopee === 'UNPAID') {
+      return lama || '[0] Menunggu Pembayaran';
+    }
+    if (!lama || lama.indexOf('[0]') !== -1 || lama.indexOf('Menunggu Pembayaran') !== -1 || lama.indexOf('[5]') !== -1) {
+      return masuk;
+    }
+    return lama;
+  }
+
+  function adalahUkuranVariasi_(segmen) {
+    var s = String(segmen || '').trim();
+    if (!s) return false;
+    return /^(?:(?:bc|bedcover|sprei|sarkur|sarban|sargul|uk|ukuran|size|tinggi|kasur)\s*)?\d+\s*[xX×\/]\s*\d+(?:\s*[xX×\/]\s*\d+)?(?:\s*cm)?$/i.test(s);
+  }
+
   /**
-   * Memangkas keterangan sesudah koma pada nama variasi.
+   * Memangkas keterangan ukuran pada nama variasi dua tingkat.
    *
-   * Variasi "Lilac,BC 90x220" menjadi "Lilac": keterangan sesudah koma adalah
-   * ukuran yang sudah tercermin pada SKU. Dipakai saat data masuk, saat dibaca,
-   * dan saat kunci disusun, supaya baris lama yang masih panjang tetap cocok
-   * dengan baris baru yang sudah pendek.
+   * Variasi "Lilac,BC 90x220" maupun "180x200,Lilac" sama-sama disederhanakan
+   * menjadi "Lilac": keterangan ukuran yang sudah tercermin pada SKU dibuang,
+   * sedangkan warna atau motif tetap dipertahankan.
    */
   function bersihkanVariasi_(nilai) {
     var teks = String(nilai === null || nilai === undefined ? '' : nilai).trim();
     var pisah = teks.indexOf(',');
-    if (pisah >= 0) teks = teks.slice(0, pisah).trim();
+    if (pisah >= 0) {
+      var depan = teks.slice(0, pisah).trim();
+      var belakang = teks.slice(pisah + 1).trim();
+      var komaKedua = belakang.indexOf(',');
+      if (komaKedua >= 0) belakang = belakang.slice(0, komaKedua).trim();
+      if (adalahUkuranVariasi_(depan) && belakang && !adalahUkuranVariasi_(belakang)) {
+        return belakang;
+      }
+      return depan;
+    }
     return teks;
   }
 
@@ -1842,111 +1902,156 @@ var SheetManager = (function() {
         return { added: 0, updated: 0 };
       }
 
-      var sheet = getOrCreateSheet(SHEETS.ORDERS);
-      var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
-      var kode = String(kodeToko || '').trim().toUpperCase();
+      var lock = ambilKunciSkrip_(15000);
+      try {
+        var sheet = getOrCreateSheet(SHEETS.ORDERS);
+        var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+        var kode = String(kodeToko || '').trim().toUpperCase();
 
-      var orderHeaders = PESANAN_HEADERS;
+        var orderHeaders = PESANAN_HEADERS;
 
-      // Auto-migrasi kolom jika sheet masih 14 kolom
-      var currentCols = sheet.getLastColumn();
-      if (currentCols > 0) {
-        var existingHeaders = sheet.getRange(1, 1, 1, currentCols).getValues()[0];
-        if (existingHeaders.indexOf('Nomor Referensi SKU') === -1) {
-          var prodIdx = existingHeaders.indexOf('Ringkasan Produk') !== -1
-            ? existingHeaders.indexOf('Ringkasan Produk')
-            : existingHeaders.indexOf('Nama Produk');
-          if (prodIdx !== -1) {
-            sheet.insertColumnsAfter(prodIdx + 1, 2);
+        // Auto-migrasi kolom jika sheet masih 14 kolom
+        var currentCols = sheet.getLastColumn();
+        if (currentCols > 0) {
+          var existingHeaders = sheet.getRange(1, 1, 1, currentCols).getValues()[0];
+          if (existingHeaders.indexOf('Nomor Referensi SKU') === -1) {
+            var prodIdx = existingHeaders.indexOf('Ringkasan Produk') !== -1
+              ? existingHeaders.indexOf('Ringkasan Produk')
+              : existingHeaders.indexOf('Nama Produk');
+            if (prodIdx !== -1) {
+              sheet.insertColumnsAfter(prodIdx + 1, 2);
+            }
           }
+          sheet.getRange(1, 1, 1, orderHeaders.length).setValues([orderHeaders]);
         }
-        sheet.getRange(1, 1, 1, orderHeaders.length).setValues([orderHeaders]);
-      }
 
-      var lastRow = sheet.getLastRow();
-      var numCols = PESANAN_HEADERS.length;
-      var allData = [];
-      if (lastRow > 1) {
-        allData = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
-      }
-
-      /* Hanya baris toko ini yang boleh dianggap sudah ada. Baris lama yang
-         kolom Tokonya masih kosong ikut diterima karena menu backfill mungkin
-         belum dijalankan; tanpa toleransi itu, seluruh pesanan lama akan
-         tertulis ulang sebagai baris baru pada sinkronisasi pertama. */
-      var existingRowsMap = {};   // order_sn -> { indices: [0, 1], internalStatus: '...' }
-      for (var r = 0; r < allData.length; r++) {
-        var sn = String(allData[r][0] || '').trim();
-        if (!sn) continue;
-
-        var tokoBaris = String(allData[r][16] || '').trim().toUpperCase();
-        if (kode && tokoBaris && tokoBaris !== kode) continue;
-
-        if (!existingRowsMap[sn]) {
-          existingRowsMap[sn] = {
-            indices: [],
-            internalStatus: allData[r][3] || ''
-          };
+        var lastRow = sheet.getLastRow();
+        var numCols = PESANAN_HEADERS.length;
+        var allData = [];
+        if (lastRow > 1) {
+          allData = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
         }
-        existingRowsMap[sn].indices.push(r);
-      }
 
-      var addedCount = 0;
-      var updatedCount = 0;
-      var newRows = [];
+        /* Hanya baris toko ini yang boleh dianggap sudah ada. Baris lama yang
+           kolom Tokonya masih kosong ikut diterima karena menu backfill mungkin
+           belum dijalankan; tanpa toleransi itu, seluruh pesanan lama akan
+           tertulis ulang sebagai baris baru pada sinkronisasi pertama. */
+        var existingRowsMap = {};   // order_sn -> { indices: [0, 1], internalStatus: '...' }
+        for (var r = 0; r < allData.length; r++) {
+          var sn = String(allData[r][0] || '').trim();
+          if (!sn) continue;
 
-      for (var i = 0; i < ordersList.length; i++) {
-        var ord = ordersList[i];
-        var sn = String(ord.order_sn || '').trim();
-        if (!sn) continue;
+          var tokoBaris = String(allData[r][16] || '').trim().toUpperCase();
+          if (kode && tokoBaris && tokoBaris !== kode) continue;
 
-        var items = (ord.items && ord.items.length > 0) ? ord.items : null;
-        var ex = existingRowsMap[sn];
+          if (!existingRowsMap[sn]) {
+            existingRowsMap[sn] = {
+              indices: [],
+              internalStatus: allData[r][3] || ''
+            };
+          }
+          existingRowsMap[sn].indices.push(r);
+        }
 
-        if (ex) {
-          // Pesanan sudah ada di sheet
-          var savedStatus = ex.internalStatus || ord.internal_status || '[1] Siap Packing';
+        var addedCount = 0;
+        var updatedCount = 0;
+        var newRows = [];
 
-          if (items) {
-            for (var j = 0; j < items.length; j++) {
-              var it = items[j];
-              var itName = it.item_name || ord.items_summary || '';
-              var itSku = String(it.model_sku || '').trim() || '-';
-              var itVar = bersihkanVariasi_(it.model_name) || '-';
-              var itQty = Number(it.model_quantity_purchased || 1);
+        for (var i = 0; i < ordersList.length; i++) {
+          var ord = ordersList[i];
+          var sn = String(ord.order_sn || '').trim();
+          if (!sn) continue;
 
-              if (j < ex.indices.length) {
-                // Update baris yang sudah ada di memory
-                var rowIdx = ex.indices[j];
-                allData[rowIdx][2] = ord.order_status || allData[rowIdx][2] || '';
-                allData[rowIdx][3] = savedStatus;
-                allData[rowIdx][4] = ord.buyer_username || ord.recipient_name || allData[rowIdx][4] || '';
-                allData[rowIdx][5] = itName;
-                allData[rowIdx][6] = itSku;
-                allData[rowIdx][7] = itVar;
-                allData[rowIdx][8] = itQty;
-                allData[rowIdx][9] = ord.total_amount || allData[rowIdx][9] || 0;
-                allData[rowIdx][10] = ord.actual_shipping_fee || ord.estimated_shipping_fee || allData[rowIdx][10] || 0;
-                allData[rowIdx][11] = ord.shipping_carrier || allData[rowIdx][11] || '';
-                if (ord.tracking_number) {
-                  allData[rowIdx][12] = ord.tracking_number;
+          var items = (ord.items && ord.items.length > 0) ? ord.items : null;
+          var ex = existingRowsMap[sn];
+
+          if (ex) {
+            // Pesanan sudah ada di sheet: selaraskan status batal/kirim/selesai tanpa menimpa progres packing manual
+            var savedStatus = tentukanStatusInternalBaru_(ex.internalStatus, ord.order_status, ord.internal_status);
+
+            if (items) {
+              for (var j = 0; j < items.length; j++) {
+                var it = items[j];
+                var itName = it.item_name || ord.items_summary || '';
+                var itSku = String(it.model_sku || '').trim() || '-';
+                var itVar = bersihkanVariasi_(it.model_name) || '-';
+                var itQty = Number(it.model_quantity_purchased || 1);
+
+                if (j < ex.indices.length) {
+                  // Update baris yang sudah ada di memory
+                  var rowIdx = ex.indices[j];
+                  allData[rowIdx][2] = ord.order_status || allData[rowIdx][2] || '';
+                  allData[rowIdx][3] = savedStatus;
+                  allData[rowIdx][4] = ord.buyer_username || ord.recipient_name || allData[rowIdx][4] || '';
+                  allData[rowIdx][5] = itName;
+                  allData[rowIdx][6] = itSku;
+                  allData[rowIdx][7] = itVar;
+                  allData[rowIdx][8] = itQty;
+                  allData[rowIdx][9] = ord.total_amount || allData[rowIdx][9] || 0;
+                  allData[rowIdx][10] = ord.actual_shipping_fee || ord.estimated_shipping_fee || allData[rowIdx][10] || 0;
+                  allData[rowIdx][11] = ord.shipping_carrier || allData[rowIdx][11] || '';
+                  if (ord.tracking_number) {
+                    allData[rowIdx][12] = ord.tracking_number;
+                  }
+                  allData[rowIdx][13] = ord.note || allData[rowIdx][13] || '';
+                  allData[rowIdx][14] = ord.recipient_city || allData[rowIdx][14] || '';
+                  allData[rowIdx][15] = nowWIB;
+                  if (kode && !String(allData[rowIdx][16] || '').trim()) allData[rowIdx][16] = kode;
+                } else {
+                  // Item tambahan (misal sebelumnya hanya 1 baris, sekarang pecah jadi beberapa baris)
+                  newRows.push([
+                    sn,
+                    ord.create_time_formatted || '',
+                    ord.order_status || '',
+                    savedStatus,
+                    ord.buyer_username || ord.recipient_name || '',
+                    itName,
+                    itSku,
+                    itVar,
+                    itQty,
+                    ord.total_amount || 0,
+                    ord.actual_shipping_fee || ord.estimated_shipping_fee || 0,
+                    ord.shipping_carrier || '',
+                    ord.tracking_number || '',
+                    ord.note || '',
+                    ord.recipient_city || '',
+                    nowWIB,
+                    kode
+                  ]);
                 }
-                allData[rowIdx][13] = ord.note || allData[rowIdx][13] || '';
-                allData[rowIdx][14] = ord.recipient_city || allData[rowIdx][14] || '';
-                allData[rowIdx][15] = nowWIB;
-                if (kode && !String(allData[rowIdx][16] || '').trim()) allData[rowIdx][16] = kode;
-              } else {
-                // Item tambahan (misal sebelumnya hanya 1 baris, sekarang pecah jadi beberapa baris)
+              }
+            } else {
+              // Fallback jika tidak ada data item_list
+              var rowIdx = ex.indices[0];
+              allData[rowIdx][2] = ord.order_status || allData[rowIdx][2] || '';
+              allData[rowIdx][3] = savedStatus;
+              allData[rowIdx][6] = ord.sku_summary || '-';
+              allData[rowIdx][7] = bersihkanVariasi_(ord.variation_summary) || '-';
+              allData[rowIdx][8] = ord.total_items_count || 1;
+              allData[rowIdx][11] = ord.shipping_carrier || allData[rowIdx][11] || '';
+              if (ord.tracking_number) allData[rowIdx][12] = ord.tracking_number;
+              allData[rowIdx][15] = nowWIB;
+              if (kode && !String(allData[rowIdx][16] || '').trim()) allData[rowIdx][16] = kode;
+            }
+
+            updatedCount++;
+          } else {
+            // Pesanan baru
+            var internalStatus = tentukanStatusInternalBaru_('', ord.order_status, ord.internal_status);
+
+            if (items) {
+              for (var j = 0; j < items.length; j++) {
+                var it = items[j];
                 newRows.push([
                   sn,
                   ord.create_time_formatted || '',
                   ord.order_status || '',
-                  savedStatus,
+                  internalStatus,
                   ord.buyer_username || ord.recipient_name || '',
-                  itName,
-                  itSku,
-                  itVar,
-                  itQty,
+                  it.item_name || ord.items_summary || '',
+                  String(it.model_sku || '').trim() || '-',
+                  bersihkanVariasi_(it.model_name) || '-',
+                  Number(it.model_quantity_purchased || 1),
                   ord.total_amount || 0,
                   ord.actual_shipping_fee || ord.estimated_shipping_fee || 0,
                   ord.shipping_carrier || '',
@@ -1957,39 +2062,17 @@ var SheetManager = (function() {
                   kode
                 ]);
               }
-            }
-          } else {
-            // Fallback jika tidak ada data item_list
-            var rowIdx = ex.indices[0];
-            allData[rowIdx][2] = ord.order_status || allData[rowIdx][2] || '';
-            allData[rowIdx][3] = savedStatus;
-            allData[rowIdx][6] = ord.sku_summary || '-';
-            allData[rowIdx][7] = bersihkanVariasi_(ord.variation_summary) || '-';
-            allData[rowIdx][8] = ord.total_items_count || 1;
-            allData[rowIdx][11] = ord.shipping_carrier || allData[rowIdx][11] || '';
-            if (ord.tracking_number) allData[rowIdx][12] = ord.tracking_number;
-            allData[rowIdx][15] = nowWIB;
-            if (kode && !String(allData[rowIdx][16] || '').trim()) allData[rowIdx][16] = kode;
-          }
-
-          updatedCount++;
-        } else {
-          // Pesanan baru
-          var internalStatus = ord.internal_status || '[1] Siap Packing';
-
-          if (items) {
-            for (var j = 0; j < items.length; j++) {
-              var it = items[j];
+            } else {
               newRows.push([
                 sn,
                 ord.create_time_formatted || '',
                 ord.order_status || '',
                 internalStatus,
                 ord.buyer_username || ord.recipient_name || '',
-                it.item_name || ord.items_summary || '',
-                String(it.model_sku || '').trim() || '-',
-                bersihkanVariasi_(it.model_name) || '-',
-                Number(it.model_quantity_purchased || 1),
+                ord.items_summary || '',
+                ord.sku_summary || '-',
+                bersihkanVariasi_(ord.variation_summary) || '-',
+                ord.total_items_count || 1,
                 ord.total_amount || 0,
                 ord.actual_shipping_fee || ord.estimated_shipping_fee || 0,
                 ord.shipping_carrier || '',
@@ -2000,44 +2083,33 @@ var SheetManager = (function() {
                 kode
               ]);
             }
-          } else {
-            newRows.push([
-              sn,
-              ord.create_time_formatted || '',
-              ord.order_status || '',
-              internalStatus,
-              ord.buyer_username || ord.recipient_name || '',
-              ord.items_summary || '',
-              ord.sku_summary || '-',
-              bersihkanVariasi_(ord.variation_summary) || '-',
-              ord.total_items_count || 1,
-              ord.total_amount || 0,
-              ord.actual_shipping_fee || ord.estimated_shipping_fee || 0,
-              ord.shipping_carrier || '',
-              ord.tracking_number || '',
-              ord.note || '',
-              ord.recipient_city || '',
-              nowWIB,
-              kode
-            ]);
+
+            addedCount++;
           }
-
-          addedCount++;
         }
-      }
 
-      // Tulis kembali data yang di-update (dalam 1 batch cepat)
-      if (allData.length > 0) {
-        sheet.getRange(2, 1, allData.length, numCols).setValues(allData);
-      }
+        // Tulis kembali data yang di-update (dalam 1 batch cepat)
+        if (allData.length > 0) {
+          sheet.getRange(2, 1, allData.length, numCols).setValues(allData);
+        }
 
-      // Tulis baris-baris baru (dalam 1 batch cepat)
-      if (newRows.length > 0) {
-        var startAppendRow = sheet.getLastRow() + 1;
-        sheet.getRange(startAppendRow, 1, newRows.length, numCols).setValues(newRows);
-      }
+        // Tulis baris-baris baru (dalam 1 batch cepat) dan pastikan format teks @
+        if (newRows.length > 0) {
+          var startAppendRow = sheet.getLastRow() + 1;
+          var endAppendRow = startAppendRow + newRows.length - 1;
+          if (endAppendRow > 5000) {
+            sheet.getRange('A' + startAppendRow + ':A' + endAppendRow).setNumberFormat('@');
+            sheet.getRange('G' + startAppendRow + ':H' + endAppendRow).setNumberFormat('@');
+            sheet.getRange('M' + startAppendRow + ':M' + endAppendRow).setNumberFormat('@');
+            sheet.getRange('Q' + startAppendRow + ':Q' + endAppendRow).setNumberFormat('@');
+          }
+          sheet.getRange(startAppendRow, 1, newRows.length, numCols).setValues(newRows);
+        }
 
-      return { added: addedCount, updated: updatedCount };
+        return { added: addedCount, updated: updatedCount };
+      } finally {
+        lepasKunciSkrip_(lock);
+      }
     },
 
     /**
@@ -2178,12 +2250,23 @@ var SheetManager = (function() {
           var courier = String(row[11] || '').trim() || 'Lainnya';
           var sku = String(row[6] || '').trim();
           var qty = Number(row[8]) || 1;
+          var shopeeUpper = shopeeStatus.trim().toUpperCase();
+          var isBatalAtauBelumBayar = internalStatus.indexOf('Batal') !== -1 ||
+            internalStatus.indexOf('[0]') !== -1 ||
+            internalStatus.indexOf('[5]') !== -1 ||
+            internalStatus.indexOf('[6]') !== -1 ||
+            shopeeUpper === 'CANCELLED' ||
+            shopeeUpper === 'IN_CANCEL' ||
+            shopeeUpper === 'TO_RETURN' ||
+            shopeeUpper === 'UNPAID';
 
           // Hitung statistik pesanan unik
           if (!uniqueOrdersSeen[sn]) {
             uniqueOrdersSeen[sn] = true;
             uniqueOrdersCount++;
-            stats.totalRevenue += totalAmount;
+            if (!isBatalAtauBelumBayar) {
+              stats.totalRevenue += totalAmount;
+            }
 
             if (dateStr && dateStr.indexOf(todayStr) !== -1) {
               stats.ordersToday++;
@@ -2193,14 +2276,18 @@ var SheetManager = (function() {
             else if (internalStatus.indexOf('Pickup') !== -1) stats.menungguPickup++;
             else if (internalStatus.indexOf('Dikirim') !== -1) stats.sedangDikirim++;
             else if (internalStatus.indexOf('Selesai') !== -1) stats.selesai++;
-            else if (internalStatus.indexOf('Batal') !== -1) stats.batal++;
+            else if (internalStatus.indexOf('Batal') !== -1 || shopeeUpper === 'CANCELLED' || shopeeUpper === 'IN_CANCEL' || shopeeUpper === 'TO_RETURN') stats.batal++;
 
             courierCounts[courier] = (courierCounts[courier] || 0) + 1;
 
             var hariPesanan = dateStr.substring(0, 10);
             if (hariPesanan) {
               harianJumlah[hariPesanan] = (harianJumlah[hariPesanan] || 0) + 1;
-              harianOmzet[hariPesanan] = (harianOmzet[hariPesanan] || 0) + totalAmount;
+              if (!isBatalAtauBelumBayar) {
+                harianOmzet[hariPesanan] = (harianOmzet[hariPesanan] || 0) + totalAmount;
+              } else if (harianOmzet[hariPesanan] === undefined) {
+                harianOmzet[hariPesanan] = 0;
+              }
             }
 
             if (internalStatus) {
@@ -2212,8 +2299,8 @@ var SheetManager = (function() {
             }
           }
 
-          // Hitung SKU terlaris
-          if (sku && sku !== '-') {
+          // Hitung SKU terlaris (hanya pesanan aktif/berhasil, bukan yang batal)
+          if (sku && sku !== '-' && !isBatalAtauBelumBayar) {
             skuCounts[sku] = (skuCounts[sku] || 0) + qty;
           }
 
@@ -2514,6 +2601,14 @@ var SheetManager = (function() {
       var nilai = orderSheet.getRange(mulai, 1, lastRow - mulai + 1, PESANAN_HEADERS.length).getValues();
 
       var kata = String(statusKeyword || '').trim().toLowerCase();
+      var bagianKata = kata ? kata.split('|') : [];
+      var daftarKata = [];
+      for (var kIdx = 0; kIdx < bagianKata.length; kIdx++) {
+        var satuKata = String(bagianKata[kIdx] || '').trim();
+        if (satuKata) daftarKata.push(satuKata);
+      }
+      var saringAktifGudang = (kata.indexOf('siap packing') !== -1 || kata.indexOf('pickup') !== -1) &&
+        kata.indexOf('batal') === -1;
       var hasil = [];
 
       // Dibaca dari bawah ke atas supaya baris terbaru muncul lebih dulu
@@ -2521,7 +2616,26 @@ var SheetManager = (function() {
         var row = nilai[i];
         if (!String(row[0] || '').trim()) continue;
         if (!barisSesuaiToko_(row, kode)) continue;
-        if (kata && String(row[3] || '').toLowerCase().indexOf(kata) === -1) continue;
+
+        var stRendah = String(row[3] || '').toLowerCase();
+        if (daftarKata.length > 0) {
+          var cocokKata = false;
+          for (var m = 0; m < daftarKata.length; m++) {
+            if (stRendah.indexOf(daftarKata[m]) !== -1) {
+              cocokKata = true;
+              break;
+            }
+          }
+          if (!cocokKata) continue;
+        }
+
+        if (saringAktifGudang) {
+          var shopeeSt = String(row[2] || '').trim().toUpperCase();
+          if (shopeeSt === 'CANCELLED' || shopeeSt === 'IN_CANCEL' || shopeeSt === 'TO_RETURN' || shopeeSt === 'UNPAID') {
+            continue;
+          }
+        }
+
         hasil.push(mapBarisPesanan_(row));
       }
 
@@ -2582,62 +2696,90 @@ var SheetManager = (function() {
      * @return {object} { berhasil: boolean, dipindahkan: number, sisa: number }
      */
     arsipPesananLama: function(hariBatas) {
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var orderSheet = ss.getSheetByName(SHEETS.ORDERS);
-      if (!orderSheet) return { berhasil: false, dipindahkan: 0, sisa: 0 };
+      var lock = ambilKunciSkrip_(15000);
+      try {
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        var orderSheet = ss.getSheetByName(SHEETS.ORDERS);
+        if (!orderSheet) return { berhasil: false, dipindahkan: 0, sisa: 0 };
 
-      var lastRow = orderSheet.getLastRow();
-      if (lastRow < 2) return { berhasil: true, dipindahkan: 0, sisa: 0 };
+        var lastRow = orderSheet.getLastRow();
+        if (lastRow < 2) return { berhasil: true, dipindahkan: 0, sisa: 0 };
 
-      var arsipSheet = ss.getSheetByName('Pesanan Arsip');
-      if (!arsipSheet) {
-        arsipSheet = ss.insertSheet('Pesanan Arsip');
-        arsipSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setValues([PESANAN_HEADERS]);
-        arsipSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setFontWeight('bold');
-        arsipSheet.setFrozenRows(1);
-      }
-
-      var batasHari = Number(hariBatas) || 30;
-      var batasWaktuMs = Date.now() - (batasHari * 24 * 60 * 60 * 1000);
-      var batasTanggalStr = Utilities.formatDate(new Date(batasWaktuMs), 'Asia/Jakarta', 'yyyy-MM-dd');
-
-      var values = orderSheet.getRange(2, 1, lastRow - 1, PESANAN_HEADERS.length).getValues();
-      var tetap = [];
-      var pindah = [];
-
-      for (var i = 0; i < values.length; i++) {
-        var row = values[i];
-        var sn = String(row[0] || '').trim();
-        if (!sn) continue;
-
-        var tgl = String(row[1] || '').substring(0, 10);
-        var st = String(row[3] || '');
-        var bisaDiarsip = (st.indexOf('Selesai') !== -1 || st.indexOf('Batal') !== -1) && (tgl && tgl < batasTanggalStr);
-
-        if (bisaDiarsip) {
-          pindah.push(row);
-        } else {
-          tetap.push(row);
+        var arsipSheet = ss.getSheetByName('Pesanan Arsip');
+        if (!arsipSheet) {
+          arsipSheet = ss.insertSheet('Pesanan Arsip');
+          arsipSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setValues([PESANAN_HEADERS]);
+          arsipSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setFontWeight('bold');
+          arsipSheet.setFrozenRows(1);
         }
+
+        var batasHari = Number(hariBatas) || 30;
+        var batasWaktuMs = Date.now() - (batasHari * 24 * 60 * 60 * 1000);
+        var batasTanggalStr = Utilities.formatDate(new Date(batasWaktuMs), 'Asia/Jakarta', 'yyyy-MM-dd');
+
+        var values = orderSheet.getRange(2, 1, lastRow - 1, PESANAN_HEADERS.length).getValues();
+        var tetap = [];
+        var pindah = [];
+
+        for (var i = 0; i < values.length; i++) {
+          var row = values[i];
+          var sn = String(row[0] || '').trim();
+          if (!sn) continue;
+
+          var rawTgl = row[1];
+          var tgl = (rawTgl instanceof Date)
+            ? Utilities.formatDate(rawTgl, 'Asia/Jakarta', 'yyyy-MM-dd')
+            : String(rawTgl || '').trim().substring(0, 10);
+          var shopeeSt = String(row[2] || '').trim().toUpperCase();
+          var st = String(row[3] || '');
+          var statusBisaArsip = st.indexOf('Selesai') !== -1 || st.indexOf('Batal') !== -1 ||
+            shopeeSt === 'COMPLETED' || shopeeSt === 'CANCELLED' || shopeeSt === 'TO_RETURN';
+          var bisaDiarsip = statusBisaArsip && (/^\d{4}-\d{2}-\d{2}$/.test(tgl) && tgl < batasTanggalStr);
+
+          if (bisaDiarsip) {
+            pindah.push(row);
+          } else {
+            tetap.push(row);
+          }
+        }
+
+        if (pindah.length === 0) {
+          return { berhasil: true, dipindahkan: 0, sisa: tetap.length };
+        }
+
+        var arsipLastRow = arsipSheet.getLastRow();
+        arsipSheet.getRange(arsipLastRow + 1, 1, pindah.length, PESANAN_HEADERS.length).setValues(pindah);
+
+        // Tulis ulang baris aktif terlebih dahulu tanpa clearContents() penuh agar aman dari timeout
+        orderSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setValues([PESANAN_HEADERS]);
+        orderSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setFontWeight('bold');
+        if (tetap.length > 0) {
+          orderSheet.getRange(2, 1, tetap.length, PESANAN_HEADERS.length).setValues(tetap);
+        }
+
+        var barisTerpakaiBaru = tetap.length + 1;
+        var barisSisa = lastRow - barisTerpakaiBaru;
+        if (barisSisa > 0) {
+          var rangeSisa = orderSheet.getRange(barisTerpakaiBaru + 1, 1, barisSisa, PESANAN_HEADERS.length);
+          if (rangeSisa && typeof rangeSisa.clearContent === 'function') {
+            rangeSisa.clearContent();
+          } else {
+            var kosong = [];
+            for (var k = 0; k < barisSisa; k++) {
+              var barisKosong = [];
+              for (var c = 0; c < PESANAN_HEADERS.length; c++) barisKosong.push('');
+              kosong.push(barisKosong);
+            }
+            rangeSisa.setValues(kosong);
+          }
+        }
+
+        this.logActivity('ARSIP_PESANAN', pindah.length, 'SUKSES', pindah.length + ' baris diarsipkan (> ' + batasHari + ' hari).', '', 'SISTEM');
+
+        return { berhasil: true, dipindahkan: pindah.length, sisa: tetap.length };
+      } finally {
+        lepasKunciSkrip_(lock);
       }
-
-      if (pindah.length === 0) {
-        return { berhasil: true, dipindahkan: 0, sisa: tetap.length };
-      }
-
-      var arsipLastRow = arsipSheet.getLastRow();
-      arsipSheet.getRange(arsipLastRow + 1, 1, pindah.length, PESANAN_HEADERS.length).setValues(pindah);
-
-      orderSheet.clearContents();
-      orderSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setValues([PESANAN_HEADERS]);
-      orderSheet.getRange(1, 1, 1, PESANAN_HEADERS.length).setFontWeight('bold');
-      if (tetap.length > 0) {
-        orderSheet.getRange(2, 1, tetap.length, PESANAN_HEADERS.length).setValues(tetap);
-      }
-
-      this.logActivity('ARSIP_PESANAN', pindah.length, 'SUKSES', pindah.length + ' baris diarsipkan (> ' + batasHari + ' hari).', '', 'SISTEM');
-
-      return { berhasil: true, dipindahkan: pindah.length, sisa: tetap.length };
     },
 
     /**
@@ -3419,7 +3561,443 @@ var SheetManager = (function() {
       }
 
       return hasil;
+    },
+
+    /**
+     * Menyimpan pengaturan rentang hari penarikan pesanan default (DEFAULT_SYNC_DAYS)
+     * pada sheet Konfigurasi.
+     *
+     * @param {number|string} hari jumlah hari penarikan (1 sampai 365)
+     * @return {number} jumlah hari yang tersimpan
+     */
+    simpanRentangHariSync: function(hari) {
+      var n = parseInt(String(hari || '').trim(), 10);
+      if (isNaN(n) || n < 1 || n > 365) {
+        throw new Error('Rentang hari penarikan pesanan harus berupa angka bulat antara 1 sampai 365 hari.');
+      }
+
+      var lock = ambilKunciSkrip_(10000);
+      try {
+        var sheet = getOrCreateSheet(SHEETS.CONFIG);
+        var data = sheet.getDataRange().getValues();
+        var key = 'DEFAULT_SYNC_DAYS';
+        var val = String(n);
+
+        for (var i = 1; i < data.length; i++) {
+          if (String(data[i][0]).trim() === key) {
+            sheet.getRange(i + 1, 2).setValue(val);
+            return n;
+          }
+        }
+        sheet.appendRow([key, val, 'Rentang hari pesanan yang ditarik secara default']);
+        return n;
+      } finally {
+        lepasKunciSkrip_(lock);
+      }
+    },
+
+    /**
+     * Mengosongkan data PEMBAGIAN JAHIT (dan opsional DATA JAHIT) sesuai cakupan
+     * toko atau sesi yang dipilih agar pekerjaan dapat dibagi ulang dari awal.
+     *
+     * @param {Object} [opsi] { toko, hapusProduksi: 'TIDAK'|'SESI_INI'|'SEMUA', tanggal, sesi }
+     * @return {Object} { barisBagiDihapus, barisProduksiDihapus }
+     */
+    bersihkanDataPembagian: function(opsi) {
+      var cfg = opsi || {};
+      var cakupanToko = String(cfg.toko || '').trim().toUpperCase();
+      var modeProduksi = String(cfg.hapusProduksi || 'TIDAK').trim().toUpperCase();
+      var targetTanggal = String(cfg.tanggal || '').trim();
+      var targetSesi = String(cfg.sesi || '').trim().toUpperCase();
+
+      var lock = ambilKunciSkrip_(10000);
+      try {
+        var barisBagiDihapus = 0;
+        var sheetBagi = getOrCreateSheet(SHEETS.BAGI);
+        var lastBagi = sheetBagi.getLastRow();
+
+        if (lastBagi >= 2) {
+          var rangeBagi = sheetBagi.getRange(2, 1, lastBagi - 1, BAGI_HEADERS.length);
+          var nilaiBagi = rangeBagi.getValues();
+          var sisaBagi = [];
+
+          for (var i = 0; i < nilaiBagi.length; i++) {
+            var b = nilaiBagi[i];
+            var adaIsi = b.some(function(sel) { return String(sel === null || sel === undefined ? '' : sel).trim() !== ''; });
+            if (!adaIsi) continue;
+
+            var tokoBaris = String(b[KOLOM_BAGI.TOKO] || '').trim().toUpperCase();
+            if (!cakupanToko || tokoBaris === cakupanToko) {
+              barisBagiDihapus++;
+            } else {
+              sisaBagi.push(b);
+            }
+          }
+
+          if (barisBagiDihapus > 0) {
+            sheetBagi.getRange(2, 1, Math.max(sheetBagi.getMaxRows() - 1, lastBagi - 1), BAGI_HEADERS.length).clearContent();
+            if (sisaBagi.length > 0) {
+              sheetBagi.getRange(2, 1, sisaBagi.length, BAGI_HEADERS.length).setValues(sisaBagi);
+            }
+          }
+        }
+
+        var barisProduksiDihapus = 0;
+        if (modeProduksi === 'SESI_INI' || modeProduksi === 'SEMUA') {
+          var sheetProd = getOrCreateSheet(SHEETS.PRODUKSI);
+          var lastProd = sheetProd.getLastRow();
+
+          if (lastProd >= 2) {
+            var rangeProd = sheetProd.getRange(2, 1, lastProd - 1, PRODUKSI_HEADERS.length);
+            var nilaiProd = rangeProd.getValues();
+            var sisaProd = [];
+
+            for (var r = 0; r < nilaiProd.length; r++) {
+              var p = nilaiProd[r];
+              var adaIsiProd = p.some(function(sel) { return String(sel === null || sel === undefined ? '' : sel).trim() !== ''; });
+              if (!adaIsiProd) continue;
+
+              var tglMentah = p[KOLOM_PRODUKSI.TANGGAL];
+              var tglBaris = (tglMentah instanceof Date)
+                ? Utilities.formatDate(tglMentah, 'Asia/Jakarta', 'yyyy-MM-dd')
+                : String(tglMentah === null || tglMentah === undefined ? '' : tglMentah).trim();
+              var sesiBaris = String(p[KOLOM_PRODUKSI.SESI] || '').trim().toUpperCase();
+              var tokoProd = String(p[KOLOM_PRODUKSI.TOKO] || '').trim().toUpperCase();
+
+              var cocokToko = !cakupanToko || tokoProd === cakupanToko;
+              var cocokSesi = modeProduksi === 'SEMUA' ||
+                ((!targetTanggal || tglBaris === targetTanggal) && (!targetSesi || sesiBaris === targetSesi));
+
+              if (cocokToko && cocokSesi) {
+                barisProduksiDihapus++;
+              } else {
+                sisaProd.push(p);
+              }
+            }
+
+            if (barisProduksiDihapus > 0) {
+              sheetProd.getRange(2, 1, Math.max(sheetProd.getMaxRows() - 1, lastProd - 1), PRODUKSI_HEADERS.length).clearContent();
+              if (sisaProd.length > 0) {
+                sheetProd.getRange(2, 1, sisaProd.length, PRODUKSI_HEADERS.length).setValues(sisaProd);
+              }
+            }
+          }
+        }
+
+        return {
+          barisBagiDihapus: barisBagiDihapus,
+          barisProduksiDihapus: barisProduksiDihapus
+        };
+      } finally {
+        lepasKunciSkrip_(lock);
+      }
+    },
+
+    /**
+     * Mengubah penjahit dan/atau variasi warna pada satu baris di sheet
+     * PEMBAGIAN JAHIT. Bila pada nomor pesanan + SKU + variasi tujuan sudah ada
+     * baris milik penjahit tujuan, kedua baris digabung (Qty dijumlahkan) agar
+     * kunci baris tetap unik.
+     *
+     * @param {Object} data { noPesanan, sku, variasi, variasiBaru, penjahitLama, penjahitBaru, grupBaru, barisSheet }
+     * @return {Object} rincian perubahan baris pembagian
+     */
+    ubahPenjahitPembagian: function(data) {
+      var info = data || {};
+      var sku = String(info.sku || '').trim();
+      var variasiLama = bersihkanVariasi_(String(info.variasi || '').trim());
+      var adaVariasiBaru = info.variasiBaru !== undefined && info.variasiBaru !== null && String(info.variasiBaru).trim() !== '';
+      var variasiTarget = adaVariasiBaru
+        ? bersihkanVariasi_(String(info.variasiBaru).trim())
+        : variasiLama;
+      var noPesanan = String(info.noPesanan || '').trim();
+      var penjahitLama = String(info.penjahitLama || '').trim().toUpperCase();
+      var adaPenjahitBaru = info.penjahitBaru !== undefined && info.penjahitBaru !== null && String(info.penjahitBaru).trim() !== '';
+      var penjahitTarget = adaPenjahitBaru
+        ? String(info.penjahitBaru).trim().toUpperCase()
+        : penjahitLama;
+      var grupBaru = String(info.grupBaru || '').trim().toUpperCase();
+      var barisSheet = Number(info.barisSheet) || 0;
+
+      if (!sku) {
+        throw new Error('SKU baris pembagian tidak boleh kosong.');
+      }
+      if (!adaVariasiBaru && (!penjahitTarget || penjahitTarget === 'BELUM DISET')) {
+        throw new Error('Pilih nama penjahit yang valid terlebih dahulu.');
+      }
+      if (adaVariasiBaru && !variasiTarget) {
+        throw new Error('Pilih variasi warna yang valid terlebih dahulu.');
+      }
+
+      var lock = ambilKunciSkrip_(10000);
+      try {
+        var sheet = getOrCreateSheet(SHEETS.BAGI);
+        var lastRow = sheet.getLastRow();
+        if (lastRow < 2) {
+          throw new Error('Sheet PEMBAGIAN JAHIT masih kosong.');
+        }
+
+        var range = sheet.getRange(2, 1, lastRow - 1, BAGI_HEADERS.length);
+        var nilai = range.getValues();
+        var tampil = range.getDisplayValues();
+
+        var kunciAsal = kunciPembagian_(sku, variasiLama, noPesanan, penjahitLama);
+        var kunciTujuan = kunciPembagian_(sku, variasiTarget, noPesanan, penjahitTarget);
+        var idxAsal = -1;
+        var idxTujuan = -1;
+
+        for (var r = 0; r < nilai.length; r++) {
+          var skuBaris = teksKolom_(nilai[r][KOLOM_BAGI.SKU], tampil[r][KOLOM_BAGI.SKU]);
+          if (!skuBaris) continue;
+
+          var varBaris = teksKolom_(nilai[r][KOLOM_BAGI.VARIASI], tampil[r][KOLOM_BAGI.VARIASI]);
+          var pesananBaris = teksKolom_(nilai[r][KOLOM_BAGI.PESANAN], tampil[r][KOLOM_BAGI.PESANAN]);
+          var penjahitBaris = teksKolom_(nilai[r][KOLOM_BAGI.PENJAHIT], tampil[r][KOLOM_BAGI.PENJAHIT]);
+          var k = kunciPembagian_(skuBaris, varBaris, pesananBaris, penjahitBaris);
+
+          if (idxAsal < 0 && k === kunciAsal) idxAsal = r;
+          if (idxTujuan < 0 && k === kunciTujuan) idxTujuan = r;
+        }
+
+        if (idxAsal < 0 && barisSheet >= 2 && (barisSheet - 2) < nilai.length) {
+          var kandidat = barisSheet - 2;
+          var skuKandidat = teksKolom_(nilai[kandidat][KOLOM_BAGI.SKU], tampil[kandidat][KOLOM_BAGI.SKU]);
+          var pesananKandidat = teksKolom_(nilai[kandidat][KOLOM_BAGI.PESANAN], tampil[kandidat][KOLOM_BAGI.PESANAN]);
+          if (skuKandidat.toUpperCase() === sku.toUpperCase() && pesananKandidat.toUpperCase() === noPesanan.toUpperCase()) {
+            idxAsal = kandidat;
+          }
+        }
+
+        if (idxAsal < 0) {
+          throw new Error('Baris pembagian untuk pesanan ' + (noPesanan || '-') + ' (' + sku + ') tidak ditemukan.');
+        }
+
+        var qtyAsal = angkaKolom_(nilai[idxAsal][KOLOM_BAGI.QTY]);
+        if (qtyAsal <= 0) qtyAsal = 1;
+
+        var samaPersis = (penjahitLama === penjahitTarget) &&
+          (variasiLama.toUpperCase() === variasiTarget.toUpperCase());
+        if (idxAsal === idxTujuan && samaPersis) {
+          return {
+            berubah: false,
+            digabung: false,
+            noPesanan: noPesanan,
+            sku: sku,
+            variasiLama: variasiLama,
+            variasi: variasiTarget,
+            variasiBaru: variasiTarget,
+            penjahitLama: penjahitLama,
+            penjahitBaru: penjahitTarget,
+            qty: qtyAsal
+          };
+        }
+
+        var digabungHasil = false;
+        if (idxTujuan >= 0 && idxTujuan !== idxAsal) {
+          var qtyTujuan = angkaKolom_(nilai[idxTujuan][KOLOM_BAGI.QTY]);
+          if (qtyTujuan <= 0) qtyTujuan = 1;
+          var qtyGabung = qtyTujuan + qtyAsal;
+          var hargaTujuan = angkaKolom_(nilai[idxTujuan][KOLOM_BAGI.HARGA]) || angkaKolom_(nilai[idxAsal][KOLOM_BAGI.HARGA]);
+
+          nilai[idxTujuan][KOLOM_BAGI.VARIASI] = variasiTarget;
+          nilai[idxTujuan][KOLOM_BAGI.QTY] = qtyGabung;
+          if (hargaTujuan > 0) {
+            nilai[idxTujuan][KOLOM_BAGI.HARGA] = hargaTujuan;
+            nilai[idxTujuan][KOLOM_BAGI.TOTAL] = hargaTujuan * qtyGabung;
+          }
+          if (String(nilai[idxTujuan][KOLOM_BAGI.GRUP] || '').trim() === '' && grupBaru) {
+            nilai[idxTujuan][KOLOM_BAGI.GRUP] = grupBaru;
+          }
+
+          var sisaBaris = [];
+          for (var i = 0; i < nilai.length; i++) {
+            if (i !== idxAsal) sisaBaris.push(nilai[i]);
+          }
+          sheet.getRange(2, 1, Math.max(sheet.getMaxRows() - 1, lastRow - 1), BAGI_HEADERS.length).clearContent();
+          if (sisaBaris.length > 0) {
+            sheet.getRange(2, 1, sisaBaris.length, BAGI_HEADERS.length).setValues(sisaBaris);
+          }
+          digabungHasil = true;
+        } else {
+          nilai[idxAsal][KOLOM_BAGI.VARIASI] = variasiTarget;
+          nilai[idxAsal][KOLOM_BAGI.PENJAHIT] = penjahitTarget;
+          if (String(nilai[idxAsal][KOLOM_BAGI.GRUP] || '').trim() === '' && grupBaru) {
+            nilai[idxAsal][KOLOM_BAGI.GRUP] = grupBaru;
+          }
+          range.setValues(nilai);
+        }
+
+        /* Selaraskan juga baris terkait di sheet DATA JAHIT (bila sesi sudah
+           pernah ditutup hari ini) agar cetakan SPK PDF dan ringkasan sesi
+           langsung mengikuti variasi warna maupun penjahit yang baru dipilih. */
+        var ssProd = SpreadsheetApp.getActiveSpreadsheet();
+        var sheetProd = ssProd ? ssProd.getSheetByName(SHEETS.PRODUKSI) : null;
+        var lastProd = sheetProd ? sheetProd.getLastRow() : 0;
+        if (sheetProd && lastProd >= 2) {
+          var rangeProd = sheetProd.getRange(2, 1, lastProd - 1, PRODUKSI_HEADERS.length);
+          var nilaiProd = rangeProd.getValues();
+          var tampilProd = rangeProd.getDisplayValues();
+          var kunciProdAsal = kunciProduksi_(sku, variasiLama, noPesanan, penjahitLama);
+          var kunciProdTujuan = kunciProduksi_(sku, variasiTarget, noPesanan, penjahitTarget);
+          var idxProdAsal = -1;
+          var idxProdTujuan = -1;
+
+          for (var rp = 0; rp < nilaiProd.length; rp++) {
+            var skuP = teksKolom_(nilaiProd[rp][KOLOM_PRODUKSI.SKU], tampilProd[rp][KOLOM_PRODUKSI.SKU]);
+            if (!skuP) continue;
+            var varP = teksKolom_(nilaiProd[rp][KOLOM_PRODUKSI.VARIASI], tampilProd[rp][KOLOM_PRODUKSI.VARIASI]);
+            var pesP = teksKolom_(nilaiProd[rp][KOLOM_PRODUKSI.PESANAN], tampilProd[rp][KOLOM_PRODUKSI.PESANAN]);
+            var penjP = teksKolom_(nilaiProd[rp][KOLOM_PRODUKSI.PENJAHIT], tampilProd[rp][KOLOM_PRODUKSI.PENJAHIT]);
+            var kp = kunciProduksi_(skuP, varP, pesP, penjP);
+            if (idxProdAsal < 0 && kp === kunciProdAsal) idxProdAsal = rp;
+            if (idxProdTujuan < 0 && kp === kunciProdTujuan) idxProdTujuan = rp;
+          }
+
+          if (idxProdAsal < 0 && noPesanan) {
+            for (var rf = 0; rf < nilaiProd.length; rf++) {
+              var skuF = teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.SKU], tampilProd[rf][KOLOM_PRODUKSI.SKU]);
+              var pesF = teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.PESANAN], tampilProd[rf][KOLOM_PRODUKSI.PESANAN]);
+              var penjF = teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.PENJAHIT], tampilProd[rf][KOLOM_PRODUKSI.PENJAHIT]);
+              if (skuF.toUpperCase() === sku.toUpperCase() &&
+                  pesF.toUpperCase() === noPesanan.toUpperCase() &&
+                  (!penjahitLama || penjF.toUpperCase() === penjahitLama)) {
+                idxProdAsal = rf;
+                break;
+              }
+            }
+          }
+
+          if (idxProdAsal >= 0) {
+            if (idxProdTujuan >= 0 && idxProdTujuan !== idxProdAsal) {
+              var jmlTujuan = angkaKolom_(nilaiProd[idxProdTujuan][KOLOM_PRODUKSI.JUMLAH]) || 1;
+              var jmlAsal = angkaKolom_(nilaiProd[idxProdAsal][KOLOM_PRODUKSI.JUMLAH]) || 1;
+              nilaiProd[idxProdTujuan][KOLOM_PRODUKSI.VARIASI] = variasiTarget;
+              nilaiProd[idxProdTujuan][KOLOM_PRODUKSI.PENJAHIT] = penjahitTarget;
+              nilaiProd[idxProdTujuan][KOLOM_PRODUKSI.JUMLAH] = jmlTujuan + jmlAsal;
+              var sisaProd = [];
+              for (var sp = 0; sp < nilaiProd.length; sp++) {
+                if (sp !== idxProdAsal) sisaProd.push(nilaiProd[sp]);
+              }
+              sheetProd.getRange(2, 1, Math.max(sheetProd.getMaxRows() - 1, lastProd - 1), PRODUKSI_HEADERS.length).clearContent();
+              if (sisaProd.length > 0) {
+                sheetProd.getRange(2, 1, sisaProd.length, PRODUKSI_HEADERS.length).setValues(sisaProd);
+              }
+            } else {
+              nilaiProd[idxProdAsal][KOLOM_PRODUKSI.VARIASI] = variasiTarget;
+              nilaiProd[idxProdAsal][KOLOM_PRODUKSI.PENJAHIT] = penjahitTarget;
+              rangeProd.setValues(nilaiProd);
+            }
+          }
+        }
+
+        return {
+          berubah: true,
+          digabung: digabungHasil,
+          noPesanan: noPesanan,
+          sku: sku,
+          variasiLama: variasiLama,
+          variasi: variasiTarget,
+          variasiBaru: variasiTarget,
+          penjahitLama: penjahitLama,
+          penjahitBaru: penjahitTarget,
+          qty: qtyAsal
+        };
+      } finally {
+        lepasKunciSkrip_(lock);
+      }
+    },
+
+    ubahVariasiPembagian: function(data) {
+      return this.ubahPenjahitPembagian(data);
+    },
+
+    /**
+     * Membaca daftar pilihan dari tab sheet "Variasi Warna" di spreadsheet.
+     * Mendukung sheet dengan atau tanpa baris header, serta kolom nomor urut
+     * opsional di kolom A.
+     *
+     * @return {Array<string>} daftar nama variasi warna unik
+     */
+    bacaVariasiWarna: function() {
+      var ss = getSpreadsheet();
+      if (!ss) return [];
+
+      var sheet = ss.getSheetByName('Variasi Warna') ||
+                  ss.getSheetByName('VARIASI WARNA') ||
+                  ss.getSheetByName('variasi warna');
+
+      if (!sheet && typeof ss.getSheets === 'function') {
+        var semuaSheet = ss.getSheets() || [];
+        for (var s = 0; s < semuaSheet.length; s++) {
+          var namaS = typeof semuaSheet[s].getName === 'function' ? String(semuaSheet[s].getName() || '') : '';
+          var normal = namaS.trim().toLowerCase().replace(/[_\s]+/g, ' ');
+          if (normal === 'variasi warna') {
+            sheet = semuaSheet[s];
+            break;
+          }
+        }
+      }
+
+      if (!sheet) return [];
+      var lastRow = sheet.getLastRow();
+      if (lastRow < 1) return [];
+
+      var lastCol = Math.max(1, typeof sheet.getLastColumn === 'function' ? sheet.getLastColumn() : 2);
+      var range = sheet.getRange(1, 1, lastRow, Math.min(lastCol, 5));
+      var nilai = range.getValues();
+      var tampil = typeof range.getDisplayValues === 'function' ? range.getDisplayValues() : nilai;
+
+      var HEADER_ABAI = {
+        'variasi warna': true,
+        'variasi': true,
+        'warna': true,
+        'nama warna': true,
+        'nama variasi': true,
+        'daftar warna': true,
+        'pilihan warna': true,
+        'color': true,
+        'no': true,
+        'nomor': true
+      };
+
+      var hasil = [];
+      var sudah = {};
+
+      for (var r = 0; r < nilai.length; r++) {
+        var baris = nilai[r] || [];
+        var barisTampil = (tampil && tampil[r]) ? tampil[r] : baris;
+        var kol0 = teksKolom_(baris[0], barisTampil[0]);
+        var kol1 = baris.length > 1 ? teksKolom_(baris[1], barisTampil[1]) : '';
+
+        var kandidat = '';
+        if ((/^\d+$/.test(kol0) || kol0.toLowerCase() === 'no' || kol0.toLowerCase() === 'nomor') && kol1) {
+          kandidat = kol1;
+        } else if (kol0) {
+          kandidat = kol0;
+        } else {
+          for (var c = 1; c < baris.length; c++) {
+            var isiSel = teksKolom_(baris[c], barisTampil[c]);
+            if (isiSel && !/^\d+$/.test(isiSel)) {
+              kandidat = isiSel;
+              break;
+            }
+          }
+        }
+
+        var bersih = bersihkanVariasi_(kandidat);
+        if (!bersih || bersih === '-') continue;
+
+        var kunci = bersih.toLowerCase();
+        if (r === 0 && HEADER_ABAI[kunci]) continue;
+        if (sudah[kunci]) continue;
+
+        sudah[kunci] = true;
+        hasil.push(bersih);
+      }
+
+      return hasil;
     }
   };
 })();
+
 

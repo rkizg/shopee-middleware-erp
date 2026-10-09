@@ -101,9 +101,9 @@ const pros=()=>ss.getSheetByName('DATA PROSES');
 const jahit=()=>ss.getSheetByName('DATA JAHIT');
 ord.data.length=1;
 ord.appendRow(pesanRow('SN-P1','SARKUR 120/5','Coffee',2,'[2] Menunggu Pickup'));
-ord.appendRow(pesanRow('SN-P1','TAS MIKA AJA','SINGLE',1,'[2] Menunggu Pickup'));
+ord.appendRow(pesanRow('SN-P1','TAS MIKA AJA','SINGLE',1,'[1] Siap Packing'));
 ord.appendRow(pesanRow('SN-P2','SARKUR 120/5','Coffee',3,'[2] Menunggu Pickup'));
-ord.appendRow(pesanRow('SN-P3','KAOS POLOS','M',1,'[1] Siap Packing'));
+ord.appendRow(pesanRow('SN-P3','KAOS POLOS','M',1,'[3] Sedang Dikirim'));
 
 console.log('=== 1: belum ada pesanan [2] pada cakupan ===');
 let a=sb.getAntrianProduksi(tPack,'TOKOX');
@@ -111,7 +111,7 @@ cek('tidak melempar galat', Boolean(a));
 cek('ringkasan bernilai nol', a.ringkasan.baris===0&&a.ringkasan.qty===0, JSON.stringify(a.ringkasan));
 cek('tabel antriannya kosong', a.pesanan.length===0);
 
-console.log('=== 2: antrian berisi pesanan [2] saja ===');
+console.log('=== 2: antrian berisi pesanan [1] Siap Packing & [2] Menunggu Pickup ===');
 a=sb.getAntrianProduksi(tAdmin,'');
 cek('tiga baris kerja', a.ringkasan.baris===3, a.ringkasan.baris);
 cek('dua nomor pesanan', a.ringkasan.pesanan===2, a.ringkasan.pesanan);
@@ -122,7 +122,7 @@ cek('semuanya belum dijahit', a.ringkasan.belumDijahit===3);
 cek('tidak ada lagi tanda sudah masuk daftar kerja',
   a.pesanan.every(p=>p.sudahDitarik===undefined&&p.ringkasan===undefined));
 cek('ringkasan tidak lagi memuat hitungan belum ditarik', a.ringkasan.belumDitarik===undefined);
-cek('pesanan [1] tidak ikut', a.pesanan.every(p=>p.status.indexOf('Menunggu Pickup')!==-1));
+cek('pesanan [3] tidak ikut', a.pesanan.every(p=>p.status.indexOf('Sedang Dikirim')===-1));
 cek('dua variasi pesanan SN-P1 jadi dua baris', a.pesanan.filter(p=>p.noPesanan==='SN-P1').length===2);
 
 console.log('=== 3: DATA PROSES adalah daftar harga, satu baris per SKU ===');

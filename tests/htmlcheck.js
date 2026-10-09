@@ -50,7 +50,7 @@ console.log('=== kolom Toko tampil kondisional ===');
 lapor('.col-toko ada di CSS dan dipakai markup', (/\.ledger \.col-toko/.test(html)&&/is-semuwa/.test(html))?[]:['tidak lengkap']);
 
 console.log('=== setiap RPC terjaga meneruskan token ===');
-const perluToken=['ambilDaftarPengguna','simpanPenggunaDariDashboard','ubahStatusPenggunaDariDashboard','getDashboardData','getStatusInventory','getOrderRowsByStatus','getOrderRowsForExport','triggerSyncOrders','triggerSyncBySn','updateOrderStatusInternal','updateBatchOrderStatusInternal','refreshTokenFromDashboard','toggleTrigger','saveTokenFromDashboard','pingMiddleware','getAuthUrlFromDashboard'];
+const perluToken=['ambilDaftarPengguna','simpanPenggunaDariDashboard','ubahStatusPenggunaDariDashboard','getDashboardData','getStatusInventory','getOrderRowsByStatus','getOrderRowsForExport','simpanRentangHariSyncDashboard','bersihkanPembagianDashboard','ubahPenjahitPembagianDashboard','triggerSyncOrders','triggerSyncBySn','updateOrderStatusInternal','updateBatchOrderStatusInternal','refreshTokenFromDashboard','toggleTrigger','saveTokenFromDashboard','pingMiddleware','getAuthUrlFromDashboard'];
 const klienTanpaToken=perluToken.filter((nama)=>{
   const m=new RegExp('\\\.'+nama+'\\\(([^;]*)').exec(skrip);
   return !m || m[1].indexOf('sesiToken')!==0;
@@ -74,7 +74,7 @@ perluToken.forEach((nama)=>{
 lapor('semua RPC terjaga memanggil wajibSesi_', tanpaJaga);
 
 console.log('=== penjaga memakai peran yang benar ===');
-const peranHarus={'ambilDaftarPengguna':'SUPERADMIN','simpanPenggunaDariDashboard':'SUPERADMIN','ubahStatusPenggunaDariDashboard':'SUPERADMIN','saveTokenFromDashboard':'SUPERADMIN','toggleTrigger':'SUPERADMIN','refreshTokenFromDashboard':'SUPERADMIN','getAuthUrlFromDashboard':'SUPERADMIN','triggerSyncOrders':'ADMIN','getOrderRowsForExport':'ADMIN','getDashboardData':'PACKING','updateBatchOrderStatusInternal':'PACKING'};
+const peranHarus={'ambilDaftarPengguna':'SUPERADMIN','simpanPenggunaDariDashboard':'SUPERADMIN','ubahStatusPenggunaDariDashboard':'SUPERADMIN','saveTokenFromDashboard':'SUPERADMIN','toggleTrigger':'SUPERADMIN','refreshTokenFromDashboard':'SUPERADMIN','getAuthUrlFromDashboard':'SUPERADMIN','simpanRentangHariSyncDashboard':'ADMIN','bersihkanPembagianDashboard':'ADMIN','ubahPenjahitPembagianDashboard':'ADMIN','triggerSyncOrders':'ADMIN','getOrderRowsForExport':'ADMIN','getDashboardData':'PACKING','updateBatchOrderStatusInternal':'PACKING'};
 const peranSalah=[];
 Object.keys(peranHarus).forEach((nama)=>{
   const i=code.indexOf('function '+nama+'(');

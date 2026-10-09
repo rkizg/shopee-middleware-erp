@@ -27,10 +27,11 @@ class MockSheet{
   insertColumnsAfter(a,how){this._ensure(Math.max(this.data.length,1),a+how);for(let i=0;i<this.data.length;i++){const row=this.data[i];for(let k=0;k<how;k++)row.splice(a,0,'');}}
   setFrozenRows(){} autoResizeColumns(){}
   getMaxRows(){return Math.max(this.data.length,1000);} getMaxColumns(){return Math.max(this.getLastColumn(),12);}
+  getName(){return this.name;}
   clearContent(){this.data=[];return this;}
   clear(){this.data=[];return this;}
 }
-class MockSS{constructor(){this.sheets={};}getSheetByName(n){return this.sheets[n]||null;}insertSheet(n){this.sheets[n]=new MockSheet(n);return this.sheets[n];}toast(){}}
+class MockSS{constructor(){this.sheets={};}getSheetByName(n){return this.sheets[n]||null;}getSheets(){return Object.values(this.sheets);}insertSheet(n){this.sheets[n]=new MockSheet(n);return this.sheets[n];}toast(){}}
 const ss=new MockSS();
 const alerts=[];
 let promptJawaban=''; let promptDibatalkan=false; const promptAntrean=[];
@@ -131,12 +132,12 @@ ord.data.length=1;
 const pesanRow=(sn,sku,variasi,qty,status,amount,toko)=>[
   sn,'2026-09-27 08:00:00','READY_TO_SHIP',status,'budi',sku,sku,variasi,qty,amount,10000,'JNE','RESI-'+sn,'','Bandung','2026-09-27 08:00:00',toko||'BGD'
 ];
-ord.appendRow(pesanRow('SN-S1','SPREI DK 90/25 SET','Biru',2,'[2] Menunggu Pickup',50000));
+ord.appendRow(pesanRow('SN-S1','SPREI DK 90/25 SET','Biru',2,'[1] Siap Packing',50000));
 ord.appendRow(pesanRow('SN-S2','BEDCOVER 180','Maroon',1,'[2] Menunggu Pickup',90000));
 ord.appendRow(pesanRow('SN-S3','TAS MIKA AJA','SINGLE',1,'[2] Menunggu Pickup',5000));
 ord.appendRow(pesanRow('SN-S4','KAOS POLOS','M',1,'[2] Menunggu Pickup',30000));
-ord.appendRow(pesanRow('SN-S5','SARUNG BANTAL & GULING','Set',1,'[2] Menunggu Pickup',45000));
-ord.appendRow(pesanRow('SN-S6','SPREI DK 90/25 SET','Biru',1,'[1] Siap Packing',50000));
+ord.appendRow(pesanRow('SN-S5','SARUNG BANTAL & GULING','Set',1,'[1] Siap Packing',45000));
+ord.appendRow(pesanRow('SN-S6','SPREI DK 90/25 SET','Biru',1,'[3] Sedang Dikirim',50000));
 
 const pros=()=>ss.getSheetByName('DATA PROSES');
 pros().data.length=1;
@@ -146,8 +147,8 @@ pros().appendRow(['SARUNG BANTAL & GULING',45000,30,8,'Set',1,'SN-S5','BGD',''])
 sb.hapusCacheProses_();
 
 let v=sb.getPembagianJahit(tAdmin,'');
-cek('lima pcs kerja dari pesanan menunggu pickup', v.rekap.unitAntrian===5, v.rekap.unitAntrian);
-cek('pesanan [1] tidak ikut', v.rekap.unitAntrian===5);
+cek('lima pcs kerja dari pesanan siap packing & menunggu pickup', v.rekap.unitAntrian===5, v.rekap.unitAntrian);
+cek('pesanan [3] tidak ikut', v.rekap.unitAntrian===5);
 cek('satu baris TAS MIKA diabaikan', v.rekap.diabaikan===1, v.rekap.diabaikan);
 cek('semuanya belum dibagi', v.rekap.belumDibagi===5, v.rekap.belumDibagi);
 cek('empat penjahit aktif terbaca', v.rekap.penjahitAktif===4, v.rekap.penjahitAktif);
@@ -439,6 +440,103 @@ const simpanTokoRes = sb.simpanKodeTokoDashboard(tSuper, [
 cek('superadmin berhasil menyimpan kode toko', simpanTokoRes.berhasil && simpanTokoRes.jumlah === 3);
 const bacaUlangPeta = SM.bacaKodeTokoCetak();
 cek('pemetaan toko baru tersimpan di Konfigurasi', bacaUlangPeta['custom.shop'] === 'CS');
+
+console.log('=== 19: clear data pembagian jahit (bersihkanPembagianDashboard) ===');
+cek('packing ditolak menjalankan clear data pembagian',
+  (lempar(() => sb.bersihkanPembagianDashboard(tPack, {})) || '').indexOf('Peran PACKING tidak berhak') !== -1);
+const clearRes = sb.bersihkanPembagianDashboard(tAdmin, { toko: '', hapusProduksi: 'TIDAK' });
+cek('admin berhasil mengosongkan PEMBAGIAN JAHIT', clearRes.berhasil && clearRes.barisBagiDihapus > 0, clearRes.barisBagiDihapus);
+cek('setelah clear data, tabel PEMBAGIAN JAHIT kosong', SM.bacaPembagian().length === 0, SM.bacaPembagian().length);
+const bagiUlang = sb.bagiPembagianDashboard(tAdmin, '');
+cek('setelah clear data, pesanan dapat dibagi ulang dari awal', bagiUlang.qtyDitambah > 0, bagiUlang.qtyDitambah);
+
+console.log('=== 20: ubah penjahit pada Pcs yang sudah dibagi (ubahPenjahitPembagianDashboard) ===');
+cek('packing ditolak mengubah penjahit pada baris pembagian',
+  (lempar(() => sb.ubahPenjahitPembagianDashboard(tPack, { noPesanan: 'SN-MULTI-BC', sku: 'BEDCOVER SET LUXURY', variasi: 'Standar', penjahitLama: 'ADUL', penjahitBaru: 'ELSI' })) || '').indexOf('Peran PACKING tidak berhak') !== -1);
+const ubahRes = sb.ubahPenjahitPembagianDashboard(tAdmin, {
+  noPesanan: 'SN-MULTI-BC',
+  sku: 'BEDCOVER SET LUXURY',
+  variasi: 'Standar',
+  penjahitLama: 'ADUL',
+  penjahitBaru: 'ELSI'
+});
+cek('admin berhasil mengubah penjahit dari ADUL ke ELSI', ubahRes.berhasil && ubahRes.hasil && ubahRes.hasil.berubah === true);
+const barisSetelahUbah = barisPesan('SN-MULTI-BC')[0];
+cek('sheet PEMBAGIAN JAHIT memperbarui nama penjahit menjadi ELSI',
+  barisSetelahUbah && String(barisSetelahUbah[5]) === 'ELSI', barisSetelahUbah && barisSetelahUbah[5]);
+
+console.log('=== 21: ubah variasi warna pada Pcs yang sudah dibagi dari sheet Variasi Warna ===');
+const sheetWarna = ss.insertSheet('Variasi Warna');
+sheetWarna.appendRow(['Variasi Warna']);
+sheetWarna.appendRow(['Mocca']);
+sheetWarna.appendRow(['Sage Green']);
+sheetWarna.appendRow(['Lilac']);
+sheetWarna.appendRow(['Mocca']); /* duplikat diabaikan */
+const daftarWarna = SM.bacaVariasiWarna();
+cek('SheetManager.bacaVariasiWarna membaca warna unik tanpa header',
+  Array.isArray(daftarWarna) && daftarWarna.length === 3 && daftarWarna[0] === 'Mocca' && daftarWarna[1] === 'Sage Green',
+  JSON.stringify(daftarWarna));
+const payloadWarna = sb.getPembagianJahit(tAdmin, '');
+cek('getPembagianJahit mengirim setelan.variasiWarna ke dashboard',
+  payloadWarna.setelan && Array.isArray(payloadWarna.setelan.variasiWarna) && payloadWarna.setelan.variasiWarna.indexOf('Sage Green') !== -1);
+const ubahVarRes = sb.ubahPenjahitPembagianDashboard(tAdmin, {
+  noPesanan: 'SN-MULTI-BC',
+  sku: 'BEDCOVER SET LUXURY',
+  variasi: 'Standar',
+  variasiBaru: 'Sage Green',
+  penjahitLama: 'ELSI'
+});
+cek('admin berhasil mengubah variasi menjadi Sage Green',
+  ubahVarRes.berhasil && ubahVarRes.hasil && ubahVarRes.hasil.variasiBaru === 'Sage Green');
+const barisSetelahUbahVar = barisPesan('SN-MULTI-BC')[0];
+cek('sheet PEMBAGIAN JAHIT memperbarui kolom Variasi menjadi Sage Green',
+  barisSetelahUbahVar && String(barisSetelahUbahVar[3]) === 'Sage Green', barisSetelahUbahVar && barisSetelahUbahVar[3]);
+const rekapSetelahUbahVar = sb.getPembagianJahit(tAdmin, '');
+const unitSetelahUbahVar = (rekapSetelahUbahVar.rekap.unit || []).filter(u => u.noPesanan === 'SN-MULTI-BC')[0];
+cek('rekap Pcs yang sudah dibagi tetap menampilkan pesanan dengan variasi baru Sage Green',
+  unitSetelahUbahVar && unitSetelahUbahVar.variasi === 'Sage Green' && unitSetelahUbahVar.penjahit === 'ELSI',
+  JSON.stringify(unitSetelahUbahVar));
+const bagiSetelahUbahVar = sb.bagiPembagianDashboard(tAdmin, '');
+cek('pembagian ulang tidak membagi ganda pesanan yang variasinya sudah diubah',
+  bagiSetelahUbahVar.qtyDitambah === 0 && barisPesan('SN-MULTI-BC').length === 1,
+  bagiSetelahUbahVar.qtyDitambah + ' / ' + barisPesan('SN-MULTI-BC').length);
+
+sb.tutupSesiJahit(tAdmin, '', 'PAGI', '');
+sb.ubahPenjahitPembagianDashboard(tAdmin, {
+  noPesanan: 'SN-MULTI-BC',
+  sku: 'BEDCOVER SET LUXURY',
+  variasi: 'Sage Green',
+  variasiBaru: 'Mocca',
+  penjahitLama: 'ELSI'
+});
+const prodSetelahUbahVar = SM.bacaProduksi().filter(p => p.noPesanan === 'SN-MULTI-BC')[0];
+cek('sheet DATA JAHIT ikut terbarui variasinya menjadi Mocca untuk SPK PDF',
+  prodSetelahUbahVar && prodSetelahUbahVar.variasi === 'Mocca', JSON.stringify(prodSetelahUbahVar));
+const payloadSetelahTutupDanUbah = sb.getPembagianJahit(tAdmin, '');
+const itemElsiSpk = ((payloadSetelahTutupDanUbah.estimasiHariIni.penjahit || []).filter(p => p.nama === 'ELSI')[0] || { items: [] }).items
+  .filter(it => it.sku === 'BEDCOVER SET LUXURY')[0];
+cek('estimasiHariIni (sumber SPK PDF) langsung memuat variasi baru Mocca',
+  itemElsiSpk && itemElsiSpk.variasi === 'Mocca', JSON.stringify(itemElsiSpk));
+
+console.log('=== 22: Tutup sesi & simpan hasil mengosongkan tabel Pcs yang sudah dibagi dan siap mengolah pesanan baru ===');
+cek('setelah Tutup sesi & simpan hasil, tabel Pcs yang sudah dibagi (rekap.unit) bersih',
+  Array.isArray(payloadSetelahTutupDanUbah.rekap.unit) && payloadSetelahTutupDanUbah.rekap.unit.length === 0,
+  JSON.stringify(payloadSetelahTutupDanUbah.rekap.unit));
+ord.appendRow(pesanRow('SN-SESI-BARU', 'BEDCOVER SET LUXURY', 'Lilac', 2, '[2] Menunggu Pickup', 50000));
+const bagiPesananBaru = sb.bagiPembagianDashboard(tAdmin, '');
+cek('ketika ada pesanan baru dan dibagi, hanya pesanan baru yang dihitung',
+  bagiPesananBaru.qtyDitambah === 2, bagiPesananBaru.qtyDitambah);
+const payloadPesananBaru = sb.getPembagianJahit(tAdmin, '');
+cek('tabel Pcs yang sudah dibagi hanya menampilkan pesanan baru yang belum ditutup',
+  payloadPesananBaru.rekap.unit.length === 1 &&
+  payloadPesananBaru.rekap.unit[0].noPesanan === 'SN-SESI-BARU' &&
+  payloadPesananBaru.rekap.unit[0].qty === 2,
+  JSON.stringify(payloadPesananBaru.rekap.unit));
+sb.tutupSesiJahit(tAdmin, '', 'SIANG', '');
+const payloadSetelahTutupSiang = sb.getPembagianJahit(tAdmin, '');
+cek('setelah Tutup sesi berikutnya (SIANG), tabel Pcs yang sudah dibagi kembali bersih',
+  payloadSetelahTutupSiang.rekap.unit.length === 0,
+  JSON.stringify(payloadSetelahTutupSiang.rekap.unit));
 
 console.log('');
 console.log('HASIL PEMBAGIAN JAHIT: '+(gagal===0?'SEMUA LULUS':gagal+' KEGAGALAN'));

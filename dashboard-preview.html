@@ -1380,14 +1380,18 @@
         <div class="toolbar-group">
           <span class="label">Tarik pesanan</span>
           <span class="sync-unit">
-            <button type="button" class="btn" onclick="triggerSyncWithSelectedDays()" id="btn-sync-action">
+            <button type="button" class="btn" onclick="triggerSyncWithSelectedDays()" id="btn-sync-action"
+                    title="Tarik pesanan dari Shopee sesuai rentang hari yang tersimpan">
               <i class="fa-solid fa-cloud-arrow-down" id="icon-sync-main" aria-hidden="true"></i>
               <span id="label-sync-btn">Tarik 3 hari terakhir</span>
             </button>
             <label class="sr-only" for="select-sync-days">Rentang hari penarikan pesanan</label>
-            <select id="select-sync-days" class="field" onchange="handleSyncDropdownChange(this.value)">
+            <select id="select-sync-days" class="field" onchange="handleSyncDropdownChange(this.value)"
+                    title="Pilih atau atur rentang hari penarikan pesanan (otomatis disimpan)">
               <option value="1">1 hari</option>
+              <option value="2">2 hari</option>
               <option value="3" selected>3 hari</option>
+              <option value="5">5 hari</option>
               <option value="7">7 hari</option>
               <option value="14">14 hari</option>
               <option value="30">30 hari</option>
@@ -1395,9 +1399,29 @@
               <option value="90">90 hari</option>
               <option value="180">180 hari</option>
               <option value="365">365 hari</option>
-              <option value="custom">Jumlah lain&hellip;</option>
+              <option value="3" id="opt-sync-custom-val" hidden>3 hari</option>
+              <option value="custom">Atur hari&hellip;</option>
             </select>
           </span>
+
+          <button type="button" class="btn" id="btn-setting-sync-days" onclick="bukaPengaturanHariSync()"
+                  title="Atur dan simpan jumlah hari penarikan pesanan (1 sampai 365 hari)">
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            Atur hari
+          </button>
+
+          <span class="toolbar-group" id="sync-custom-wrap" hidden>
+            <label class="sr-only" for="input-sync-days-custom">Jumlah hari penarikan pesanan (1 sampai 365)</label>
+            <input type="number" id="input-sync-days-custom" class="field num" min="1" max="365" step="1"
+                   value="3" style="width:76px" placeholder="Hari">
+            <button type="button" class="btn btn-primary" id="btn-save-sync-days" onclick="simpanRentangHariKustom()">
+              Simpan
+            </button>
+            <button type="button" class="btn btn-quiet" id="btn-cancel-sync-days" onclick="batalRentangHariKustom()">
+              Batal
+            </button>
+          </span>
+
 
           <button type="button" class="btn" onclick="promptSyncBySn()"
                   title="Tarik satu pesanan tertentu berdasarkan Nomor Pesanan (Order SN)">
@@ -2061,7 +2085,7 @@
           <div class="toolbar-group">
             <div class="stack-sm">
               <label class="label" for="bagi-sesi">Sesi yang ditutup</label>
-              <select id="bagi-sesi" class="field num">
+              <select id="bagi-sesi" class="field num" onchange="if (pembagianTerakhir) renderKartuPenjahitPembagian_(pembagianTerakhir)">
                 <option value="PAGI">PAGI</option>
                 <option value="SIANG">SIANG</option>
               </select>
@@ -2075,6 +2099,10 @@
             <button type="button" class="btn btn-primary butuh-admin" id="btn-tutup-sesi"
                     onclick="tutupSesiJahitAction()">
               <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Tutup sesi &amp; simpan hasil
+            </button>
+            <button type="button" class="btn butuh-admin" id="btn-clear-pembagian"
+                    onclick="bukaModalClearPembagian()">
+              <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Clear data
             </button>
           </div>
         </div>
@@ -2158,6 +2186,9 @@
                     <div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>
                     <div class="pembagian-potong-val" id="card-sesi-pagi-potong">0 menit (2 Personil Cutting)</div>
                   </div>
+                  <button type="button" class="btn-pdf-a6" id="btn-pdf-a6-semua-pagi" onclick="unduhSemuaSpkPenjahitPdf('PAGI')">
+                    <i class="fa-solid fa-print" aria-hidden="true"></i> Download Semua PDF A6 (Pagi)
+                  </button>
                 </div>
 
                 <!-- SESI SIANG -->
@@ -2177,6 +2208,9 @@
                     <div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>
                     <div class="pembagian-potong-val" id="card-sesi-siang-potong">0 menit (2 Personil Cutting)</div>
                   </div>
+                  <button type="button" class="btn-pdf-a6" id="btn-pdf-a6-semua-siang" onclick="unduhSemuaSpkPenjahitPdf('SIANG')">
+                    <i class="fa-solid fa-print" aria-hidden="true"></i> Download Semua PDF A6 (Siang)
+                  </button>
                 </div>
               </div>
             </div>
@@ -2726,6 +2760,26 @@
             </p>
           </div>
         </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Pengaturan penarikan pesanan</h2>
+          </div>
+          <div class="panel-body stack-sm">
+            <p class="panel-note">
+              Rentang hari bawaan (<span class="num">DEFAULT_SYNC_DAYS</span>) pada sheet
+              <span class="num">Konfigurasi</span> yang dipakai tombol tarik pesanan serta auto-sync berkala tiap 1 jam.
+            </p>
+            <div class="toolbar-group">
+              <label class="label" for="config-sync-days-input">Rentang hari (1 sampai 365)</label>
+              <input type="number" id="config-sync-days-input" class="field num" min="1" max="365" step="1"
+                     value="3" style="width:92px">
+              <button type="button" class="btn btn-primary" id="btn-config-save-sync-days" onclick="simpanRentangHariDariKonfig()">
+                Simpan pengaturan
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -3251,6 +3305,55 @@
     </div>
   </div>
 
+  <!-- ======================= MODAL: KONFIRMASI CLEAR DATA PEMBAGIAN ======================= -->
+  <div class="scrim" id="pembagian-clear-modal" role="dialog" aria-modal="true"
+       aria-labelledby="pembagian-clear-title" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-head">
+        <div>
+          <h2 class="panel-title" id="pembagian-clear-title">Clear data pembagian jahit</h2>
+          <span class="panel-note" id="pembagian-clear-cakupan">Cakupan: semua toko</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-icon btn-quiet" onclick="tutupModalClearPembagian()"
+                title="Tutup dialog clear data">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          <span class="sr-only">Tutup</span>
+        </button>
+      </div>
+
+      <div class="modal-scroll">
+        <p class="panel-note" style="margin-bottom: 12px;">
+          Mengosongkan daftar pembagian akan membuka kunci pesanan berstatus
+          <strong>[2] Menunggu Pickup</strong> agar dapat dibagi ulang dari awal.
+        </p>
+
+        <div class="stack-sm">
+          <label class="label" for="clear-pembagian-mode">Data yang dikosongkan</label>
+          <select id="clear-pembagian-mode" class="field" onchange="perbaruiInfoClearPembagian_()">
+            <option value="TIDAK">Pembagian jahit saja (PEMBAGIAN JAHIT)</option>
+            <option value="SESI_INI">Pembagian jahit + hasil sesi terpilih hari ini (DATA JAHIT)</option>
+            <option value="SEMUA">Seluruh pembagian &amp; seluruh riwayat hasil jahit (PEMBAGIAN + DATA JAHIT)</option>
+          </select>
+          <p class="panel-note" id="clear-pembagian-info">
+            Hanya mengosongkan tabel PEMBAGIAN JAHIT. Riwayat upah di DATA JAHIT tetap aman.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <span class="panel-note">Tindakan ini dicatat di Log Aktivitas.</span>
+        <div class="toolbar-group">
+          <button type="button" class="btn" onclick="tutupModalClearPembagian()">Batal</button>
+          <button type="button" class="btn btn-primary" id="btn-konfirmasi-clear-pembagian"
+                  style="background: var(--stop); border-color: var(--stop); color: #fff;"
+                  onclick="jalankanClearPembagianAction()">
+            <i class="fa-solid fa-trash-can" aria-hidden="true"></i> Clear data sekarang
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       var DEPLOY_LAMA = /(?:^|[?&])deploy=lama(?:&|$)/.test(window.location.search);
@@ -3261,7 +3364,7 @@
       var FUNGSI_BARU = ['getStatusInventory', 'getOrderRowsByStatus', 'getOrderRowsForExport',
         'getAntrianProduksi', 'simpanProduksiBatch', 'saveHargaProses',
         'getProduksiRingkasan', 'getPembagianJahit', 'bagiPembagianDashboard', 'tutupSesiJahit',
-        'simpanPenjahitDashboard', 'simpanAturanDashboard'];
+        'simpanPenjahitDashboard', 'simpanAturanDashboard', 'bersihkanPembagianDashboard', 'ubahPenjahitPembagianDashboard'];
       var MOCK = {"seriHarian": [{"tanggal": "2026-09-14", "jumlah": 18, "omzet": 1620000}, {"tanggal": "2026-09-15", "jumlah": 21, "omzet": 1890000}, {"tanggal": "2026-09-16", "jumlah": 17, "omzet": 1530000}, {"tanggal": "2026-09-17", "jumlah": 0, "omzet": 0}, {"tanggal": "2026-09-18", "jumlah": 24, "omzet": 2160000}, {"tanggal": "2026-09-19", "jumlah": 29, "omzet": 2610000}, {"tanggal": "2026-09-20", "jumlah": 26, "omzet": 2340000}, {"tanggal": "2026-09-21", "jumlah": 22, "omzet": 2090000}, {"tanggal": "2026-09-22", "jumlah": 25, "omzet": 2375000}, {"tanggal": "2026-09-23", "jumlah": 19, "omzet": 1805000}, {"tanggal": "2026-09-24", "jumlah": 23, "omzet": 2185000}, {"tanggal": "2026-09-25", "jumlah": 16, "omzet": 1520000}, {"tanggal": "2026-09-26", "jumlah": 11, "omzet": 1045000}, {"tanggal": "2026-09-27", "jumlah": 14, "omzet": 1330000}], "statusStats": [{"nama": "[4] Selesai", "jumlah": 80}, {"nama": "[1] Siap Packing", "jumlah": 23}, {"nama": "[2] Menunggu Pickup", "jumlah": 5}], "tokoStats": [{"nama": "BGD1", "jumlah": 62}, {"nama": "BGD2", "jumlah": 38}, {"nama": "BGD3", "jumlah": 10}], "stats": {"totalOrders": 110, "ordersToday": 14, "siapPacking": 23, "menungguPickup": 5, "sedangDikirim": 0, "selesai": 80, "batal": 0, "totalRevenue": 98765432}, "token": {"hasToken": true, "isExpired": false, "statusText": "AKTIF (3j 42m)", "shopId": "1564950615", "expiredAtWIB": "27/09/2026 20:14:33"}, "isTriggerActive": true, "config": {"VERCEL_MIDDLEWARE_URL": "https://shopee-middleware-erp.vercel.app"}, "courierStats": {"SPX Express": 612, "J&T Express": 281, "SiCepat": 141, "Anteraja": 92}, "topSkus": [{"sku": "BG-KS-001", "qty": 418}, {"sku": "BG-HD-014", "qty": 266}, {"sku": "BG-CJ-021", "qty": 193}, {"sku": "BG-TB-003", "qty": 157}, {"sku": "BG-JV-009", "qty": 88}], "orders": [{"orderSn": "260927C000", "date": "27/09/2026 09:00", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 0", "items": "Produk Baru 0", "sku": "BG-NEW-000", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000000", "city": "Bandung", "note": ""}, {"orderSn": "260927C001", "date": "27/09/2026 09:01", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 1", "items": "Produk Baru 1", "sku": "BG-NEW-001", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000001", "city": "Bandung", "note": ""}, {"orderSn": "260927C002", "date": "27/09/2026 09:02", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 2", "items": "Produk Baru 2", "sku": "BG-NEW-002", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000002", "city": "Bandung", "note": ""}, {"orderSn": "260927C003", "date": "27/09/2026 09:03", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 3", "items": "Produk Baru 3", "sku": "BG-NEW-003", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000003", "city": "Bandung", "note": ""}, {"orderSn": "260927C004", "date": "27/09/2026 09:04", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 4", "items": "Produk Baru 4", "sku": "BG-NEW-004", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000004", "city": "Bandung", "note": ""}, {"orderSn": "260927C005", "date": "27/09/2026 09:05", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 5", "items": "Produk Baru 5", "sku": "BG-NEW-005", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000005", "city": "Bandung", "note": ""}, {"orderSn": "260927C006", "date": "27/09/2026 09:06", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 6", "items": "Produk Baru 6", "sku": "BG-NEW-006", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000006", "city": "Bandung", "note": ""}, {"orderSn": "260927C007", "date": "27/09/2026 09:07", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 7", "items": "Produk Baru 7", "sku": "BG-NEW-007", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000007", "city": "Bandung", "note": ""}, {"orderSn": "260927C008", "date": "27/09/2026 09:08", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 8", "items": "Produk Baru 8", "sku": "BG-NEW-008", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000008", "city": "Bandung", "note": ""}, {"orderSn": "260927C009", "date": "27/09/2026 09:09", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 9", "items": "Produk Baru 9", "sku": "BG-NEW-009", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000009", "city": "Bandung", "note": ""}, {"orderSn": "260927C010", "date": "27/09/2026 09:10", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 10", "items": "Produk Baru 10", "sku": "BG-NEW-010", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000010", "city": "Bandung", "note": ""}, {"orderSn": "260927C011", "date": "27/09/2026 09:11", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 11", "items": "Produk Baru 11", "sku": "BG-NEW-011", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000011", "city": "Bandung", "note": ""}, {"orderSn": "260927C012", "date": "27/09/2026 09:12", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 12", "items": "Produk Baru 12", "sku": "BG-NEW-012", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000012", "city": "Bandung", "note": ""}, {"orderSn": "260927C013", "date": "27/09/2026 09:13", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 13", "items": "Produk Baru 13", "sku": "BG-NEW-013", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000013", "city": "Bandung", "note": ""}, {"orderSn": "260927C014", "date": "27/09/2026 09:14", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 14", "items": "Produk Baru 14", "sku": "BG-NEW-014", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000014", "city": "Bandung", "note": ""}, {"orderSn": "260927C015", "date": "27/09/2026 09:15", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 15", "items": "Produk Baru 15", "sku": "BG-NEW-015", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000015", "city": "Bandung", "note": ""}, {"orderSn": "260927C016", "date": "27/09/2026 09:16", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 16", "items": "Produk Baru 16", "sku": "BG-NEW-016", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000016", "city": "Bandung", "note": ""}, {"orderSn": "260927C017", "date": "27/09/2026 09:17", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 17", "items": "Produk Baru 17", "sku": "BG-NEW-017", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000017", "city": "Bandung", "note": ""}, {"orderSn": "260927C018", "date": "27/09/2026 09:18", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 18", "items": "Produk Baru 18", "sku": "BG-NEW-018", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000018", "city": "Bandung", "note": ""}, {"orderSn": "260927C019", "date": "27/09/2026 09:19", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 19", "items": "Produk Baru 19", "sku": "BG-NEW-019", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000019", "city": "Bandung", "note": ""}, {"orderSn": "260927C020", "date": "27/09/2026 09:20", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 20", "items": "Produk Baru 20", "sku": "BG-NEW-020", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000020", "city": "Bandung", "note": ""}, {"orderSn": "260927C021", "date": "27/09/2026 09:21", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 21", "items": "Produk Baru 21", "sku": "BG-NEW-021", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000021", "city": "Bandung", "note": ""}, {"orderSn": "260927C022", "date": "27/09/2026 09:22", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 22", "items": "Produk Baru 22", "sku": "BG-NEW-022", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000022", "city": "Bandung", "note": ""}, {"orderSn": "260927C023", "date": "27/09/2026 09:23", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 23", "items": "Produk Baru 23", "sku": "BG-NEW-023", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000023", "city": "Bandung", "note": ""}, {"orderSn": "260927C024", "date": "27/09/2026 09:24", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 24", "items": "Produk Baru 24", "sku": "BG-NEW-024", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000024", "city": "Bandung", "note": ""}, {"orderSn": "260927C025", "date": "27/09/2026 09:25", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 25", "items": "Produk Baru 25", "sku": "BG-NEW-025", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000025", "city": "Bandung", "note": ""}, {"orderSn": "260927C026", "date": "27/09/2026 09:26", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 26", "items": "Produk Baru 26", "sku": "BG-NEW-026", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000026", "city": "Bandung", "note": ""}, {"orderSn": "260927C027", "date": "27/09/2026 09:27", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 27", "items": "Produk Baru 27", "sku": "BG-NEW-027", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000027", "city": "Bandung", "note": ""}, {"orderSn": "260927C028", "date": "27/09/2026 09:28", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 28", "items": "Produk Baru 28", "sku": "BG-NEW-028", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000028", "city": "Bandung", "note": ""}, {"orderSn": "260927C029", "date": "27/09/2026 09:29", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 29", "items": "Produk Baru 29", "sku": "BG-NEW-029", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000029", "city": "Bandung", "note": ""}, {"orderSn": "260927C030", "date": "27/09/2026 09:30", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 30", "items": "Produk Baru 30", "sku": "BG-NEW-030", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000030", "city": "Bandung", "note": ""}, {"orderSn": "260927C031", "date": "27/09/2026 09:31", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 31", "items": "Produk Baru 31", "sku": "BG-NEW-031", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000031", "city": "Bandung", "note": ""}, {"orderSn": "260927C032", "date": "27/09/2026 09:32", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 32", "items": "Produk Baru 32", "sku": "BG-NEW-032", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000032", "city": "Bandung", "note": ""}, {"orderSn": "260927C033", "date": "27/09/2026 09:33", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 33", "items": "Produk Baru 33", "sku": "BG-NEW-033", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000033", "city": "Bandung", "note": ""}, {"orderSn": "260927C034", "date": "27/09/2026 09:34", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 34", "items": "Produk Baru 34", "sku": "BG-NEW-034", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000034", "city": "Bandung", "note": ""}, {"orderSn": "260927C035", "date": "27/09/2026 09:35", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 35", "items": "Produk Baru 35", "sku": "BG-NEW-035", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000035", "city": "Bandung", "note": ""}, {"orderSn": "260927C036", "date": "27/09/2026 09:36", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 36", "items": "Produk Baru 36", "sku": "BG-NEW-036", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000036", "city": "Bandung", "note": ""}, {"orderSn": "260927C037", "date": "27/09/2026 09:37", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 37", "items": "Produk Baru 37", "sku": "BG-NEW-037", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000037", "city": "Bandung", "note": ""}, {"orderSn": "260927C038", "date": "27/09/2026 09:38", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 38", "items": "Produk Baru 38", "sku": "BG-NEW-038", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000038", "city": "Bandung", "note": ""}, {"orderSn": "260927C039", "date": "27/09/2026 09:39", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 39", "items": "Produk Baru 39", "sku": "BG-NEW-039", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000039", "city": "Bandung", "note": ""}, {"orderSn": "260927C040", "date": "27/09/2026 09:40", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 40", "items": "Produk Baru 40", "sku": "BG-NEW-040", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000040", "city": "Bandung", "note": ""}, {"orderSn": "260927C041", "date": "27/09/2026 09:41", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 41", "items": "Produk Baru 41", "sku": "BG-NEW-041", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000041", "city": "Bandung", "note": ""}, {"orderSn": "260927C042", "date": "27/09/2026 09:42", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 42", "items": "Produk Baru 42", "sku": "BG-NEW-042", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000042", "city": "Bandung", "note": ""}, {"orderSn": "260927C043", "date": "27/09/2026 09:43", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 43", "items": "Produk Baru 43", "sku": "BG-NEW-043", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000043", "city": "Bandung", "note": ""}, {"orderSn": "260927C044", "date": "27/09/2026 09:44", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 44", "items": "Produk Baru 44", "sku": "BG-NEW-044", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000044", "city": "Bandung", "note": ""}, {"orderSn": "260927C045", "date": "27/09/2026 09:45", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 45", "items": "Produk Baru 45", "sku": "BG-NEW-045", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000045", "city": "Bandung", "note": ""}, {"orderSn": "260927C046", "date": "27/09/2026 09:46", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 46", "items": "Produk Baru 46", "sku": "BG-NEW-046", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000046", "city": "Bandung", "note": ""}, {"orderSn": "260927C047", "date": "27/09/2026 09:47", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 47", "items": "Produk Baru 47", "sku": "BG-NEW-047", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000047", "city": "Bandung", "note": ""}, {"orderSn": "260927C048", "date": "27/09/2026 09:48", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 48", "items": "Produk Baru 48", "sku": "BG-NEW-048", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000048", "city": "Bandung", "note": ""}, {"orderSn": "260927C049", "date": "27/09/2026 09:49", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 49", "items": "Produk Baru 49", "sku": "BG-NEW-049", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000049", "city": "Bandung", "note": ""}, {"orderSn": "260927C050", "date": "27/09/2026 09:50", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 50", "items": "Produk Baru 50", "sku": "BG-NEW-050", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000050", "city": "Bandung", "note": ""}, {"orderSn": "260927C051", "date": "27/09/2026 09:51", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 51", "items": "Produk Baru 51", "sku": "BG-NEW-051", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000051", "city": "Bandung", "note": ""}, {"orderSn": "260927C052", "date": "27/09/2026 09:52", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 52", "items": "Produk Baru 52", "sku": "BG-NEW-052", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000052", "city": "Bandung", "note": ""}, {"orderSn": "260927C053", "date": "27/09/2026 09:53", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 53", "items": "Produk Baru 53", "sku": "BG-NEW-053", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000053", "city": "Bandung", "note": ""}, {"orderSn": "260927C054", "date": "27/09/2026 09:54", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 54", "items": "Produk Baru 54", "sku": "BG-NEW-054", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000054", "city": "Bandung", "note": ""}, {"orderSn": "260927C055", "date": "27/09/2026 09:55", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 55", "items": "Produk Baru 55", "sku": "BG-NEW-055", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000055", "city": "Bandung", "note": ""}, {"orderSn": "260927C056", "date": "27/09/2026 09:56", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 56", "items": "Produk Baru 56", "sku": "BG-NEW-056", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000056", "city": "Bandung", "note": ""}, {"orderSn": "260927C057", "date": "27/09/2026 09:57", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 57", "items": "Produk Baru 57", "sku": "BG-NEW-057", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000057", "city": "Bandung", "note": ""}, {"orderSn": "260927C058", "date": "27/09/2026 09:58", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 58", "items": "Produk Baru 58", "sku": "BG-NEW-058", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000058", "city": "Bandung", "note": ""}, {"orderSn": "260927C059", "date": "27/09/2026 09:59", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 59", "items": "Produk Baru 59", "sku": "BG-NEW-059", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000059", "city": "Bandung", "note": ""}, {"orderSn": "260927C060", "date": "27/09/2026 09:00", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 60", "items": "Produk Baru 60", "sku": "BG-NEW-060", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000060", "city": "Bandung", "note": ""}, {"orderSn": "260927C061", "date": "27/09/2026 09:01", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 61", "items": "Produk Baru 61", "sku": "BG-NEW-061", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000061", "city": "Bandung", "note": ""}, {"orderSn": "260927C062", "date": "27/09/2026 09:02", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 62", "items": "Produk Baru 62", "sku": "BG-NEW-062", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000062", "city": "Bandung", "note": ""}, {"orderSn": "260927C063", "date": "27/09/2026 09:03", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 63", "items": "Produk Baru 63", "sku": "BG-NEW-063", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000063", "city": "Bandung", "note": ""}, {"orderSn": "260927C064", "date": "27/09/2026 09:04", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 64", "items": "Produk Baru 64", "sku": "BG-NEW-064", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000064", "city": "Bandung", "note": ""}, {"orderSn": "260927C065", "date": "27/09/2026 09:05", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 65", "items": "Produk Baru 65", "sku": "BG-NEW-065", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000065", "city": "Bandung", "note": ""}, {"orderSn": "260927C066", "date": "27/09/2026 09:06", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 66", "items": "Produk Baru 66", "sku": "BG-NEW-066", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000066", "city": "Bandung", "note": ""}, {"orderSn": "260927C067", "date": "27/09/2026 09:07", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 67", "items": "Produk Baru 67", "sku": "BG-NEW-067", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000067", "city": "Bandung", "note": ""}, {"orderSn": "260927C068", "date": "27/09/2026 09:08", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 68", "items": "Produk Baru 68", "sku": "BG-NEW-068", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000068", "city": "Bandung", "note": ""}, {"orderSn": "260927C069", "date": "27/09/2026 09:09", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 69", "items": "Produk Baru 69", "sku": "BG-NEW-069", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000069", "city": "Bandung", "note": ""}, {"orderSn": "260927C070", "date": "27/09/2026 09:10", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 70", "items": "Produk Baru 70", "sku": "BG-NEW-070", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000070", "city": "Bandung", "note": ""}, {"orderSn": "260927C071", "date": "27/09/2026 09:11", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 71", "items": "Produk Baru 71", "sku": "BG-NEW-071", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000071", "city": "Bandung", "note": ""}, {"orderSn": "260927C072", "date": "27/09/2026 09:12", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 72", "items": "Produk Baru 72", "sku": "BG-NEW-072", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000072", "city": "Bandung", "note": ""}, {"orderSn": "260927C073", "date": "27/09/2026 09:13", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 73", "items": "Produk Baru 73", "sku": "BG-NEW-073", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000073", "city": "Bandung", "note": ""}, {"orderSn": "260927C074", "date": "27/09/2026 09:14", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 74", "items": "Produk Baru 74", "sku": "BG-NEW-074", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000074", "city": "Bandung", "note": ""}, {"orderSn": "260927C075", "date": "27/09/2026 09:15", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 75", "items": "Produk Baru 75", "sku": "BG-NEW-075", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000075", "city": "Bandung", "note": ""}, {"orderSn": "260927C076", "date": "27/09/2026 09:16", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 76", "items": "Produk Baru 76", "sku": "BG-NEW-076", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000076", "city": "Bandung", "note": ""}, {"orderSn": "260927C077", "date": "27/09/2026 09:17", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 77", "items": "Produk Baru 77", "sku": "BG-NEW-077", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000077", "city": "Bandung", "note": ""}, {"orderSn": "260927C078", "date": "27/09/2026 09:18", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 78", "items": "Produk Baru 78", "sku": "BG-NEW-078", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000078", "city": "Bandung", "note": ""}, {"orderSn": "260927C079", "date": "27/09/2026 09:19", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 79", "items": "Produk Baru 79", "sku": "BG-NEW-079", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000079", "city": "Bandung", "note": ""}], "logs": [{"time": "27/09/2026 09:14", "action": "SYNC_ORDERS", "count": 14, "status": "SUKSES", "detail": "14 pesanan ditarik untuk rentang 3 hari terakhir."}, {"time": "27/09/2026 08:00", "action": "AUTO_SYNC_TRIGGER", "count": 9, "status": "SUKSES", "detail": "Sinkronisasi otomatis per jam berjalan normal."}, {"time": "26/09/2026 22:10", "action": "REFRESH_TOKEN", "count": 0, "status": "SUKSES", "detail": "Access token diperbarui sebelum kedaluwarsa."}, {"time": "26/09/2026 19:44", "action": "SYNC_ORDERS", "count": 0, "status": "GAGAL", "detail": "Shopee API menolak permintaan: rate limit tercapai, coba lagi."}, {"time": "26/09/2026 14:02", "action": "UPDATE_STATUS_BATCH", "count": 12, "status": "SUKSES", "detail": "12 pesanan diubah ke [2] Menunggu Pickup via Dashboard."}], "statusOptions": ["[0] Menunggu Pembayaran", "[1] Siap Packing", "[2] Menunggu Pickup", "[3] Sedang Dikirim", "[4] Selesai", "[5] Pengajuan Batal", "[6] Dibatalkan"], "webAppUrl": "https://script.google.com/macros/s/AKfycb.../exec"};
       var SEMUA_BARIS = [{"orderSn": "260925A000", "date": "25/09/2026 08:00", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 0", "items": "Kaos Polos Premium Cotton Combed 30s 0", "sku": "BG-KS-000", "variation": "Hitam, L", "qty": 1, "totalAmount": 175000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": "Tolong bubble wrap"}, {"orderSn": "260925A001", "date": "25/09/2026 08:01", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 1", "items": "Kaos Polos Premium Cotton Combed 30s 1", "sku": "BG-KS-001", "variation": "Hitam, L", "qty": 2, "totalAmount": 180000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000001", "city": "Bandung", "note": ""}, {"orderSn": "260925A002", "date": "25/09/2026 08:02", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 2", "items": "Kaos Polos Premium Cotton Combed 30s 2", "sku": "BG-KS-002", "variation": "Hitam, L", "qty": 3, "totalAmount": 185000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000002", "city": "Bandung", "note": ""}, {"orderSn": "260925A003", "date": "25/09/2026 08:03", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 3", "items": "Kaos Polos Premium Cotton Combed 30s 3", "sku": "BG-KS-003", "variation": "Hitam, L", "qty": 1, "totalAmount": 190000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": ""}, {"orderSn": "260925A004", "date": "25/09/2026 08:04", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 4", "items": "Kaos Polos Premium Cotton Combed 30s 4", "sku": "BG-KS-004", "variation": "Hitam, L", "qty": 2, "totalAmount": 195000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000004", "city": "Bandung", "note": "Tolong bubble wrap"}, {"orderSn": "260925A005", "date": "25/09/2026 08:05", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 5", "items": "Kaos Polos Premium Cotton Combed 30s 5", "sku": "BG-KS-005", "variation": "Hitam, L", "qty": 3, "totalAmount": 200000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000005", "city": "Bandung", "note": ""}, {"orderSn": "260925A006", "date": "25/09/2026 08:06", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 6", "items": "Kaos Polos Premium Cotton Combed 30s 6", "sku": "BG-KS-006", "variation": "Hitam, L", "qty": 1, "totalAmount": 205000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": ""}, {"orderSn": "260925A007", "date": "25/09/2026 08:07", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 7", "items": "Kaos Polos Premium Cotton Combed 30s 7", "sku": "BG-KS-007", "variation": "Hitam, L", "qty": 2, "totalAmount": 210000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000007", "city": "Bandung", "note": ""}, {"orderSn": "260925A008", "date": "25/09/2026 08:08", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 8", "items": "Kaos Polos Premium Cotton Combed 30s 8", "sku": "BG-KS-008", "variation": "Hitam, L", "qty": 3, "totalAmount": 215000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000008", "city": "Bandung", "note": "Tolong bubble wrap"}, {"orderSn": "260925A009", "date": "25/09/2026 08:09", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 9", "items": "Kaos Polos Premium Cotton Combed 30s 9", "sku": "BG-KS-009", "variation": "Hitam, L", "qty": 1, "totalAmount": 220000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": ""}, {"orderSn": "260925A010", "date": "25/09/2026 08:10", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 10", "items": "Kaos Polos Premium Cotton Combed 30s 10", "sku": "BG-KS-010", "variation": "Hitam, L", "qty": 2, "totalAmount": 225000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000010", "city": "Bandung", "note": ""}, {"orderSn": "260925A011", "date": "25/09/2026 08:11", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 11", "items": "Kaos Polos Premium Cotton Combed 30s 11", "sku": "BG-KS-011", "variation": "Hitam, L", "qty": 3, "totalAmount": 230000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000011", "city": "Bandung", "note": ""}, {"orderSn": "260925A012", "date": "25/09/2026 08:12", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 12", "items": "Kaos Polos Premium Cotton Combed 30s 12", "sku": "BG-KS-012", "variation": "Hitam, L", "qty": 1, "totalAmount": 235000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": "Tolong bubble wrap"}, {"orderSn": "260925A013", "date": "25/09/2026 08:13", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 13", "items": "Kaos Polos Premium Cotton Combed 30s 13", "sku": "BG-KS-013", "variation": "Hitam, L", "qty": 2, "totalAmount": 240000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000013", "city": "Bandung", "note": ""}, {"orderSn": "260925A014", "date": "25/09/2026 08:14", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 14", "items": "Kaos Polos Premium Cotton Combed 30s 14", "sku": "BG-KS-014", "variation": "Hitam, L", "qty": 3, "totalAmount": 245000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000014", "city": "Bandung", "note": ""}, {"orderSn": "260925A015", "date": "25/09/2026 08:15", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 15", "items": "Kaos Polos Premium Cotton Combed 30s 15", "sku": "BG-KS-015", "variation": "Hitam, L", "qty": 1, "totalAmount": 250000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": ""}, {"orderSn": "260925A016", "date": "25/09/2026 08:16", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 16", "items": "Kaos Polos Premium Cotton Combed 30s 16", "sku": "BG-KS-016", "variation": "Hitam, L", "qty": 2, "totalAmount": 255000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000016", "city": "Bandung", "note": "Tolong bubble wrap"}, {"orderSn": "260925A017", "date": "25/09/2026 08:17", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 17", "items": "Kaos Polos Premium Cotton Combed 30s 17", "sku": "BG-KS-017", "variation": "Hitam, L", "qty": 3, "totalAmount": 260000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000017", "city": "Bandung", "note": ""}, {"orderSn": "260925A018", "date": "25/09/2026 08:18", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 18", "items": "Kaos Polos Premium Cotton Combed 30s 18", "sku": "BG-KS-018", "variation": "Hitam, L", "qty": 1, "totalAmount": 265000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": ""}, {"orderSn": "260925A019", "date": "25/09/2026 08:19", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 19", "items": "Kaos Polos Premium Cotton Combed 30s 19", "sku": "BG-KS-019", "variation": "Hitam, L", "qty": 2, "totalAmount": 270000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000019", "city": "Bandung", "note": ""}, {"orderSn": "260925A020", "date": "25/09/2026 08:20", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 20", "items": "Kaos Polos Premium Cotton Combed 30s 20", "sku": "BG-KS-020", "variation": "Hitam, L", "qty": 3, "totalAmount": 275000, "shippingFee": 12000, "courier": "SiCepat", "resi": "SPXID0007000020", "city": "Bandung", "note": "Tolong bubble wrap"}, {"orderSn": "260925A021", "date": "25/09/2026 08:21", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 21", "items": "Kaos Polos Premium Cotton Combed 30s 21", "sku": "BG-KS-021", "variation": "Hitam, L", "qty": 1, "totalAmount": 280000, "shippingFee": 12000, "courier": "SPX Express", "resi": "", "city": "Bandung", "note": ""}, {"orderSn": "260925A022", "date": "25/09/2026 08:22", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "[1] Siap Packing", "buyer": "Pembeli Antrian 22", "items": "Kaos Polos Premium Cotton Combed 30s 22", "sku": "BG-KS-022", "variation": "Hitam, L", "qty": 2, "totalAmount": 285000, "shippingFee": 12000, "courier": "J&T Express", "resi": "SPXID0007000022", "city": "Bandung", "note": ""}, {"orderSn": "260926B000", "date": "26/09/2026 19:00", "shopeeStatus": "PROCESSED", "internalStatus": "[2] Menunggu Pickup", "buyer": "Pembeli Pickup 0", "items": "Hoodie Fleece Oversize 0", "sku": "BG-HD-000", "variation": "Abu, XL", "qty": 1, "totalAmount": 289000, "shippingFee": 15000, "courier": "J&T Express", "resi": "JT0009000000", "city": "Surabaya", "note": ""}, {"orderSn": "260926B001", "date": "26/09/2026 19:01", "shopeeStatus": "PROCESSED", "internalStatus": "[2] Menunggu Pickup", "buyer": "Pembeli Pickup 1", "items": "Hoodie Fleece Oversize 1", "sku": "BG-HD-001", "variation": "Abu, XL", "qty": 1, "totalAmount": 289000, "shippingFee": 15000, "courier": "J&T Express", "resi": "JT0009000001", "city": "Surabaya", "note": ""}, {"orderSn": "260926B002", "date": "26/09/2026 19:02", "shopeeStatus": "PROCESSED", "internalStatus": "[2] Menunggu Pickup", "buyer": "Pembeli Pickup 2", "items": "Hoodie Fleece Oversize 2", "sku": "BG-HD-002", "variation": "Abu, XL", "qty": 1, "totalAmount": 289000, "shippingFee": 15000, "courier": "J&T Express", "resi": "JT0009000002", "city": "Surabaya", "note": ""}, {"orderSn": "260926B003", "date": "26/09/2026 19:03", "shopeeStatus": "PROCESSED", "internalStatus": "[2] Menunggu Pickup", "buyer": "Pembeli Pickup 3", "items": "Hoodie Fleece Oversize 3", "sku": "BG-HD-003", "variation": "Abu, XL", "qty": 1, "totalAmount": 289000, "shippingFee": 15000, "courier": "J&T Express", "resi": "JT0009000003", "city": "Surabaya", "note": ""}, {"orderSn": "260926B004", "date": "26/09/2026 19:04", "shopeeStatus": "PROCESSED", "internalStatus": "[2] Menunggu Pickup", "buyer": "Pembeli Pickup 4", "items": "Hoodie Fleece Oversize 4", "sku": "BG-HD-004", "variation": "Abu, XL", "qty": 1, "totalAmount": 289000, "shippingFee": 15000, "courier": "J&T Express", "resi": "JT0009000004", "city": "Surabaya", "note": ""}, {"orderSn": "260924D000", "date": "24/09/2026 10:00", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "", "buyer": "Pembeli Tanpa Status 0", "items": "Produk Tanpa Status 0", "sku": "BG-XX-000", "variation": "-", "qty": 1, "totalAmount": 99000, "shippingFee": 9000, "courier": "SiCepat", "resi": "", "city": "Medan", "note": ""}, {"orderSn": "260924D001", "date": "24/09/2026 10:00", "shopeeStatus": "READY_TO_SHIP", "internalStatus": "", "buyer": "Pembeli Tanpa Status 1", "items": "Produk Tanpa Status 1", "sku": "BG-XX-001", "variation": "-", "qty": 1, "totalAmount": 99000, "shippingFee": 9000, "courier": "SiCepat", "resi": "", "city": "Medan", "note": ""}, {"orderSn": "260927C000", "date": "27/09/2026 09:00", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 0", "items": "Produk Baru 0", "sku": "BG-NEW-000", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000000", "city": "Bandung", "note": ""}, {"orderSn": "260927C001", "date": "27/09/2026 09:01", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 1", "items": "Produk Baru 1", "sku": "BG-NEW-001", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000001", "city": "Bandung", "note": ""}, {"orderSn": "260927C002", "date": "27/09/2026 09:02", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 2", "items": "Produk Baru 2", "sku": "BG-NEW-002", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000002", "city": "Bandung", "note": ""}, {"orderSn": "260927C003", "date": "27/09/2026 09:03", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 3", "items": "Produk Baru 3", "sku": "BG-NEW-003", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000003", "city": "Bandung", "note": ""}, {"orderSn": "260927C004", "date": "27/09/2026 09:04", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 4", "items": "Produk Baru 4", "sku": "BG-NEW-004", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000004", "city": "Bandung", "note": ""}, {"orderSn": "260927C005", "date": "27/09/2026 09:05", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 5", "items": "Produk Baru 5", "sku": "BG-NEW-005", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000005", "city": "Bandung", "note": ""}, {"orderSn": "260927C006", "date": "27/09/2026 09:06", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 6", "items": "Produk Baru 6", "sku": "BG-NEW-006", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000006", "city": "Bandung", "note": ""}, {"orderSn": "260927C007", "date": "27/09/2026 09:07", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 7", "items": "Produk Baru 7", "sku": "BG-NEW-007", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000007", "city": "Bandung", "note": ""}, {"orderSn": "260927C008", "date": "27/09/2026 09:08", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 8", "items": "Produk Baru 8", "sku": "BG-NEW-008", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000008", "city": "Bandung", "note": ""}, {"orderSn": "260927C009", "date": "27/09/2026 09:09", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 9", "items": "Produk Baru 9", "sku": "BG-NEW-009", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000009", "city": "Bandung", "note": ""}, {"orderSn": "260927C010", "date": "27/09/2026 09:10", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 10", "items": "Produk Baru 10", "sku": "BG-NEW-010", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000010", "city": "Bandung", "note": ""}, {"orderSn": "260927C011", "date": "27/09/2026 09:11", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 11", "items": "Produk Baru 11", "sku": "BG-NEW-011", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000011", "city": "Bandung", "note": ""}, {"orderSn": "260927C012", "date": "27/09/2026 09:12", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 12", "items": "Produk Baru 12", "sku": "BG-NEW-012", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000012", "city": "Bandung", "note": ""}, {"orderSn": "260927C013", "date": "27/09/2026 09:13", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 13", "items": "Produk Baru 13", "sku": "BG-NEW-013", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000013", "city": "Bandung", "note": ""}, {"orderSn": "260927C014", "date": "27/09/2026 09:14", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 14", "items": "Produk Baru 14", "sku": "BG-NEW-014", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000014", "city": "Bandung", "note": ""}, {"orderSn": "260927C015", "date": "27/09/2026 09:15", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 15", "items": "Produk Baru 15", "sku": "BG-NEW-015", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000015", "city": "Bandung", "note": ""}, {"orderSn": "260927C016", "date": "27/09/2026 09:16", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 16", "items": "Produk Baru 16", "sku": "BG-NEW-016", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000016", "city": "Bandung", "note": ""}, {"orderSn": "260927C017", "date": "27/09/2026 09:17", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 17", "items": "Produk Baru 17", "sku": "BG-NEW-017", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000017", "city": "Bandung", "note": ""}, {"orderSn": "260927C018", "date": "27/09/2026 09:18", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 18", "items": "Produk Baru 18", "sku": "BG-NEW-018", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000018", "city": "Bandung", "note": ""}, {"orderSn": "260927C019", "date": "27/09/2026 09:19", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 19", "items": "Produk Baru 19", "sku": "BG-NEW-019", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000019", "city": "Bandung", "note": ""}, {"orderSn": "260927C020", "date": "27/09/2026 09:20", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 20", "items": "Produk Baru 20", "sku": "BG-NEW-020", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000020", "city": "Bandung", "note": ""}, {"orderSn": "260927C021", "date": "27/09/2026 09:21", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 21", "items": "Produk Baru 21", "sku": "BG-NEW-021", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000021", "city": "Bandung", "note": ""}, {"orderSn": "260927C022", "date": "27/09/2026 09:22", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 22", "items": "Produk Baru 22", "sku": "BG-NEW-022", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000022", "city": "Bandung", "note": ""}, {"orderSn": "260927C023", "date": "27/09/2026 09:23", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 23", "items": "Produk Baru 23", "sku": "BG-NEW-023", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000023", "city": "Bandung", "note": ""}, {"orderSn": "260927C024", "date": "27/09/2026 09:24", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 24", "items": "Produk Baru 24", "sku": "BG-NEW-024", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000024", "city": "Bandung", "note": ""}, {"orderSn": "260927C025", "date": "27/09/2026 09:25", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 25", "items": "Produk Baru 25", "sku": "BG-NEW-025", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000025", "city": "Bandung", "note": ""}, {"orderSn": "260927C026", "date": "27/09/2026 09:26", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 26", "items": "Produk Baru 26", "sku": "BG-NEW-026", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000026", "city": "Bandung", "note": ""}, {"orderSn": "260927C027", "date": "27/09/2026 09:27", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 27", "items": "Produk Baru 27", "sku": "BG-NEW-027", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000027", "city": "Bandung", "note": ""}, {"orderSn": "260927C028", "date": "27/09/2026 09:28", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 28", "items": "Produk Baru 28", "sku": "BG-NEW-028", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000028", "city": "Bandung", "note": ""}, {"orderSn": "260927C029", "date": "27/09/2026 09:29", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 29", "items": "Produk Baru 29", "sku": "BG-NEW-029", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000029", "city": "Bandung", "note": ""}, {"orderSn": "260927C030", "date": "27/09/2026 09:30", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 30", "items": "Produk Baru 30", "sku": "BG-NEW-030", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000030", "city": "Bandung", "note": ""}, {"orderSn": "260927C031", "date": "27/09/2026 09:31", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 31", "items": "Produk Baru 31", "sku": "BG-NEW-031", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000031", "city": "Bandung", "note": ""}, {"orderSn": "260927C032", "date": "27/09/2026 09:32", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 32", "items": "Produk Baru 32", "sku": "BG-NEW-032", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000032", "city": "Bandung", "note": ""}, {"orderSn": "260927C033", "date": "27/09/2026 09:33", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 33", "items": "Produk Baru 33", "sku": "BG-NEW-033", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000033", "city": "Bandung", "note": ""}, {"orderSn": "260927C034", "date": "27/09/2026 09:34", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 34", "items": "Produk Baru 34", "sku": "BG-NEW-034", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000034", "city": "Bandung", "note": ""}, {"orderSn": "260927C035", "date": "27/09/2026 09:35", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 35", "items": "Produk Baru 35", "sku": "BG-NEW-035", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000035", "city": "Bandung", "note": ""}, {"orderSn": "260927C036", "date": "27/09/2026 09:36", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 36", "items": "Produk Baru 36", "sku": "BG-NEW-036", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000036", "city": "Bandung", "note": ""}, {"orderSn": "260927C037", "date": "27/09/2026 09:37", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 37", "items": "Produk Baru 37", "sku": "BG-NEW-037", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000037", "city": "Bandung", "note": ""}, {"orderSn": "260927C038", "date": "27/09/2026 09:38", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 38", "items": "Produk Baru 38", "sku": "BG-NEW-038", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000038", "city": "Bandung", "note": ""}, {"orderSn": "260927C039", "date": "27/09/2026 09:39", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 39", "items": "Produk Baru 39", "sku": "BG-NEW-039", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000039", "city": "Bandung", "note": ""}, {"orderSn": "260927C040", "date": "27/09/2026 09:40", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 40", "items": "Produk Baru 40", "sku": "BG-NEW-040", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000040", "city": "Bandung", "note": ""}, {"orderSn": "260927C041", "date": "27/09/2026 09:41", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 41", "items": "Produk Baru 41", "sku": "BG-NEW-041", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000041", "city": "Bandung", "note": ""}, {"orderSn": "260927C042", "date": "27/09/2026 09:42", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 42", "items": "Produk Baru 42", "sku": "BG-NEW-042", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000042", "city": "Bandung", "note": ""}, {"orderSn": "260927C043", "date": "27/09/2026 09:43", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 43", "items": "Produk Baru 43", "sku": "BG-NEW-043", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000043", "city": "Bandung", "note": ""}, {"orderSn": "260927C044", "date": "27/09/2026 09:44", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 44", "items": "Produk Baru 44", "sku": "BG-NEW-044", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000044", "city": "Bandung", "note": ""}, {"orderSn": "260927C045", "date": "27/09/2026 09:45", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 45", "items": "Produk Baru 45", "sku": "BG-NEW-045", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000045", "city": "Bandung", "note": ""}, {"orderSn": "260927C046", "date": "27/09/2026 09:46", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 46", "items": "Produk Baru 46", "sku": "BG-NEW-046", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000046", "city": "Bandung", "note": ""}, {"orderSn": "260927C047", "date": "27/09/2026 09:47", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 47", "items": "Produk Baru 47", "sku": "BG-NEW-047", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000047", "city": "Bandung", "note": ""}, {"orderSn": "260927C048", "date": "27/09/2026 09:48", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 48", "items": "Produk Baru 48", "sku": "BG-NEW-048", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000048", "city": "Bandung", "note": ""}, {"orderSn": "260927C049", "date": "27/09/2026 09:49", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 49", "items": "Produk Baru 49", "sku": "BG-NEW-049", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000049", "city": "Bandung", "note": ""}, {"orderSn": "260927C050", "date": "27/09/2026 09:50", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 50", "items": "Produk Baru 50", "sku": "BG-NEW-050", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000050", "city": "Bandung", "note": ""}, {"orderSn": "260927C051", "date": "27/09/2026 09:51", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 51", "items": "Produk Baru 51", "sku": "BG-NEW-051", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000051", "city": "Bandung", "note": ""}, {"orderSn": "260927C052", "date": "27/09/2026 09:52", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 52", "items": "Produk Baru 52", "sku": "BG-NEW-052", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000052", "city": "Bandung", "note": ""}, {"orderSn": "260927C053", "date": "27/09/2026 09:53", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 53", "items": "Produk Baru 53", "sku": "BG-NEW-053", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000053", "city": "Bandung", "note": ""}, {"orderSn": "260927C054", "date": "27/09/2026 09:54", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 54", "items": "Produk Baru 54", "sku": "BG-NEW-054", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000054", "city": "Bandung", "note": ""}, {"orderSn": "260927C055", "date": "27/09/2026 09:55", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 55", "items": "Produk Baru 55", "sku": "BG-NEW-055", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000055", "city": "Bandung", "note": ""}, {"orderSn": "260927C056", "date": "27/09/2026 09:56", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 56", "items": "Produk Baru 56", "sku": "BG-NEW-056", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000056", "city": "Bandung", "note": ""}, {"orderSn": "260927C057", "date": "27/09/2026 09:57", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 57", "items": "Produk Baru 57", "sku": "BG-NEW-057", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000057", "city": "Bandung", "note": ""}, {"orderSn": "260927C058", "date": "27/09/2026 09:58", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 58", "items": "Produk Baru 58", "sku": "BG-NEW-058", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000058", "city": "Bandung", "note": ""}, {"orderSn": "260927C059", "date": "27/09/2026 09:59", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 59", "items": "Produk Baru 59", "sku": "BG-NEW-059", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000059", "city": "Bandung", "note": ""}, {"orderSn": "260927C060", "date": "27/09/2026 09:00", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 60", "items": "Produk Baru 60", "sku": "BG-NEW-060", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000060", "city": "Bandung", "note": ""}, {"orderSn": "260927C061", "date": "27/09/2026 09:01", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 61", "items": "Produk Baru 61", "sku": "BG-NEW-061", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000061", "city": "Bandung", "note": ""}, {"orderSn": "260927C062", "date": "27/09/2026 09:02", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 62", "items": "Produk Baru 62", "sku": "BG-NEW-062", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000062", "city": "Bandung", "note": ""}, {"orderSn": "260927C063", "date": "27/09/2026 09:03", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 63", "items": "Produk Baru 63", "sku": "BG-NEW-063", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000063", "city": "Bandung", "note": ""}, {"orderSn": "260927C064", "date": "27/09/2026 09:04", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 64", "items": "Produk Baru 64", "sku": "BG-NEW-064", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000064", "city": "Bandung", "note": ""}, {"orderSn": "260927C065", "date": "27/09/2026 09:05", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 65", "items": "Produk Baru 65", "sku": "BG-NEW-065", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000065", "city": "Bandung", "note": ""}, {"orderSn": "260927C066", "date": "27/09/2026 09:06", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 66", "items": "Produk Baru 66", "sku": "BG-NEW-066", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000066", "city": "Bandung", "note": ""}, {"orderSn": "260927C067", "date": "27/09/2026 09:07", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 67", "items": "Produk Baru 67", "sku": "BG-NEW-067", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000067", "city": "Bandung", "note": ""}, {"orderSn": "260927C068", "date": "27/09/2026 09:08", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 68", "items": "Produk Baru 68", "sku": "BG-NEW-068", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000068", "city": "Bandung", "note": ""}, {"orderSn": "260927C069", "date": "27/09/2026 09:09", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 69", "items": "Produk Baru 69", "sku": "BG-NEW-069", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000069", "city": "Bandung", "note": ""}, {"orderSn": "260927C070", "date": "27/09/2026 09:10", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 70", "items": "Produk Baru 70", "sku": "BG-NEW-070", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000070", "city": "Bandung", "note": ""}, {"orderSn": "260927C071", "date": "27/09/2026 09:11", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 71", "items": "Produk Baru 71", "sku": "BG-NEW-071", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000071", "city": "Bandung", "note": ""}, {"orderSn": "260927C072", "date": "27/09/2026 09:12", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 72", "items": "Produk Baru 72", "sku": "BG-NEW-072", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000072", "city": "Bandung", "note": ""}, {"orderSn": "260927C073", "date": "27/09/2026 09:13", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 73", "items": "Produk Baru 73", "sku": "BG-NEW-073", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000073", "city": "Bandung", "note": ""}, {"orderSn": "260927C074", "date": "27/09/2026 09:14", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 74", "items": "Produk Baru 74", "sku": "BG-NEW-074", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000074", "city": "Bandung", "note": ""}, {"orderSn": "260927C075", "date": "27/09/2026 09:15", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 75", "items": "Produk Baru 75", "sku": "BG-NEW-075", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000075", "city": "Bandung", "note": ""}, {"orderSn": "260927C076", "date": "27/09/2026 09:16", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 76", "items": "Produk Baru 76", "sku": "BG-NEW-076", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000076", "city": "Bandung", "note": ""}, {"orderSn": "260927C077", "date": "27/09/2026 09:17", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 77", "items": "Produk Baru 77", "sku": "BG-NEW-077", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000077", "city": "Bandung", "note": ""}, {"orderSn": "260927C078", "date": "27/09/2026 09:18", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 78", "items": "Produk Baru 78", "sku": "BG-NEW-078", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000078", "city": "Bandung", "note": ""}, {"orderSn": "260927C079", "date": "27/09/2026 09:19", "shopeeStatus": "COMPLETED", "internalStatus": "[4] Selesai", "buyer": "Pembeli Baru 79", "items": "Produk Baru 79", "sku": "BG-NEW-079", "variation": "Standar", "qty": 1, "totalAmount": 120000, "shippingFee": 10000, "courier": "SPX Express", "resi": "SPXID0008000079", "city": "Bandung", "note": ""}];
       /* Tiruan untuk layar pembagian jahit. Pcs, upah, dan targetnya saling
@@ -3289,7 +3392,17 @@
             'toko tidur manis': 'TM',
             'BGD': 'BG',
             'BGD2': 'TM'
-          }
+          },
+          variasiWarna: [
+            'Hitam',
+            'Putih',
+            'Maroon',
+            'Mocca',
+            'Lilac',
+            'Sage Green',
+            'Navy',
+            'Abu'
+          ]
         },
         rekap: {
           cakupan: '',
@@ -3470,6 +3583,7 @@
                 /* Meniru aksi tutup sesi: bagi pekerjaan, isi harga yang kosong,
                    lalu simpan hasilnya. Angkanya sengaja tidak nol supaya pesannya
                    benar-benar terbaca di halaman. */
+                if (PEMBAGIAN && PEMBAGIAN.rekap) PEMBAGIAN.rekap.unit = [];
                 res = { berhasil: true, tanggal: b || '2026-09-27', sesi: c || 'SIANG',
                         ditambah: 4, dilewati: 1, pcsBaruDibagi: 5, hargaDiselaraskan: 2,
                         belumBerpemilik: 1, pcsAntrian: 9,
@@ -3492,6 +3606,48 @@
                 PEMBAGIAN.setelan.kodeToko = peta;
                 res = { berhasil: true, jumlah: Object.keys(peta).length, peta: peta,
                         pesan: Object.keys(peta).length + ' kode toko cetak disimpan (pratinjau lokal).' };
+              } else if (prop === 'ubahPenjahitPembagianDashboard') {
+                var info = b || {};
+                var pBaru = String(info.penjahitBaru || '').trim().toUpperCase();
+                var vBaru = String(info.variasiBaru !== undefined ? info.variasiBaru : '').trim();
+                var adaV = info.variasiBaru !== undefined && vBaru !== '';
+                var adaP = info.penjahitBaru !== undefined && pBaru !== '';
+                if (PEMBAGIAN && PEMBAGIAN.rekap && Array.isArray(PEMBAGIAN.rekap.unit)) {
+                  PEMBAGIAN.rekap.unit.forEach(function(u) {
+                    if (u.noPesanan === info.noPesanan && u.sku === info.sku) {
+                      if (adaP) u.penjahit = pBaru;
+                      if (adaV) u.variasi = vBaru;
+                    }
+                  });
+                }
+                if (adaV && ESTIMASI && Array.isArray(ESTIMASI.penjahit)) {
+                  ESTIMASI.penjahit.forEach(function(ep) {
+                    (ep.items || []).forEach(function(it) {
+                      if (it.sku === info.sku && (!it.noPesanan || it.noPesanan === info.noPesanan)) {
+                        it.variasi = vBaru;
+                      }
+                    });
+                  });
+                }
+                var pesanMock = adaV && adaP
+                  ? 'Variasi (' + vBaru + ') & penjahit (' + pBaru + ') pesanan ' + (info.noPesanan || '-') + ' disimpan (pratinjau lokal).'
+                  : (adaV
+                    ? 'Variasi pesanan ' + (info.noPesanan || '-') + ' disimpan menjadi ' + vBaru + ' (pratinjau lokal).'
+                    : 'Penjahit pesanan ' + (info.noPesanan || '-') + ' disimpan menjadi ' + pBaru + ' (pratinjau lokal).');
+                res = { berhasil: true, hasil: { berubah: true, noPesanan: info.noPesanan, sku: info.sku, penjahitBaru: pBaru, variasiBaru: vBaru }, pesan: pesanMock };
+              } else if (prop === 'bersihkanPembagianDashboard') {
+                var jmlBagi = (PEMBAGIAN && PEMBAGIAN.rekap && PEMBAGIAN.rekap.unit) ? PEMBAGIAN.rekap.unit.filter(function(u){ return u.penjahit; }).length : 0;
+                if (PEMBAGIAN && PEMBAGIAN.rekap) {
+                  PEMBAGIAN.rekap.pcsTerbagi = 0;
+                  PEMBAGIAN.rekap.belumDibagi = PEMBAGIAN.rekap.unitAntrian;
+                  (PEMBAGIAN.rekap.perPenjahit || []).forEach(function(p){ p.pcs = 0; p.jumlahOrder = 0; p.upah = 0; p.selisih = -(p.target || 0); });
+                  (PEMBAGIAN.rekap.unit || []).forEach(function(u){ u.penjahit = ''; });
+                }
+                res = { berhasil: true, barisBagiDihapus: jmlBagi, barisProduksiDihapus: 0, pesan: 'Data berhasil dikosongkan: ' + jmlBagi + ' baris PEMBAGIAN JAHIT dihapus (pratinjau lokal).' };
+              } else if (prop === 'simpanRentangHariSyncDashboard') {
+                var h = Math.min(365, Math.max(1, parseInt(b, 10) || 3));
+                MOCK.config.DEFAULT_SYNC_DAYS = String(h);
+                res = { berhasil: true, success: true, days: h, message: 'Rentang penarikan pesanan disimpan: ' + h + ' hari (pratinjau lokal).' };
               } else if (prop === 'getProduksiRingkasan') {
                 res = JSON.parse(JSON.stringify(ESTIMASI));
                 /* Meniru pemotongan nominal upah yang dilakukan server. */
@@ -3770,6 +3926,7 @@
        dicoba, lalu formulir kode dan sandi. Yang menentukan sah atau tidaknya
        selalu server, bukan peramban. */
     function mulaiAplikasi_() {
+      terapkanRentangHariSync_(rentangHariSyncTersimpan_());
       try {
         sesiToken = sessionStorage.getItem(SESI_KUNCI) || '';
       } catch (e) {
@@ -4237,6 +4394,7 @@
       /* 5. token & configuration tab */
       renderTokoTable(data.tokoList || []);
       setText('info-vercel-url', (data.config && data.config.VERCEL_MIDDLEWARE_URL) || 'https://shopee-middleware-erp.vercel.app');
+      terapkanRentangHariSync_((data.config && data.config.DEFAULT_SYNC_DAYS) || rentangHariSyncTersimpan_());
 
       /* 5. courier filter options */
       const courierSelect = document.getElementById('filter-courier');
@@ -5364,6 +5522,20 @@
           ' · rata-rata ' + teksUangBagi_(total.rataUpah) + ' per penjahit'
         : 'Dihitung dari pekerjaan yang masih menunggu, nominal upah tidak ditampilkan di perangkat ini');
 
+      const estimasi = (payload && payload.estimasiHariIni) || null;
+      const pagiSudahTutup = Boolean(
+        estimasi && estimasi.sesi && estimasi.sesi.PAGI &&
+        (Number(estimasi.sesi.PAGI.waktuJahit) > 0 || Number(estimasi.sesi.PAGI.upah) > 0 || Number(estimasi.sesi.PAGI.pcs) > 0)
+      );
+      const siangSudahTutup = Boolean(
+        estimasi && estimasi.sesi && estimasi.sesi.SIANG &&
+        (Number(estimasi.sesi.SIANG.waktuJahit) > 0 || Number(estimasi.sesi.SIANG.upah) > 0 || Number(estimasi.sesi.SIANG.pcs) > 0)
+      );
+      const elBagiSesi = document.getElementById('bagi-sesi');
+      if (elBagiSesi && pagiSudahTutup && !siangSudahTutup) {
+        elBagiSesi.value = 'SIANG';
+      }
+
       renderTabelPenjahitPembagian_(rekap.perPenjahit || []);
       renderKartuPenjahitPembagian_(payload);
       renderTabelRingkasPembagian_('pembagian-grup-tbody', (rekap.perGrup || []).map((g) => [
@@ -5539,11 +5711,56 @@
       }
     }
 
-    function kumpulkanDataKartu_(payload) {
+    function kunciItemProduksiKlien_(noPesanan, sku, variasi, penjahit) {
+      const p = String(noPesanan === null || noPesanan === undefined ? '' : noPesanan).trim().toLowerCase();
+      const s = String(sku === null || sku === undefined ? '' : sku).trim().toLowerCase();
+      const v = String(variasi === null || variasi === undefined ? '' : variasi).split(',')[0].trim().toLowerCase();
+      const n = String(penjahit === null || penjahit === undefined ? '' : penjahit).trim().toLowerCase();
+      return p + '|' + s + '|' + v + '|' + n;
+    }
+
+    function gabungItemSpk_(daftarItem) {
+      const peta = {};
+      const urutan = [];
+      (daftarItem || []).forEach((it) => {
+        const sesi = String(it.sesi || '').trim().toUpperCase();
+        const sku = String(it.sku || '').trim();
+        const variasi = String(it.variasi || '').trim();
+        const toko = String(it.toko || '').trim();
+        const kunci = sesi + '|' + sku.toUpperCase() + '|' + variasi.toUpperCase() + '|' + toko.toUpperCase();
+        const jml = Number(it.jumlah !== undefined ? it.jumlah : it.qty) || 1;
+        const wJahit = Number(it.waktuJahit) || 0;
+        const wPotong = Number(it.waktuPotong) || 0;
+        const upah = Number(it.upah !== undefined ? it.upah : (it.hargaTotal || it.harga)) || 0;
+        if (!peta[kunci]) {
+          peta[kunci] = {
+            sesi: it.sesi || '',
+            sku: sku,
+            variasi: variasi,
+            jumlah: jml,
+            waktuJahit: wJahit,
+            waktuPotong: wPotong,
+            upah: upah,
+            hargaSatuan: Number(it.hargaSatuan !== undefined ? it.hargaSatuan : it.harga) || 0,
+            noPesanan: it.noPesanan || '',
+            toko: toko
+          };
+          urutan.push(peta[kunci]);
+        } else {
+          peta[kunci].jumlah += jml;
+          peta[kunci].waktuJahit += wJahit;
+          peta[kunci].waktuPotong += wPotong;
+          peta[kunci].upah += upah;
+        }
+      });
+      return urutan;
+    }
+
+    function kumpulkanDataKartu_(payload, sesiDiminta) {
+      payload = sinkronkanPayloadKartuSpk_(payload, sesiDiminta);
       const estimasi = (payload && payload.estimasiHariIni) || null;
       const rekap = (payload && payload.rekap) || null;
       const setelan = (payload && payload.setelan) || null;
-
       let totalUpah = (estimasi && estimasi.total && Number(estimasi.total.upah)) || 0;
       let totalWaktuJahit = (estimasi && estimasi.total && Number(estimasi.total.waktuJahit)) || 0;
 
@@ -5617,62 +5834,139 @@
               }
               entry.sesi[s].items.push(it);
             });
+            entry.sesi.PAGI.items = gabungItemSpk_(entry.sesi.PAGI.items);
+            entry.sesi.SIANG.items = gabungItemSpk_(entry.sesi.SIANG.items);
           }
         });
       }
 
       const hasEstimasi = (totalWaktuJahit > 0 || totalUpah > 0);
-      if (!hasEstimasi && rekap && rekap.perPenjahit && rekap.perPenjahit.length > 0) {
-        const currentShift = (new Date().getHours() < 13) ? 'PAGI' : 'SIANG';
-        const rekapTotal = rekap.total || {};
-        totalUpah = Number(rekapTotal.upah) || 0;
-        totalWaktuJahit = Number(rekapTotal.waktuJahit) || 0;
+      const kunciSesiEstimasi = (estimasi && estimasi.kunciSesi) || {};
 
-        if (currentShift === 'PAGI') {
-          sesiPagi.upah = totalUpah;
-          sesiPagi.waktuJahit = totalWaktuJahit;
-          sesiPagi.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
-        } else {
-          sesiSiang.upah = totalUpah;
-          sesiSiang.waktuJahit = totalWaktuJahit;
-          sesiSiang.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
-        }
+      if (rekap && rekap.perPenjahit && rekap.perPenjahit.length > 0) {
+        const elSesi = document.getElementById('bagi-sesi');
+        const nilaiSesi = (sesiDiminta === 'PAGI' || sesiDiminta === 'SIANG') ? sesiDiminta : ((elSesi && (elSesi.value === 'PAGI' || elSesi.value === 'SIANG')) ? elSesi.value : '');
+        const pagiAdaData = (sesiPagi.waktuJahit > 0 || sesiPagi.upah > 0);
+        const currentShift = nilaiSesi || (pagiAdaData ? 'SIANG' : ((new Date().getHours() < 13) ? 'PAGI' : 'SIANG'));
 
-        rekap.perPenjahit.forEach((p) => {
-          const nama = String(p.nama || '').trim().toUpperCase();
-          if (!nama) return;
-          if (!penjahitMap[nama]) {
-            penjahitMap[nama] = {
-              nama: nama,
-              grup: p.grup || '',
-              upah: 0,
-              waktuJahit: 0,
-              sesi: {
-                PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] },
-                SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] }
-              }
-            };
+        if (!hasEstimasi) {
+          const rekapTotal = rekap.total || {};
+          totalUpah = Number(rekapTotal.upah) || 0;
+          totalWaktuJahit = Number(rekapTotal.waktuJahit) || 0;
+
+          if (currentShift === 'PAGI') {
+            sesiPagi.upah = totalUpah;
+            sesiPagi.waktuJahit = totalWaktuJahit;
+            sesiPagi.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
+          } else {
+            sesiSiang.upah = totalUpah;
+            sesiSiang.waktuJahit = totalWaktuJahit;
+            sesiSiang.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
           }
-          const entry = penjahitMap[nama];
-          entry.upah = Number(p.upah) || 0;
-          entry.waktuJahit = Number(p.waktuJahit) || 0;
-          const targetSesi = entry.sesi[currentShift];
-          targetSesi.upah = Number(p.upah) || 0;
-          targetSesi.waktuJahit = Number(p.waktuJahit) || 0;
-          targetSesi.waktuPotong = Number(p.waktuPotong) || 0;
-          targetSesi.items = (p.items || []).map((it) => ({
-            sesi: currentShift,
-            sku: it.sku || '',
-            variasi: it.variasi || '',
-            jumlah: Number(it.qty) || 1,
-            waktuJahit: Number(it.waktuJahit) || 0,
-            waktuPotong: Number(it.waktuPotong) || 0,
-            upah: Number(it.hargaTotal || it.harga) || 0,
-            hargaSatuan: Number(it.harga) || 0,
-            noPesanan: it.noPesanan || '',
-            toko: it.toko || cariTokoItem_(it, payload) || ''
-          }));
-        });
+
+          rekap.perPenjahit.forEach((p) => {
+            const nama = String(p.nama || '').trim().toUpperCase();
+            if (!nama) return;
+            if (!penjahitMap[nama]) {
+              penjahitMap[nama] = {
+                nama: nama,
+                grup: p.grup || '',
+                upah: 0,
+                waktuJahit: 0,
+                sesi: {
+                  PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] },
+                  SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] }
+                }
+              };
+            }
+            const entry = penjahitMap[nama];
+            entry.upah = Number(p.upah) || 0;
+            entry.waktuJahit = Number(p.waktuJahit) || 0;
+            const targetSesi = entry.sesi[currentShift];
+            targetSesi.upah = Number(p.upah) || 0;
+            targetSesi.waktuJahit = Number(p.waktuJahit) || 0;
+            targetSesi.waktuPotong = Number(p.waktuPotong) || 0;
+            targetSesi.items = gabungItemSpk_((p.items || []).map((it) => ({
+              sesi: currentShift,
+              sku: it.sku || '',
+              variasi: it.variasi || '',
+              jumlah: Number(it.qty) || 1,
+              waktuJahit: Number(it.waktuJahit) || 0,
+              waktuPotong: Number(it.waktuPotong) || 0,
+              upah: Number(it.hargaTotal || it.harga) || 0,
+              hargaSatuan: Number(it.harga) || 0,
+              noPesanan: it.noPesanan || '',
+              toko: it.toko || cariTokoItem_(it, payload) || ''
+            })));
+          });
+        } else {
+          /* Sesi Pagi sudah ditutup ke DATA JAHIT, namun ada pesanan baru yang
+             dibagi untuk sesi berikutnya dan belum ditutup ke DATA JAHIT. */
+          rekap.perPenjahit.forEach((p) => {
+            const nama = String(p.nama || '').trim().toUpperCase();
+            if (!nama) return;
+            const itemBaru = (p.items || []).filter((it) => {
+              const k = kunciItemProduksiKlien_(it.noPesanan, it.sku, it.variasi, nama);
+              return !kunciSesiEstimasi[k];
+            });
+            if (!itemBaru.length) return;
+
+            if (!penjahitMap[nama]) {
+              penjahitMap[nama] = {
+                nama: nama,
+                grup: p.grup || '',
+                upah: 0,
+                waktuJahit: 0,
+                sesi: {
+                  PAGI: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] },
+                  SIANG: { upah: 0, waktuJahit: 0, waktuPotong: 0, items: [] }
+                }
+              };
+            }
+            const entry = penjahitMap[nama];
+            const targetSesi = entry.sesi[currentShift];
+            const mappedBaru = itemBaru.map((it) => ({
+              sesi: currentShift,
+              sku: it.sku || '',
+              variasi: it.variasi || '',
+              jumlah: Number(it.qty) || 1,
+              waktuJahit: Number(it.waktuJahit) || 0,
+              waktuPotong: Number(it.waktuPotong) || 0,
+              upah: Number(it.hargaTotal || it.harga) || 0,
+              hargaSatuan: Number(it.harga) || 0,
+              noPesanan: it.noPesanan || '',
+              toko: it.toko || cariTokoItem_(it, payload) || ''
+            }));
+
+            let tambahUpah = 0;
+            let tambahJahit = 0;
+            let tambahPotong = 0;
+            mappedBaru.forEach((m) => {
+              tambahUpah += m.upah;
+              tambahJahit += m.waktuJahit;
+              tambahPotong += m.waktuPotong;
+            });
+
+            entry.upah += tambahUpah;
+            entry.waktuJahit += tambahJahit;
+            targetSesi.upah += tambahUpah;
+            targetSesi.waktuJahit += tambahJahit;
+            targetSesi.waktuPotong += tambahPotong;
+            targetSesi.items = gabungItemSpk_(targetSesi.items.concat(mappedBaru));
+
+            totalUpah += tambahUpah;
+            totalWaktuJahit += tambahJahit;
+            if (currentShift === 'PAGI') {
+              sesiPagi.upah += tambahUpah;
+              sesiPagi.waktuJahit += tambahJahit;
+              sesiPagi.waktuPotong += tambahPotong;
+            } else {
+              sesiSiang.upah += tambahUpah;
+              sesiSiang.waktuJahit += tambahJahit;
+              sesiSiang.waktuPotong += tambahPotong;
+            }
+          });
+        }
       }
 
       return {
@@ -5772,22 +6066,7 @@
       }).join('');
     }
 
-    function unduhSpkPenjahitPdf(namaPenjahit, sesi) {
-      const data = kumpulkanDataKartu_(pembagianTerakhir);
-      const penjahitData = (data.penjahit || []).find((p) => p.nama === namaPenjahit);
-      const sesiData = (penjahitData && penjahitData.sesi && penjahitData.sesi[sesi]) || { items: [] };
-
-      const tanggal = (pembagianTerakhir && pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal)
-        || tanggalHariIni_();
-
-      let totalPcs = 0;
-      (sesiData.items || []).forEach((it) => {
-        totalPcs += Number(it.jumlah || it.qty) || 0;
-        if (!it.toko) {
-          it.toko = cariTokoItem_(it, pembagianTerakhir);
-        }
-      });
-
+    function bangunPetaKodeToko_() {
       const kodeTokoMap = {};
       (dataSetelanToko_ || []).forEach((t) => {
         if (t.toko && t.kode) kodeTokoMap[t.toko] = t.kode;
@@ -5804,6 +6083,26 @@
           }
         }
       }
+      return kodeTokoMap;
+    }
+
+    function unduhSpkPenjahitPdf(namaPenjahit, sesi) {
+      const data = kumpulkanDataKartu_(pembagianTerakhir, sesi);
+      const penjahitData = (data.penjahit || []).find((p) => p.nama === namaPenjahit);
+      const sesiData = (penjahitData && penjahitData.sesi && penjahitData.sesi[sesi]) || { items: [] };
+
+      const tanggal = (pembagianTerakhir && pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal)
+        || tanggalHariIni_();
+
+      let totalPcs = 0;
+      (sesiData.items || []).forEach((it) => {
+        totalPcs += Number(it.jumlah || it.qty) || 0;
+        if (!it.toko) {
+          it.toko = cariTokoItem_(it, pembagianTerakhir);
+        }
+      });
+
+      const kodeTokoMap = bangunPetaKodeToko_();
 
       const info = {
         nama: namaPenjahit,
@@ -5813,7 +6112,7 @@
         estimasiJahit: formatMenitJam_(sesiData.waktuJahit),
         estimasiPotong: formatEstimasiPotong_(sesiData.waktuPotong),
         kodeTokoMap: kodeTokoMap,
-        items: sesiData.items || []
+        items: gabungItemSpk_(sesiData.items || [])
       };
 
       showToast('Menyiapkan SPK Penjahit ' + namaPenjahit + ' (' + sesi + ')...', 'loading');
@@ -5822,6 +6121,52 @@
         const filename = 'SPK_' + namaPenjahit + '_' + sesi + '_' + pdfKit.yyyymmdd(new Date());
         const savedName = pdfKit.simpan(doc, filename);
         showToast('SPK PDF siap: ' + savedName, 'success');
+      });
+    }
+
+    function unduhSemuaSpkPenjahitPdf(sesi) {
+      const targetSesi = (sesi === 'SIANG') ? 'SIANG' : 'PAGI';
+      const data = kumpulkanDataKartu_(pembagianTerakhir, targetSesi);
+      const semuaPenjahit = data.penjahit || [];
+      if (!semuaPenjahit.length) {
+        showToast('Belum ada data penjahit untuk dicetak.', 'error');
+        return;
+      }
+
+      const tanggal = (pembagianTerakhir && pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal)
+        || tanggalHariIni_();
+      const kodeTokoMap = bangunPetaKodeToko_();
+
+      const aktifSesi = semuaPenjahit.filter((p) => p.sesi && p.sesi[targetSesi] && (p.sesi[targetSesi].items || []).length > 0);
+      const sumberPenjahit = aktifSesi.length > 0 ? aktifSesi : semuaPenjahit;
+
+      const daftarInfo = sumberPenjahit.map((p) => {
+        const sesiData = (p.sesi && p.sesi[targetSesi]) || { items: [], waktuJahit: 0, waktuPotong: 0 };
+        let totalPcs = 0;
+        (sesiData.items || []).forEach((it) => {
+          totalPcs += Number(it.jumlah || it.qty) || 0;
+          if (!it.toko) {
+            it.toko = cariTokoItem_(it, pembagianTerakhir);
+          }
+        });
+        return {
+          nama: p.nama,
+          sesi: targetSesi,
+          tanggal: tanggal,
+          totalPcs: totalPcs,
+          estimasiJahit: formatMenitJam_(sesiData.waktuJahit),
+          estimasiPotong: formatEstimasiPotong_(sesiData.waktuPotong),
+          kodeTokoMap: kodeTokoMap,
+          items: gabungItemSpk_(sesiData.items || [])
+        };
+      });
+
+      showToast('Menyiapkan ' + daftarInfo.length + ' SPK A6 (' + targetSesi + ')...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildBatchSpkPenjahitPdf(JsPDF, daftarInfo);
+        const filename = 'SPK_SEMUA_' + targetSesi + '_' + pdfKit.yyyymmdd(new Date());
+        const savedName = pdfKit.simpan(doc, filename);
+        showToast(daftarInfo.length + ' SPK PDF (' + targetSesi + ') siap: ' + savedName, 'success');
       });
     }
 
@@ -5881,26 +6226,26 @@
 
       if (!unit.length) {
         tbody.innerHTML = '<tr><td colspan="8"><div class="state">' +
-          '<div class="state-title">Belum ada pembagian</div>' +
-          '<p class="state-note">Tekan Tutup sesi &amp; simpan hasil untuk membagi pesanan menunggu pickup kepada penjahit.</p>' +
+          '<div class="state-title">' + judulKosongUnitPembagian_() + '</div>' +
+          '<p class="state-note">' + catatanKosongUnitPembagian_() + '</p>' +
           '</div></td></tr>';
         setText('pembagian-unit-note', 'Menampilkan 0 baris');
         return;
       }
 
-      const batas = 100;
+      const batas = 100; unitSiapPesananBaru_ = false; unitPembagianTampil_ = []; pilihanPenjahitUnit_ = {}; pilihanVariasiUnit_ = {};
       const qtyTampil = unit.slice(0, batas).reduce((n, u) => n + (Number(u.qty) || 1), 0);
       setText('pembagian-unit-note', unit.length > batas
         ? 'Menampilkan ' + batas + ' dari ' + unit.length + ' baris (' + qtyTampil + ' pcs), sisanya ada di sheet PEMBAGIAN JAHIT'
         : 'Menampilkan ' + unit.length + ' baris, ' + qtyTampil + ' pcs');
 
-      tbody.innerHTML = unit.slice(0, batas).map((u) =>
+      tbody.innerHTML = unit.slice(0, batas).map((u, idx) =>
         '<tr>' +
           '<td class="num ledger-sn">' + esc(u.noPesanan || '-') + '</td>' +
           '<td>' + esc(u.sku || '-') + '</td>' +
-          '<td class="ledger-sub">' + esc(u.variasi || '-') + '</td>' +
+          '<td class="ledger-sub">' + selVariasiUnit_(u, idx) + '</td>' +
           '<td class="num" style="font-weight:700">' + angkaBagi_(u.qty || 1) + '</td>' +
-          '<td style="font-weight:600">' + esc(u.penjahit || '-') + '</td>' +
+          '<td style="font-weight:600">' + selPenjahitUnit_(u, idx) + '</td>' +
           '<td><span class="chip">' + esc(u.grup || '-') + '</span></td>' +
           '<td class="num ledger-money butuh-uang">' + teksUangBagi_(u.harga) + '</td>' +
           '<td class="num ledger-money butuh-uang" style="font-weight:700">' + teksUangBagi_(totalBaris(u)) + '</td>' +
@@ -6255,7 +6600,7 @@
           const jumlahPeringatan = (res && res.peringatan) ? res.peringatan.length : 0;
           showToast(((res && res.pesan) ? res.pesan : 'Pembagian selesai.') +
             (jumlahPeringatan ? ' ' + jumlahPeringatan + ' hal perlu diperiksa.' : ''));
-          muatPembagianJahit();
+          tandaiSiapBagiPesananBaru_(); muatPembagianJahit();
         })
         .withFailureHandler((err) => {
           if (tombol) tombol.disabled = false;
@@ -6297,7 +6642,7 @@
         tombol.disabled = true;
         tombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Menyimpan...';
       }
-      sembunyikanPeringatanPembagian_();
+      sembunyikanPeringatanPembagian_(); simpanPerubahanDropdownTertunda_();
       showToast('Menutup sesi jahit...', 'loading');
 
       const elSesi = document.getElementById('bagi-sesi');
@@ -6312,7 +6657,7 @@
           showToast((res && res.pesan) ? res.pesan : 'Sesi jahit ditutup.');
           /* Tabel hasil jahit dan antrian ikut disegarkan, karena keduanya
              berubah oleh aksi ini. */
-          muatPembagianJahit();
+          bersihkanTabelUnitSetelahTutupSesi_(); muatPembagianJahit();
           muatAntrianProduksi(true);
           if (estimasiProduksiData) muatEstimasiProduksi();
         })
@@ -6401,6 +6746,574 @@
           setText('pembagian-aturan-status', (err && err.message) ? err.message : String(err));
         })
         .simpanAturanDashboard(sesiToken, daftar);
+    }
+
+    function perbaruiInfoClearPembagian_() {
+      const elMode = document.getElementById('clear-pembagian-mode');
+      const mode = elMode ? String(elMode.value || 'TIDAK') : 'TIDAK';
+      const elSesi = document.getElementById('bagi-sesi');
+      const sesi = (elSesi && elSesi.value) ? String(elSesi.value) : sesiDefaultKlien_();
+      const cakupanTeks = namaCakupan_(scopedToko);
+
+      setText('pembagian-clear-cakupan', 'Cakupan: ' + cakupanTeks);
+      if (mode === 'SESI_INI') {
+        setText('clear-pembagian-info',
+          'Mengosongkan PEMBAGIAN JAHIT beserta hasil jahit di DATA JAHIT untuk sesi ' +
+          sesi + ' hari ini (' + tanggalHariIni_() + ') pada ' + cakupanTeks + '.');
+      } else if (mode === 'SEMUA') {
+        setText('clear-pembagian-info',
+          'Mengosongkan seluruh baris PEMBAGIAN JAHIT dan seluruh riwayat DATA JAHIT pada ' +
+          cakupanTeks + '. Pastikan rekap sudah dicadangkan bila diperlukan.');
+      } else {
+        setText('clear-pembagian-info',
+          'Hanya mengosongkan tabel PEMBAGIAN JAHIT pada ' + cakupanTeks +
+          ' agar pesanan dapat dibagi ulang. Riwayat upah di DATA JAHIT tetap aman.');
+      }
+    }
+
+    function bukaModalClearPembagian() {
+      const elMode = document.getElementById('clear-pembagian-mode');
+      if (elMode) elMode.value = 'TIDAK';
+      perbaruiInfoClearPembagian_();
+      openModal('pembagian-clear-modal');
+    }
+
+    function tutupModalClearPembagian() {
+      closeModal('pembagian-clear-modal');
+    }
+
+    function jalankanClearPembagianAction() {
+      const tombol = document.getElementById('btn-konfirmasi-clear-pembagian');
+      const isiAwal = tombol ? tombol.innerHTML : '';
+      if (tombol) {
+        tombol.disabled = true;
+        tombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Mengosongkan...';
+      }
+
+      const elMode = document.getElementById('clear-pembagian-mode');
+      const hapusProduksi = elMode ? String(elMode.value || 'TIDAK') : 'TIDAK';
+      const elSesi = document.getElementById('bagi-sesi');
+      const sesi = (elSesi && elSesi.value) ? String(elSesi.value) : sesiDefaultKlien_();
+
+      sembunyikanPeringatanPembagian_();
+      showToast('Mengosongkan data pembagian jahit…', 'loading');
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (tombol) {
+            tombol.disabled = false;
+            tombol.innerHTML = isiAwal;
+          }
+          tutupModalClearPembagian();
+          showToast((res && res.pesan) ? res.pesan : 'Data pembagian jahit berhasil dikosongkan.');
+          muatPembagianJahit();
+          if (hapusProduksi !== 'TIDAK') {
+            muatAntrianProduksi(true);
+            if (estimasiProduksiData) muatEstimasiProduksi();
+          }
+        })
+        .withFailureHandler((err) => {
+          if (tombol) {
+            tombol.disabled = false;
+            tombol.innerHTML = isiAwal;
+          }
+          hideToast();
+          if (tanganiGalatRpc_(err)) return;
+          tampilkanPeringatanPembagian_((err && err.message) ? err.message : String(err));
+        })
+        .bersihkanPembagianDashboard(sesiToken, {
+          toko: scopedToko,
+          hapusProduksi: hapusProduksi,
+          tanggal: tanggalHariIni_(),
+          sesi: sesi
+        });
+    }
+
+    let unitPembagianTampil_ = [];
+    let pilihanPenjahitUnit_ = {};
+    let pilihanVariasiUnit_ = {};
+
+    function daftarVariasiWarnaUntukUnit_(variasiSaatIni) {
+      const sumberSheet = (pembagianTerakhir && pembagianTerakhir.setelan && Array.isArray(pembagianTerakhir.setelan.variasiWarna))
+        ? pembagianTerakhir.setelan.variasiWarna
+        : [];
+      const sumberUnit = (pembagianTerakhir && pembagianTerakhir.rekap && Array.isArray(pembagianTerakhir.rekap.unit))
+        ? pembagianTerakhir.rekap.unit
+        : [];
+
+      const unik = [];
+      const sudah = {};
+      function tambahWarna(nama) {
+        const bersih = String(nama || '').trim();
+        if (!bersih || bersih === '-') return;
+        const kunci = bersih.toLowerCase();
+        if (sudah[kunci]) return;
+        sudah[kunci] = true;
+        unik.push(bersih);
+      }
+
+      sumberSheet.forEach((w) => tambahWarna(w));
+      if (variasiSaatIni && variasiSaatIni !== '-') {
+        tambahWarna(variasiSaatIni);
+      }
+      if (unik.length === 0) {
+        sumberUnit.forEach((u) => {
+          if (u && u.variasi) tambahWarna(u.variasi);
+        });
+      }
+      return unik;
+    }
+
+    function selVariasiUnit_(u, idx) {
+      unitPembagianTampil_[idx] = u;
+      if (u && u.variasiAsal_ === undefined) {
+        u.variasiAsal_ = String(u.variasi || '').trim();
+      }
+      const saatIni = String((u && u.variasi) || '').trim();
+      pilihanVariasiUnit_[idx] = saatIni;
+
+      const peran = (sesiPengguna && sesiPengguna.peran) ? String(sesiPengguna.peran).toUpperCase() : '';
+      const hak = PERINGKAT_UI[peran] || 0;
+      if (peran !== '' && hak < 2) {
+        return esc(saatIni || '-');
+      }
+
+      const daftarWarna = daftarVariasiWarnaUntukUnit_(saatIni);
+      const kosong = !saatIni || saatIni === '-';
+      const opsiHtml = (kosong
+        ? '<option value="" selected>- Pilih variasi -</option>'
+        : '') +
+        daftarWarna.map((warna) =>
+          '<option value="' + esc(warna) + '"' +
+          (warna.toLowerCase() === saatIni.toLowerCase() ? ' selected' : '') + '>' +
+          esc(warna) + '</option>'
+        ).join('');
+
+      return '<div style="display:inline-flex; align-items:center; gap:6px;">' +
+        '<select class="field" style="min-height:28px; padding:2px 8px; min-width:118px;" ' +
+          'aria-label="Variasi warna untuk pesanan ' + esc((u && u.noPesanan) || '-') + '" ' +
+          'onchange="pilihVariasiUnit_(' + idx + ', this.value)">' +
+          opsiHtml +
+        '</select>' +
+        '<button type="button" class="btn btn-sm btn-icon btn-primary" ' +
+          'onclick="simpanVariasiUnitAction(' + idx + ', this)" ' +
+          'title="Simpan variasi warna untuk baris ini">' +
+          '<i class="fa-solid fa-check" aria-hidden="true"></i>' +
+          '<span class="sr-only">Simpan variasi</span>' +
+        '</button>' +
+      '</div>';
+    }
+
+    function pilihVariasiUnit_(idx, nilai) {
+      const bersih = String(nilai || '').trim();
+      pilihanVariasiUnit_[idx] = bersih;
+      const u = unitPembagianTampil_[idx];
+      if (u && bersih && bersih !== '-') {
+        if (u.variasiAsal_ === undefined) u.variasiAsal_ = String(u.variasi || '').trim();
+        u.variasi = bersih;
+      }
+    }
+
+    function daftarNamaPenjahitAktifUntukUnit_(penjahitSaatIni) {
+      const sumberSetelan = (pembagianTerakhir && pembagianTerakhir.setelan && Array.isArray(pembagianTerakhir.setelan.penjahit))
+        ? pembagianTerakhir.setelan.penjahit
+        : (Array.isArray(dataSetelanPenjahit_) ? dataSetelanPenjahit_ : []);
+      const sumberRekap = (pembagianTerakhir && pembagianTerakhir.rekap && Array.isArray(pembagianTerakhir.rekap.perPenjahit))
+        ? pembagianTerakhir.rekap.perPenjahit
+        : [];
+
+      const unik = [];
+      const sudah = {};
+      function tambah(nama) {
+        const bersih = String(nama || '').trim().toUpperCase();
+        if (!bersih || bersih === 'BELUM DISET' || sudah[bersih]) return;
+        sudah[bersih] = true;
+        unik.push(bersih);
+      }
+
+      sumberSetelan.forEach((p) => {
+        if (!p || String(p.aktif || 'YA').trim().toUpperCase() === 'TIDAK') return;
+        tambah(p.nama);
+      });
+      sumberRekap.forEach((p) => {
+        if (p && p.nama) tambah(p.nama);
+      });
+      if (penjahitSaatIni && penjahitSaatIni !== 'BELUM DISET') {
+        tambah(penjahitSaatIni);
+      }
+      return unik;
+    }
+
+    function selPenjahitUnit_(u, idx) {
+      unitPembagianTampil_[idx] = u;
+      if (u && u.penjahitAsal_ === undefined) {
+        u.penjahitAsal_ = String(u.penjahit || '').trim().toUpperCase();
+      }
+      const saatIni = String((u && u.penjahit) || '').trim().toUpperCase();
+      pilihanPenjahitUnit_[idx] = saatIni;
+
+      const peran = (sesiPengguna && sesiPengguna.peran) ? String(sesiPengguna.peran).toUpperCase() : '';
+      const hak = PERINGKAT_UI[peran] || 0;
+      if (peran !== '' && hak < 2) {
+        return esc((u && u.penjahit) || '-');
+      }
+
+      const daftarNama = daftarNamaPenjahitAktifUntukUnit_(saatIni);
+      const belumDiset = !saatIni || saatIni === 'BELUM DISET';
+      const opsiHtml = (belumDiset
+        ? '<option value="BELUM DISET" selected>BELUM DISET</option>'
+        : '') +
+        daftarNama.map((nama) =>
+          '<option value="' + esc(nama) + '"' + (nama === saatIni ? ' selected' : '') + '>' + esc(nama) + '</option>'
+        ).join('');
+
+      return '<div style="display:inline-flex; align-items:center; gap:6px;">' +
+        '<select class="field num" style="min-height:28px; padding:2px 8px; font-weight:600; min-width:118px;" ' +
+          'aria-label="Penjahit untuk pesanan ' + esc((u && u.noPesanan) || '-') + '" ' +
+          'onchange="pilihPenjahitUnit_(' + idx + ', this.value)">' +
+          opsiHtml +
+        '</select>' +
+        '<button type="button" class="btn btn-sm btn-icon btn-primary" ' +
+          'onclick="simpanPenjahitUnitAction(' + idx + ', this)" ' +
+          'title="Simpan penjahit untuk baris ini">' +
+          '<i class="fa-solid fa-check" aria-hidden="true"></i>' +
+          '<span class="sr-only">Simpan penjahit</span>' +
+        '</button>' +
+      '</div>';
+    }
+
+    function pilihPenjahitUnit_(idx, nilai) {
+      const bersih = String(nilai || '').trim().toUpperCase();
+      pilihanPenjahitUnit_[idx] = bersih;
+      const u = unitPembagianTampil_[idx];
+      if (u && bersih && bersih !== 'BELUM DISET') {
+        if (u.penjahitAsal_ === undefined) u.penjahitAsal_ = String(u.penjahit || '').trim().toUpperCase();
+        u.penjahit = bersih;
+      }
+    }
+
+    function sinkronkanPayloadKartuSpk_(payload, sesiDiminta) {
+      if (!payload || typeof payload !== 'object') return payload;
+      const rekap = payload.rekap || null;
+      const estimasi = payload.estimasiHariIni || null;
+      const daftarUnit = (rekap && Array.isArray(rekap.unit)) ? rekap.unit : [];
+
+      if (payload === pembagianTerakhir && daftarUnit.length > 0) {
+        for (let i = 0; i < daftarUnit.length; i++) {
+          const u = daftarUnit[i];
+          if (!u) continue;
+          if (u.variasiAsal_ === undefined) u.variasiAsal_ = String(u.variasi || '').trim();
+          if (u.penjahitAsal_ === undefined) u.penjahitAsal_ = String(u.penjahit || '').trim().toUpperCase();
+
+          const vPilih = pilihanVariasiUnit_[i];
+          if (vPilih !== undefined && String(vPilih).trim() !== '' && String(vPilih).trim() !== '-') {
+            u.variasi = String(vPilih).trim();
+          }
+          const pPilih = pilihanPenjahitUnit_[i];
+          if (pPilih !== undefined && String(pPilih).trim() !== '' && String(pPilih).trim() !== 'BELUM DISET') {
+            u.penjahit = String(pPilih).trim().toUpperCase();
+          }
+
+          if (sesiDiminta && !u.sedangSimpanOtomatis_) {
+            const ubahV = String(u.variasi || '').trim().toLowerCase() !== String(u.variasiAsal_ || '').trim().toLowerCase();
+            const ubahP = String(u.penjahit || '').trim().toUpperCase() !== String(u.penjahitAsal_ || '').trim().toUpperCase();
+            if ((ubahV || ubahP) && typeof google !== 'undefined' && google.script && google.script.run) {
+              u.sedangSimpanOtomatis_ = true;
+              const vAsalKirim = u.variasiAsal_ || u.variasi || '';
+              const pAsalKirim = u.penjahitAsal_ || u.penjahit || '';
+              const vBaruKirim = u.variasi || '';
+              const pBaruKirim = u.penjahit || '';
+              u.variasiAsal_ = vBaruKirim;
+              u.penjahitAsal_ = pBaruKirim;
+              google.script.run
+                .withSuccessHandler(() => { u.sedangSimpanOtomatis_ = false; })
+                .withFailureHandler(() => { u.sedangSimpanOtomatis_ = false; })
+                .ubahPenjahitPembagianDashboard(sesiToken, {
+                  noPesanan: u.noPesanan || '',
+                  sku: u.sku || '',
+                  variasi: vAsalKirim,
+                  variasiBaru: vBaruKirim,
+                  penjahitLama: pAsalKirim,
+                  penjahitBaru: pBaruKirim,
+                  barisSheet: u.barisSheet || 0
+                });
+            }
+          }
+        }
+      }
+
+      if (daftarUnit.length > 0 && rekap) {
+        const grupUnitPerPenjahit = {};
+        for (let i = 0; i < daftarUnit.length; i++) {
+          const u = daftarUnit[i];
+          if (!u) continue;
+          const namaU = String(u.penjahit || '').trim().toUpperCase();
+          if (!namaU) continue;
+          if (!grupUnitPerPenjahit[namaU]) grupUnitPerPenjahit[namaU] = [];
+          grupUnitPerPenjahit[namaU].push(u);
+        }
+
+        if (Array.isArray(rekap.perPenjahit)) {
+          rekap.perPenjahit.forEach((p) => {
+            if (!p) return;
+            const namaP = String(p.nama || '').trim().toUpperCase();
+            p.items = grupUnitPerPenjahit[namaP] ? grupUnitPerPenjahit[namaP].slice() : [];
+          });
+        }
+
+        if (estimasi && Array.isArray(estimasi.penjahit)) {
+          if (!estimasi.kunciSesi) estimasi.kunciSesi = {};
+          const kunciSesi = estimasi.kunciSesi;
+          const semuaKunciSesi = Object.keys(kunciSesi);
+
+          for (let i = 0; i < daftarUnit.length; i++) {
+            const u = daftarUnit[i];
+            if (!u) continue;
+            const kBaru = kunciItemProduksiKlien_(u.noPesanan, u.sku, u.variasi, u.penjahit);
+            const kLama = kunciItemProduksiKlien_(
+              u.noPesanan,
+              u.sku,
+              u.variasiAsal_ !== undefined ? u.variasiAsal_ : u.variasi,
+              u.penjahitAsal_ !== undefined ? u.penjahitAsal_ : u.penjahit
+            );
+            let sesiTemu = kunciSesi[kBaru] || kunciSesi[kLama] || '';
+            if (!sesiTemu && u.noPesanan && u.sku) {
+              const awalan = String(u.noPesanan).trim().toLowerCase() + '|' + String(u.sku).trim().toLowerCase() + '|';
+              for (let kIdx = 0; kIdx < semuaKunciSesi.length; kIdx++) {
+                if (semuaKunciSesi[kIdx].indexOf(awalan) === 0) {
+                  sesiTemu = kunciSesi[semuaKunciSesi[kIdx]];
+                  break;
+                }
+              }
+            }
+            if (sesiTemu) {
+              kunciSesi[kBaru] = sesiTemu;
+              u.sesiEstimasi_ = sesiTemu;
+            }
+          }
+
+          estimasi.penjahit.forEach((ep) => {
+            if (!ep || !Array.isArray(ep.items) || ep.items.length === 0) return;
+            const namaEp = String(ep.nama || '').trim().toUpperCase();
+            const unitMilik = grupUnitPerPenjahit[namaEp] || [];
+            const itemsBaru = [];
+
+            ep.items.forEach((it) => {
+              if (!it) return;
+              const skuIt = String(it.sku || '').trim().toUpperCase();
+              const sesiIt = (it.sesi === 'SIANG') ? 'SIANG' : 'PAGI';
+              const unitSkuCocok = unitMilik.filter((u) =>
+                String(u.sku || '').trim().toUpperCase() === skuIt &&
+                (!u.sesiEstimasi_ || u.sesiEstimasi_ === sesiIt)
+              );
+
+              if (unitSkuCocok.length > 1) {
+                unitSkuCocok.forEach((u) => {
+                  const jmlU = Number(u.qty) || 1;
+                  const kU = kunciItemProduksiKlien_(u.noPesanan, u.sku, u.variasi, namaEp);
+                  kunciSesi[kU] = sesiIt;
+                  itemsBaru.push({
+                    sesi: sesiIt,
+                    sku: u.sku || it.sku,
+                    variasi: u.variasi || it.variasi || '',
+                    jumlah: jmlU,
+                    waktuJahit: (Number(u.waktuJahit) || 0) * jmlU,
+                    waktuPotong: (Number(u.waktuPotong) || 0) * jmlU,
+                    upah: Number(u.hargaTotal || u.harga) || 0,
+                    hargaSatuan: Number(u.harga || it.hargaSatuan) || 0,
+                    noPesanan: u.noPesanan || it.noPesanan || '',
+                    toko: u.toko || it.toko || ''
+                  });
+                });
+                return;
+              }
+
+              if (unitSkuCocok.length === 1) {
+                const uSatu = unitSkuCocok[0];
+                it.variasi = uSatu.variasi || it.variasi;
+                const kSatu = kunciItemProduksiKlien_(uSatu.noPesanan, uSatu.sku, uSatu.variasi, namaEp);
+                kunciSesi[kSatu] = sesiIt;
+                itemsBaru.push(it);
+                return;
+              }
+
+              const uGlobal = daftarUnit.find((u) =>
+                u &&
+                String(u.sku || '').trim().toUpperCase() === skuIt &&
+                ((it.noPesanan && u.noPesanan && String(u.noPesanan).trim().toUpperCase() === String(it.noPesanan).trim().toUpperCase()) ||
+                  (u.variasiAsal_ && String(u.variasiAsal_).trim().toLowerCase() === String(it.variasi || '').trim().toLowerCase()))
+              );
+              if (uGlobal && uGlobal.variasi) {
+                it.variasi = uGlobal.variasi;
+              }
+              itemsBaru.push(it);
+            });
+
+            ep.items = itemsBaru;
+          });
+        }
+      }
+
+      return payload;
+    }
+
+    function kirimSimpanBarisUnit_(idx, tombol, dariVariasi) {
+      const u = unitPembagianTampil_[idx];
+      if (!u) return;
+
+      const variasiAsal = u.variasiAsal_ !== undefined
+        ? String(u.variasiAsal_).trim()
+        : String(u.variasi || '').trim();
+      const penjahitAsal = u.penjahitAsal_ !== undefined
+        ? String(u.penjahitAsal_).trim().toUpperCase()
+        : String(u.penjahit || '').trim().toUpperCase();
+
+      const variasiBaru = String(
+        pilihanVariasiUnit_[idx] !== undefined ? pilihanVariasiUnit_[idx] : (u.variasi || '')
+      ).trim();
+      const penjahitBaru = String(
+        pilihanPenjahitUnit_[idx] !== undefined ? pilihanPenjahitUnit_[idx] : (u.penjahit || '')
+      ).trim().toUpperCase();
+
+      if (dariVariasi) {
+        if (!variasiBaru || variasiBaru === '-') {
+          showToast('Pilih variasi warna terlebih dahulu.', 'error');
+          return;
+        }
+      } else {
+        if (!penjahitBaru || penjahitBaru === 'BELUM DISET') {
+          showToast('Pilih nama penjahit terlebih dahulu.', 'error');
+          return;
+        }
+      }
+
+      u.variasi = variasiBaru;
+      u.penjahit = penjahitBaru;
+      if (pembagianTerakhir) {
+        renderKartuPenjahitPembagian_(pembagianTerakhir);
+      }
+
+      const isiAwal = tombol ? tombol.innerHTML : '';
+      if (tombol) {
+        tombol.disabled = true;
+        tombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+      }
+
+      sembunyikanPeringatanPembagian_();
+      showToast(
+        dariVariasi
+          ? ('Menyimpan variasi ' + variasiBaru + ' untuk pesanan ' + (u.noPesanan || '-') + '…')
+          : ('Menyimpan penjahit ' + penjahitBaru + ' untuk pesanan ' + (u.noPesanan || '-') + '…'),
+        'loading'
+      );
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          u.variasiAsal_ = variasiBaru;
+          u.penjahitAsal_ = penjahitBaru;
+          if (tombol) {
+            tombol.disabled = false;
+            tombol.innerHTML = isiAwal;
+          }
+          showToast((res && res.pesan) ? res.pesan : 'Perubahan berhasil disimpan.');
+          muatPembagianJahit();
+        })
+        .withFailureHandler((err) => {
+          if (tombol) {
+            tombol.disabled = false;
+            tombol.innerHTML = isiAwal;
+          }
+          hideToast();
+          if (tanganiGalatRpc_(err)) return;
+          const pesan = (err && err.message) ? err.message : String(err);
+          showToast('Gagal menyimpan perubahan: ' + pesan, 'error');
+          tampilkanPeringatanPembagian_(pesan);
+        })
+        .ubahPenjahitPembagianDashboard(sesiToken, {
+          noPesanan: u.noPesanan || '',
+          sku: u.sku || '',
+          variasi: variasiAsal,
+          variasiBaru: variasiBaru,
+          penjahitLama: penjahitAsal,
+          penjahitBaru: penjahitBaru,
+          barisSheet: u.barisSheet || 0
+        });
+    }
+
+    function simpanVariasiUnitAction(idx, tombol) {
+      kirimSimpanBarisUnit_(idx, tombol, true);
+    }
+
+    function simpanPenjahitUnitAction(idx, tombol) {
+      kirimSimpanBarisUnit_(idx, tombol, false);
+    }
+
+    let unitSiapPesananBaru_ = false;
+
+    function tandaiSiapBagiPesananBaru_() {
+      unitSiapPesananBaru_ = false;
+    }
+
+    function sesiSudahDitutupHariIni_() {
+      if (unitSiapPesananBaru_) return true;
+      const est = pembagianTerakhir && pembagianTerakhir.estimasiHariIni;
+      return Boolean(est && est.total && Number(est.total.pcs) > 0);
+    }
+
+    function judulKosongUnitPembagian_() {
+      return sesiSudahDitutupHariIni_()
+        ? 'Sesi sudah ditutup — siap mengolah pesanan baru'
+        : 'Belum ada pembagian';
+    }
+
+    function catatanKosongUnitPembagian_() {
+      return sesiSudahDitutupHariIni_()
+        ? 'Hasil sesi sudah disimpan ke DATA JAHIT. Tarik pesanan baru lalu tekan Bagi pekerjaan sekarang untuk sesi berikutnya.'
+        : 'Tekan Tutup sesi &amp; simpan hasil untuk membagi pesanan menunggu pickup kepada penjahit.';
+    }
+
+    function bersihkanTabelUnitSetelahTutupSesi_() {
+      unitSiapPesananBaru_ = true;
+      unitPembagianTampil_ = [];
+      pilihanPenjahitUnit_ = {};
+      pilihanVariasiUnit_ = {};
+      if (pembagianTerakhir && pembagianTerakhir.rekap) {
+        pembagianTerakhir.rekap.unit = [];
+      }
+      renderUnitPembagian_([]);
+    }
+
+    function simpanPerubahanDropdownTertunda_() {
+      if (!Array.isArray(unitPembagianTampil_) || !unitPembagianTampil_.length) return;
+      for (let i = 0; i < unitPembagianTampil_.length; i++) {
+        const u = unitPembagianTampil_[i];
+        if (!u || u.sedangSimpanOtomatis_) continue;
+        const vAsal = u.variasiAsal_ !== undefined ? String(u.variasiAsal_).trim() : String(u.variasi || '').trim();
+        const pAsal = u.penjahitAsal_ !== undefined ? String(u.penjahitAsal_).trim().toUpperCase() : String(u.penjahit || '').trim().toUpperCase();
+        const vBaru = pilihanVariasiUnit_[i] !== undefined ? String(pilihanVariasiUnit_[i]).trim() : String(u.variasi || '').trim();
+        const pBaru = pilihanPenjahitUnit_[i] !== undefined ? String(pilihanPenjahitUnit_[i]).trim().toUpperCase() : String(u.penjahit || '').trim().toUpperCase();
+        const ubahV = vBaru && vBaru !== '-' && vBaru.toLowerCase() !== vAsal.toLowerCase();
+        const ubahP = pBaru && pBaru !== 'BELUM DISET' && pBaru !== pAsal;
+        if ((ubahV || ubahP) && typeof google !== 'undefined' && google.script && google.script.run) {
+          u.sedangSimpanOtomatis_ = true;
+          u.variasi = vBaru;
+          u.penjahit = pBaru;
+          u.variasiAsal_ = vBaru;
+          u.penjahitAsal_ = pBaru;
+          google.script.run
+            .withSuccessHandler(() => { u.sedangSimpanOtomatis_ = false; })
+            .withFailureHandler(() => { u.sedangSimpanOtomatis_ = false; })
+            .ubahPenjahitPembagianDashboard(sesiToken, {
+              noPesanan: u.noPesanan || '',
+              sku: u.sku || '',
+              variasi: vAsal,
+              variasiBaru: vBaru,
+              penjahitLama: pAsal,
+              penjahitBaru: pBaru,
+              barisSheet: u.barisSheet || 0
+            });
+        }
+      }
     }
 
     /* ---- Handler Tabel Interaktif Setelan Pembagian ---- */
@@ -6888,34 +7801,137 @@
       );
     }
 
+    const KUNCI_HARI_SYNC = 'begood_default_sync_days';
+    const PRESET_HARI_SYNC = [1, 2, 3, 5, 7, 14, 30, 60, 90, 180, 365];
+
     function syncLabel(days) {
       return Number(days) === 1 ? 'Tarik hari ini' : 'Tarik ' + days + ' hari terakhir';
     }
 
-    function handleSyncDropdownChange(value) {
-      const button = document.getElementById('label-sync-btn');
-      const select = document.getElementById('select-sync-days');
+    function rentangHariSyncTersimpan_() {
+      const cfgDays = globalData && globalData.config && parseInt(globalData.config.DEFAULT_SYNC_DAYS, 10);
+      if (!isNaN(cfgDays) && cfgDays >= 1 && cfgDays <= 365) return cfgDays;
+      try {
+        const raw = localStorage.getItem(KUNCI_HARI_SYNC);
+        const n = parseInt(raw, 10);
+        if (!isNaN(n) && n >= 1 && n <= 365) return n;
+      } catch (e) {}
+      return 3;
+    }
 
-      if (value === 'custom') {
-        const answer = prompt('Masukkan jumlah hari ke belakang (1 sampai 365 hari):', '90');
-        if (answer && answer.trim()) {
-          const days = parseInt(answer.trim(), 10);
-          if (!isNaN(days) && days >= 1 && days <= 365) {
-            triggerSync(days);
-          } else {
-            showToast('Jumlah hari harus angka antara 1 dan 365.', 'error');
-          }
+    function terapkanRentangHariSync_(days) {
+      const n = Math.min(365, Math.max(1, parseInt(days, 10) || 3));
+      try {
+        localStorage.setItem(KUNCI_HARI_SYNC, String(n));
+      } catch (e) {}
+      if (globalData) {
+        if (!globalData.config) globalData.config = {};
+        globalData.config.DEFAULT_SYNC_DAYS = String(n);
+        simpanSnapshotDashboard_(globalData);
+      }
+
+      const customOpt = document.getElementById('opt-sync-custom-val');
+      if (customOpt) {
+        if (PRESET_HARI_SYNC.indexOf(n) === -1) {
+          customOpt.value = String(n);
+          customOpt.innerText = n + ' hari';
+          customOpt.hidden = false;
+        } else {
+          customOpt.hidden = true;
         }
-        select.value = '3';
-        button.innerText = syncLabel(3);
+      }
+
+      const select = document.getElementById('select-sync-days');
+      if (select) select.value = String(n);
+
+      const button = document.getElementById('label-sync-btn');
+      if (button) button.innerText = syncLabel(n);
+
+      const inputCustom = document.getElementById('input-sync-days-custom');
+      if (inputCustom) inputCustom.value = String(n);
+
+      const inputConfig = document.getElementById('config-sync-days-input');
+      if (inputConfig) inputConfig.value = String(n);
+    }
+
+    function simpanPengaturanHariSync_(days, tampilkanToast) {
+      const n = parseInt(String(days == null ? '' : days).trim(), 10);
+      if (isNaN(n) || n < 1 || n > 365) {
+        showToast('Rentang hari harus angka antara 1 sampai 365.', 'error');
+        return false;
+      }
+
+      terapkanRentangHariSync_(n);
+
+      if (typeof google !== 'undefined' && google.script && google.script.run && sesiToken) {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && (res.berhasil || res.success)) {
+              if (tampilkanToast) showToast(res.message || ('Rentang penarikan pesanan disimpan: ' + n + ' hari.'), 'success');
+            } else if (tampilkanToast) {
+              showToast((res && res.message) || 'Gagal menyimpan rentang hari ke server.', 'error');
+            }
+          })
+          .withFailureHandler((err) => {
+            if (tampilkanToast) showToast('Disimpan di perangkat ini (' + n + ' hari), gagal sinkron ke server: ' + err.message, 'info');
+          })
+          .simpanRentangHariSyncDashboard(sesiToken, n);
+      } else if (tampilkanToast) {
+        showToast('Rentang penarikan pesanan disimpan: ' + n + ' hari.', 'success');
+      }
+      return true;
+    }
+
+    function bukaPengaturanHariSync(paksaBuka) {
+      const wrap = document.getElementById('sync-custom-wrap');
+      if (!wrap) return;
+      if (!paksaBuka && !wrap.hidden) {
+        batalRentangHariKustom();
+        return;
+      }
+      const n = rentangHariSyncTersimpan_();
+      const input = document.getElementById('input-sync-days-custom');
+      if (input) input.value = String(n);
+      wrap.hidden = false;
+      if (input && typeof input.focus === 'function') input.focus();
+    }
+
+    function simpanRentangHariKustom() {
+      const input = document.getElementById('input-sync-days-custom');
+      const val = input ? input.value : '';
+      if (simpanPengaturanHariSync_(val, true)) {
+        batalRentangHariKustom();
+      }
+    }
+
+    function batalRentangHariKustom() {
+      const wrap = document.getElementById('sync-custom-wrap');
+      if (wrap) wrap.hidden = true;
+      const select = document.getElementById('select-sync-days');
+      if (select) select.value = String(rentangHariSyncTersimpan_());
+    }
+
+    function simpanRentangHariDariKonfig() {
+      const input = document.getElementById('config-sync-days-input');
+      const val = input ? input.value : '';
+      simpanPengaturanHariSync_(val, true);
+    }
+
+    function handleSyncDropdownChange(value) {
+      if (value === 'custom') {
+        const select = document.getElementById('select-sync-days');
+        if (select) select.value = String(rentangHariSyncTersimpan_());
+        bukaPengaturanHariSync(true);
       } else {
-        button.innerText = syncLabel(value);
+        simpanPengaturanHariSync_(value, true);
       }
     }
 
     function triggerSyncWithSelectedDays() {
-      const value = document.getElementById('select-sync-days').value;
-      if (value !== 'custom') triggerSync(Number(value));
+      const select = document.getElementById('select-sync-days');
+      const value = select ? select.value : '';
+      const days = (value && value !== 'custom') ? Number(value) : rentangHariSyncTersimpan_();
+      triggerSync(days);
     }
 
     function triggerSync(days) {
@@ -7119,6 +8135,7 @@
       closeModal('auth-modal');
       closeModal('pengguna-modal');
       closeModal('pengguna-konfirmasi-modal');
+      closeModal('pembagian-clear-modal');
       closeModal('modal-scan-packing');
       closeModal('modal-qr-packing');
       tutupSidebar();
@@ -7444,23 +8461,27 @@
       if (!scanPackingPaketAktif || !scanPackingPaketAktif.items) return { cocok: false };
       const items = scanPackingPaketAktif.items;
       const c = code.toLowerCase().trim();
+      if (!c || c === '-') return { cocok: false };
 
       let targetIdx = items.findIndex((it) => {
         if (it.scannedQty >= it.targetQty) return false;
         const sku = String(it.sku || '').toLowerCase().trim();
         const variation = String(it.variation || '').toLowerCase().trim();
-        return (sku && sku === c) || (variation && variation === c);
+        return (sku && sku !== '-' && sku === c) || (variation && variation !== '-' && variation === c);
       });
 
-      if (targetIdx === -1) {
+      if (targetIdx === -1 && c.length >= 3) {
         targetIdx = items.findIndex((it) => {
           if (it.scannedQty >= it.targetQty) return false;
           const sku = String(it.sku || '').toLowerCase().trim();
           const variation = String(it.variation || '').toLowerCase().trim();
           const name = String(it.name || '').toLowerCase().trim();
-          return (sku && (sku.includes(c) || c.includes(sku))) ||
-                 (variation && (variation.includes(c) || c.includes(variation))) ||
-                 (name && name.includes(c));
+          const skuValid = sku && sku !== '-' && sku.length >= 2;
+          const varValid = variation && variation !== '-' && variation.length >= 2;
+          const nameValid = name && name !== '-';
+          return (skuValid && (sku.includes(c) || c.includes(sku))) ||
+                 (varValid && (variation.includes(c) || c.includes(variation))) ||
+                 (nameValid && name.includes(c));
         });
       }
 
@@ -7488,8 +8509,10 @@
       const sudahLengkapIdx = items.findIndex((it) => {
         const sku = String(it.sku || '').toLowerCase().trim();
         const variation = String(it.variation || '').toLowerCase().trim();
-        return (sku && (sku === c || sku.includes(c) || c.includes(sku))) ||
-               (variation && (variation === c || variation.includes(c)));
+        const skuValid = sku && sku !== '-' && sku.length >= 2;
+        const varValid = variation && variation !== '-' && variation.length >= 2;
+        return (skuValid && (sku === c || (c.length >= 3 && (sku.includes(c) || c.includes(sku))))) ||
+               (varValid && (variation === c || (c.length >= 3 && variation.includes(c))));
       });
 
       if (sudahLengkapIdx !== -1) {
@@ -7584,12 +8607,13 @@
       if (footerActions) footerActions.hidden = false;
 
       const p = scanPackingPaketAktif;
+      const kodeLabel = resolveKodeToko_(p.toko, bangunPetaKodeToko_());
       setText('scan-info-sn', p.orderSn || '-');
       setText('scan-info-resi', p.resi || '-');
       setText('scan-info-buyer', p.buyer || '-');
       setText('scan-info-city', p.city || '-');
       setText('scan-info-courier', p.courier || '-');
-      setText('scan-info-toko', p.toko || '-');
+      setText('scan-info-toko', (p.toko || '-') + (kodeLabel ? ' [LABEL: ' + kodeLabel + ']' : ''));
       setText('scan-info-status', p.internalStatus || '-');
 
       const noteRow = document.getElementById('scan-info-note-row');
@@ -9197,12 +10221,16 @@
       return doc;
     }
 
-    function buildSpkPenjahitPdf(JsPDF, info) {
+    function renderSpkPenjahitKeDoc_(doc, info, tambahHalamanAwal) {
       const pageW = 105;
       const pageH = 148;
       const margin = 6;
       const width = pageW - (margin * 2);
-      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] });
+
+      if (tambahHalamanAwal) {
+        doc.addPage([pageW, pageH], 'portrait');
+      }
+      const halamanMulai = doc.getNumberOfPages();
 
       let y = margin + 3;
 
@@ -9290,7 +10318,7 @@
 
       y = drawTableHeader(y);
 
-      const items = info.items || [];
+      const items = gabungItemSpk_(info.items || []);
       if (items.length === 0) {
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.2);
@@ -9353,16 +10381,34 @@
         }
       }
 
-      // 5. Centered Page Footer: Halaman X / Y
-      const totalPages = doc.getNumberOfPages();
-      for (let p = 1; p <= totalPages; p++) {
+      // 5. Centered Page Footer: Halaman X / Y per penjahit
+      const halamanAkhir = doc.getNumberOfPages();
+      const jmlHalPenjahit = halamanAkhir - halamanMulai + 1;
+      for (let p = halamanMulai; p <= halamanAkhir; p++) {
         doc.setPage(p);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6.5);
         doc.setTextColor(60, 60, 60);
-        doc.text('Halaman ' + p + ' / ' + totalPages, pageW / 2, pageH - 7, { align: 'center' });
+        doc.text('Halaman ' + (p - halamanMulai + 1) + ' / ' + jmlHalPenjahit, pageW / 2, pageH - 7, { align: 'center' });
       }
+    }
 
+    function buildSpkPenjahitPdf(JsPDF, info) {
+      const pageW = 105;
+      const pageH = 148;
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] });
+      renderSpkPenjahitKeDoc_(doc, info, false);
+      return doc;
+    }
+
+    function buildBatchSpkPenjahitPdf(JsPDF, daftarInfo) {
+      const pageW = 105;
+      const pageH = 148;
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] });
+      const list = daftarInfo || [];
+      for (let i = 0; i < list.length; i++) {
+        renderSpkPenjahitKeDoc_(doc, list[i], i > 0);
+      }
       return doc;
     }
 

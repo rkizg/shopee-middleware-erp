@@ -1113,7 +1113,20 @@
        ========================================================================== */
 
     const STORAGE_KEY = 'begood_packing_mobile_session';
-    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+
+    function resolveKodeLabelPacking_(p) {
+      if (!p) return '-';
+      const explicit = String(p.kodeLabel || '').trim();
+      if (explicit) return explicit.toUpperCase();
+      const t = String(p.toko || '').trim();
+      if (!t) return '-';
+      const kata = t.split(/[\s\-_]+/).filter(Boolean);
+      if (kata.length >= 2) {
+        return kata.map(k => k.charAt(0)).join('').toUpperCase().slice(0, 6);
+      }
+      return t.toUpperCase().slice(0, 6);
+    }
 
     let appSession = null;
     let activePackage = null;
@@ -1315,11 +1328,23 @@
         nama: pengguna.nama,
         peran: pengguna.peran,
         toko: pengguna.toko || '',
-        expiresAt: Date.now() + TWELVE_HOURS_MS
+        expiresAt: Date.now() + SIX_HOURS_MS
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       appSession = data;
       perbaruiTampilanSesi();
+    }
+
+    function tanganiSesiKedaluwarsa_(msg) {
+      const m = String(msg || '').toLowerCase();
+      if (m.includes('sesi tidak ditemukan') || m.includes('kedaluwarsa') || m.includes('silakan masuk')) {
+        localStorage.removeItem(STORAGE_KEY);
+        appSession = null;
+        perbaruiTampilanSesi();
+        showToast('Sesi habis (6 jam). Silakan masuk kembali.');
+        return true;
+      }
+      return false;
     }
 
     function perbaruiTampilanSesi() {
@@ -1552,25 +1577,31 @@
       if (!activePackage || !activePackage.items) return { cocok: false };
       const items = activePackage.items;
       const c = code.toLowerCase().trim();
+      if (!c || c === '-') return { cocok: false };
 
       /* Cari SKU yang belum lengkap terlebih dahulu */
       let targetIdx = items.findIndex((it) => {
         if (it.scannedQty >= it.targetQty) return false;
-        const sku = String(it.sku || '').toLowerCase().trim();
-        const variation = String(it.variation || '').toLowerCase().trim();
+        const rawSku = String(it.sku || '').toLowerCase().trim();
+        const rawVar = String(it.variation || '').toLowerCase().trim();
+        const sku = rawSku === '-' ? '' : rawSku;
+        const variation = rawVar === '-' ? '' : rawVar;
         return (sku && sku === c) || (variation && variation === c);
       });
 
       /* Pencocokan parsial bila tidak sama persis */
-      if (targetIdx === -1) {
+      if (targetIdx === -1 && c.length >= 3) {
         targetIdx = items.findIndex((it) => {
           if (it.scannedQty >= it.targetQty) return false;
-          const sku = String(it.sku || '').toLowerCase().trim();
-          const variation = String(it.variation || '').toLowerCase().trim();
-          const name = String(it.name || '').toLowerCase().trim();
-          return (sku && (sku.includes(c) || c.includes(sku))) ||
-                 (variation && (variation.includes(c) || c.includes(variation))) ||
-                 (name && name.includes(c));
+          const rawSku = String(it.sku || '').toLowerCase().trim();
+          const rawVar = String(it.variation || '').toLowerCase().trim();
+          const rawName = String(it.name || '').toLowerCase().trim();
+          const sku = rawSku === '-' ? '' : rawSku;
+          const variation = rawVar === '-' ? '' : rawVar;
+          const name = rawName === '-' ? '' : rawName;
+          return (sku.length >= 3 && (sku.includes(c) || c.includes(sku))) ||
+                 (variation.length >= 3 && (variation.includes(c) || c.includes(variation))) ||
+                 (name.length >= 3 && name.includes(c));
         });
       }
 
@@ -1599,8 +1630,9 @@
 
       /* Jika item sudah lengkap */
       const sudahLengkapIdx = items.findIndex((it) => {
-        const sku = String(it.sku || '').toLowerCase().trim();
-        return sku && (sku === c || sku.includes(c) || c.includes(sku));
+        const rawSku = String(it.sku || '').toLowerCase().trim();
+        const sku = rawSku === '-' ? '' : rawSku;
+        return sku.length >= 3 && c.length >= 3 && (sku === c || sku.includes(c) || c.includes(sku));
       });
 
       if (sudahLengkapIdx !== -1) {
@@ -1683,10 +1715,11 @@
         }
       }
 
+      const kodeLabel = resolveKodeLabelPacking_(p);
       document.getElementById('pkg-sn').innerText = p.orderSn || '-';
       document.getElementById('pkg-resi').innerText = p.resi || '-';
       document.getElementById('pkg-courier').innerText = p.courier || '-';
-      document.getElementById('pkg-toko').innerText = p.toko || '-';
+      document.getElementById('pkg-toko').innerHTML = (p.toko || '-') + ' <span style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:4px;background:rgba(59,130,246,0.2);color:#93c5fd;font-size:10px;font-weight:700;">LABEL: ' + kodeLabel + '</span>';
       document.getElementById('pkg-buyer').innerText = p.buyer || '-';
       document.getElementById('pkg-city').innerText = p.city || '-';
 
@@ -1757,7 +1790,7 @@
           return '<div class="item-card' + (isDone ? ' is-done' : '') + '">' +
             '<div class="item-head">' +
               '<div>' +
-                '<div class="item-sku">' + it.sku + '</div>' +
+                '<div class="item-sku">' + it.sku + ' <span style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:4px;background:rgba(59,130,246,0.18);color:#93c5fd;font-size:10px;font-weight:700;">LABEL: ' + kodeLabel + '</span></div>' +
                 '<div class="item-variation">' + it.variation + '</div>' +
               '</div>' +
               badgeHtml +

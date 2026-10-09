@@ -625,7 +625,7 @@ function syncOrdersCore(days, isBackground, kodeToko) {
 function automatedSyncTrigger() {
   console.log('Menjalankan automated sync trigger ERP Begood...');
   var config = SheetManager.getConfig();
-  var days = Number(config.DEFAULT_SYNC_DAYS || 2);
+  var days = Number(config.DEFAULT_SYNC_DAYS || 3);
   syncOrdersCore(days, true);
 }
 
@@ -1269,16 +1269,15 @@ function sesiDariToken_(token) {
  * @return {Object} data sesi bila berhak
  */
 function wajibSesi_(token, peranMinimal) {
-  /* Selama WAJIB_LOGIN belum dinyatakan YA, penjaga ini meloloskan semua
-     permintaan. Gunanya agar laman masuk dan sesi dapat diuji tanpa risiko
-     mengunci siapa pun. Memberlakukan penolakan sekaligus sulit dibatalkan bila
-     ada yang salah, karena yang terkunci termasuk pemiliknya. */
-  if (!modeWajibLogin_()) {
-    return { kode: 'UJI', nama: 'Mode uji, login belum diwajibkan', peran: 'SUPERADMIN', modeUji: true };
-  }
-
   var sesi = sesiDariToken_(token);
   if (!sesi) {
+    /* Selama WAJIB_LOGIN belum dinyatakan YA dan pemanggil belum membawa token
+       sesi, penjaga ini meloloskan permintaan dalam mode uji agar dashboard
+       tetap dapat diuji tanpa risiko mengunci pemiliknya. Namun bila token sesi
+       nyata dikirim, identitas dan batas peran akun tersebut tetap ditegakkan. */
+    if (!modeWajibLogin_()) {
+      return { kode: 'UJI', nama: 'Mode uji, login belum diwajibkan', peran: 'SUPERADMIN', modeUji: true };
+    }
     throw new Error('Sesi tidak berlaku atau sudah berakhir. Masuk ulang untuk melanjutkan.');
   }
 
@@ -2059,7 +2058,7 @@ function updateBatchOrderStatusInternal(token, orderSnList, newStatus) {
 function triggerSyncOrders(token, days, kodeToko) {
   wajibSesi_(token, 'ADMIN');
 
-  var syncDays = Number(days) || 3;
+  var syncDays = Number(days) || Number(SheetManager.getConfig().DEFAULT_SYNC_DAYS || 3);
   var cakupan = String(kodeToko || '').trim().toUpperCase();
   var res = syncOrdersCore(syncDays, true, cakupan);
   invalidateDashboardCache();
@@ -2612,10 +2611,11 @@ var BATAS_ANTRIAN_PRODUKSI = 2000;
 
 var SESI_PRODUKSI = ['PAGI', 'SIANG'];
 
-/* Kata kunci status internal. Pencocokannya memakai indexOf, bukan kesamaan
-   penuh, supaya nilai "[2] Menunggu Pickup" tetap cocok walaupun nomor
-   kurungnya berubah. */
-var STATUS_ANTRIAN_PRODUKSI = 'Menunggu Pickup';
+/* Kata kunci status internal antrian produksi dan pembagian jahit.
+   Mencakup "[1] Siap Packing" (pesanan pagi/siang yang ditarik sebelum maupun
+   sesudah cetak resi) serta "[2] Menunggu Pickup" agar pembagian SPK jahit
+   selalu utuh mengikuti alur kerja gudang. */
+var STATUS_ANTRIAN_PRODUKSI = 'Siap Packing|Menunggu Pickup';
 
 /** Stempel waktu WIB untuk kolom Ditarik dan catatan log. */
 function stempelWib_() {
@@ -2958,6 +2958,7 @@ function kumpulkanEstimasiProduksi_(produksi, kamus, tanggal) {
   var perSesi = { PAGI: kosongSesiProduksi_(), SIANG: kosongSesiProduksi_() };
   var byPenjahit = {};
   var tanpaHarga = {};
+  var kunciSesi = {};
   var barisTanpaHarga = 0;
   var daftar = produksi || [];
 
@@ -3001,6 +3002,7 @@ function kumpulkanEstimasiProduksi_(produksi, kamus, tanggal) {
     }
 
     var nama = b.penjahit ? String(b.penjahit).trim() : '';
+    kunciSesi[SheetManager.kunciProduksi(b.sku, b.variasi, b.noPesanan, nama)] = sesiBaris || 'PAGI';
     var kunciNama = kunciSkuProduksi_(nama) || '(tanpa nama)';
     if (!byPenjahit[kunciNama]) {
       byPenjahit[kunciNama] = {
@@ -3091,6 +3093,7 @@ function kumpulkanEstimasiProduksi_(produksi, kamus, tanggal) {
     jumlahPenjahit: penjahit.length,
     barisTanpaHarga: barisTanpaHarga,
     skuTanpaHarga: skuTanpaHarga,
+    kunciSesi: kunciSesi,
     uangDisembunyikan: false
   };
 }
@@ -3778,7 +3781,7 @@ function bagiPembagianJahit_(kodeToko) {
 
   for (var j = 0; j < sudahAda.length; j++) {
     var lama = sudahAda[j];
-    var kunciBarisLama = SheetManager.kunciAntrian(lama.sku, lama.variasi, lama.noPesanan);
+    var kunciBarisLama = cariKunciAntrianCocok_(antrian, lama.sku, lama.variasi, lama.noPesanan, qtySudah);
 
     /* Pekerjaan yang pesanannya sudah dikirim tidak lagi menjadi beban, tetapi
        barisnya tetap tersimpan sebagai riwayat. */
@@ -4011,7 +4014,7 @@ function tutupSesiJahit_(tanggal, sesi, kodeToko, kodePengguna) {
     });
   }
 
-  var ditambah = SheetManager.tambahProduksiBatch(baris);
+  var ditambah = SheetManager.tambahProduksiBatch(baris); catatUnitTertutupSesi_(rekap.unit);
 
   var pesan = ditambah + ' baris hasil jahit disimpan untuk sesi ' + sesiKerja +
     ' tanggal ' + hari + '.';
@@ -4067,7 +4070,7 @@ function rekapPembagian_(kodeToko) {
 
   for (var j = 0; j < semua.length; j++) {
     var b = semua[j];
-    var kunciBaris = SheetManager.kunciAntrian(b.sku, b.variasi, b.noPesanan);
+    var kunciBaris = cariKunciAntrianCocok_(antrian, b.sku, b.variasi, b.noPesanan, qtyTerpakai);
     if (!antrian.baris[kunciBaris]) continue;
 
     /* Jumlah pcs pada pesanan dapat berkurang setelah dibagi. Sisa yang melebihi
@@ -4378,16 +4381,16 @@ function getPembagianJahit(token, kodeToko) {
 
   var hariIni = tanggalWibHariIni_();
   var kamus = bangunKamusProses_(bacaProsesCached_());
-  var estimasiHariIni = kumpulkanEstimasiProduksi_(SheetManager.bacaProduksi(), kamus, hariIni);
+  var estimasiHariIni = kumpulkanEstimasiProduksi_(selaraskanProduksiDenganPembagian_(SheetManager.bacaProduksi()), kamus, hariIni);
 
   var payload = {
     cakupan: cakupan,
     setelan: {
       penjahit: SheetManager.bacaPenjahit(),
       aturan: SheetManager.bacaAturanSku(),
-      kodeToko: SheetManager.bacaKodeTokoCetak()
+      kodeToko: SheetManager.bacaKodeTokoCetak(), variasiWarna: SheetManager.bacaVariasiWarna()
     },
-    rekap: rekapPembagian_(cakupan),
+    rekap: saringUnitBelumDitutup_(rekapPembagian_(cakupan), SheetManager.bacaProduksi()),
     estimasiHariIni: estimasiHariIni
   };
 
@@ -4668,8 +4671,8 @@ function lookupPackingOrder(token, barcode) {
 
   // Validasi pembatalan oleh pembeli atau sistem
   var isBatal = internalStatus.toLowerCase().indexOf('batal') !== -1 ||
-                shopeeStatus === 'CANCELLED' || shopeeStatus === 'IN_CANCEL' ||
-                internalStatus.indexOf('[5]') !== -1;
+                shopeeStatus === 'CANCELLED' || shopeeStatus === 'IN_CANCEL' || shopeeStatus === 'TO_RETURN' ||
+                internalStatus.indexOf('[5]') !== -1 || internalStatus.indexOf('[6]') !== -1;
   if (isBatal) {
     return {
       success: false,
@@ -4680,19 +4683,42 @@ function lookupPackingOrder(token, barcode) {
     };
   }
 
-  // Validasi status pesanan sudah dipacking / pickup / selesai
+  // Validasi pesanan belum dibayar
+  var isBelumBayar = shopeeStatus === 'UNPAID' ||
+                     internalStatus.indexOf('[0]') !== -1 ||
+                     internalStatus.toLowerCase().indexOf('menunggu pembayaran') !== -1;
+  if (isBelumBayar) {
+    return {
+      success: false,
+      isCancelled: true,
+      orderSn: head.orderSn,
+      resi: head.resi,
+      message: 'PERINGATAN: Pesanan ' + head.orderSn + ' BELUM DIBAYAR (' + (internalStatus || shopeeStatus) + '). Jangan dipacking!'
+    };
+  }
+
+  // Validasi status pesanan sudah dipacking / pickup / dikirim / selesai
   var sudahPacking = internalStatus.indexOf('[2]') !== -1 ||
                      internalStatus.indexOf('[3]') !== -1 ||
                      internalStatus.indexOf('[4]') !== -1 ||
                      internalStatus.toLowerCase().indexOf('pickup') !== -1 ||
+                     internalStatus.toLowerCase().indexOf('dikirim') !== -1 ||
                      internalStatus.toLowerCase().indexOf('selesai') !== -1;
 
+  var petaKodeToko = SheetManager.bacaKodeTokoCetak();
+  var tokoAsli = String(head.toko || '').trim();
+  var kodeLabel = petaKodeToko[tokoAsli] || petaKodeToko[tokoAsli.toLowerCase()] || petaKodeToko[tokoAsli.toUpperCase()] || tokoAsli || '-';
+
   var items = rows.map(function(r, idx) {
+    var tRow = String(r.toko || tokoAsli || '').trim();
+    var labelRow = petaKodeToko[tRow] || petaKodeToko[tRow.toLowerCase()] || petaKodeToko[tRow.toUpperCase()] || tRow || '-';
     return {
       id: idx,
       sku: r.sku || '-',
       variation: r.variation || '-',
       name: r.items || '-',
+      toko: tRow || '-',
+      kodeLabel: labelRow,
       targetQty: Math.max(1, parseInt(r.qty, 10) || 1),
       scannedQty: 0
     };
@@ -4708,7 +4734,8 @@ function lookupPackingOrder(token, barcode) {
       buyer: head.buyer || '-',
       city: head.city || '-',
       courier: head.courier || '-',
-      toko: head.toko || '-',
+      toko: tokoAsli || '-',
+      kodeLabel: kodeLabel,
       internalStatus: internalStatus,
       shopeeStatus: shopeeStatus,
       note: head.note || '',
@@ -4779,3 +4806,391 @@ function resetKunciGagalPacking(kodeInput) {
   return { success: true, message: 'Kunci gagal untuk ' + cari + ' berhasil direset.' };
 }
 
+/**
+ * RPC: Menyimpan pengaturan rentang hari penarikan pesanan default (DEFAULT_SYNC_DAYS)
+ * dari Web Dashboard ke sheet Konfigurasi.
+ */
+function simpanRentangHariSyncDashboard(token, days) {
+  var sesi = wajibSesi_(token, 'ADMIN');
+  var tersimpan = SheetManager.simpanRentangHariSync(days);
+  SheetManager.logActivity(
+    'SIMPAN_RENTANG_SYNC',
+    tersimpan,
+    'SUKSES',
+    'Rentang hari penarikan pesanan disimpan menjadi ' + tersimpan + ' hari via Dashboard.',
+    '',
+    sesi.kode
+  );
+  invalidateDashboardCache();
+  return {
+    berhasil: true,
+    success: true,
+    days: tersimpan,
+    message: 'Pengaturan rentang penarikan pesanan disimpan: ' + tersimpan + ' hari.'
+  };
+}
+
+/**
+ * RPC: Mengosongkan data PEMBAGIAN JAHIT (dan opsional DATA JAHIT) dari tab
+ * Pembagian jahit agar pesanan dapat dibagi ulang dari awal.
+ *
+ * @param {string} token token sesi
+ * @param {Object} [opsi] { toko, hapusProduksi: 'TIDAK'|'SESI_INI'|'SEMUA', tanggal, sesi }
+ */
+function bersihkanPembagianDashboard(token, opsi) {
+  var sesi = wajibSesi_(token, 'ADMIN');
+  var cfg = opsi || {};
+  var cakupan = String(cfg.toko || '').trim().toUpperCase();
+  var modeProduksi = String(cfg.hapusProduksi || 'TIDAK').trim().toUpperCase();
+  var tanggal = normalisasiTanggalProduksi_(cfg.tanggal) || tanggalWibHariIni_();
+  var sesiKerja = sesiProduksi_(cfg.sesi) || sesiMenurutJamWib_();
+
+  var hasil = SheetManager.bersihkanDataPembagian({
+    toko: cakupan,
+    hapusProduksi: modeProduksi,
+    tanggal: tanggal,
+    sesi: sesiKerja
+  });
+  resetUnitTertutupSesi_();
+
+  var totalDihapus = Number(hasil.barisBagiDihapus || 0) + Number(hasil.barisProduksiDihapus || 0);
+  var ketToko = cakupan ? ('toko ' + cakupan) : 'semua toko';
+  var rincian = hasil.barisBagiDihapus + ' baris PEMBAGIAN JAHIT dihapus (' + ketToko + ')';
+  if (modeProduksi === 'SESI_INI') {
+    rincian += ', ' + hasil.barisProduksiDihapus + ' baris DATA JAHIT sesi ' + sesiKerja + ' (' + tanggal + ') dihapus';
+  } else if (modeProduksi === 'SEMUA') {
+    rincian += ', ' + hasil.barisProduksiDihapus + ' baris DATA JAHIT dihapus';
+  }
+
+  SheetManager.logActivity(
+    'PRODUKSI_CLEAR_PEMBAGIAN',
+    totalDihapus,
+    'SUKSES',
+    'Clear data pembagian jahit: ' + rincian + '.',
+    cakupan || 'SEMUA',
+    sesi.kode
+  );
+
+  var pesan = totalDihapus > 0
+    ? ('Data berhasil dikosongkan: ' + rincian + '.')
+    : ('Tidak ada baris data yang perlu dihapus untuk ' + ketToko + '.');
+
+  return {
+    berhasil: true,
+    barisBagiDihapus: hasil.barisBagiDihapus,
+    barisProduksiDihapus: hasil.barisProduksiDihapus,
+    pesan: pesan
+  };
+}
+
+/**
+ * Mencocokkan baris PEMBAGIAN JAHIT dengan antrian Pesanan Masuk.
+ * Bila variasi pada PEMBAGIAN JAHIT sudah disunting ke "Variasi Warna",
+ * pencocokan jatuh ke No. Pesanan + SKU yang sama agar baris tetap terhubung
+ * dan tidak dibagi ulang.
+ */
+function cariKunciAntrianCocok_(antrian, sku, variasi, noPesanan, petaTerpakai) {
+  if (!antrian || !antrian.baris) return '';
+  var kunciTepat = SheetManager.kunciAntrian(sku, variasi, noPesanan);
+  if (antrian.baris[kunciTepat]) return kunciTepat;
+
+  var skuCari = String(sku || '').trim().toUpperCase();
+  var pesananCari = String(noPesanan || '').trim().toUpperCase();
+  if (!skuCari || !pesananCari) return '';
+
+  var urutan = antrian.urutanBaris || [];
+  var kandidatPertama = '';
+  for (var i = 0; i < urutan.length; i++) {
+    var k = urutan[i];
+    var b = antrian.baris[k];
+    if (!b) continue;
+    if (String(b.noPesanan || '').trim().toUpperCase() === pesananCari &&
+        String(b.sku || '').trim().toUpperCase() === skuCari) {
+      if (!kandidatPertama) kandidatPertama = k;
+      var terpakai = (petaTerpakai && petaTerpakai[k]) ? petaTerpakai[k] : 0;
+      if (b.qty - terpakai > 0) return k;
+    }
+  }
+  return kandidatPertama;
+}
+
+/**
+ * RPC: Mengubah penjahit dan/atau variasi warna pada satu baris di tabel
+ * "Pcs yang sudah dibagi" (sheet PEMBAGIAN JAHIT).
+ *
+ * @param {string} token token sesi
+ * @param {Object} data { noPesanan, sku, variasi, variasiBaru, penjahitLama, penjahitBaru, grupBaru, barisSheet }
+ */
+function ubahPenjahitPembagianDashboard(token, data) {
+  var sesi = wajibSesi_(token, 'ADMIN');
+  var info = data || {};
+  var penjahitBaru = info.penjahitBaru !== undefined && info.penjahitBaru !== null
+    ? String(info.penjahitBaru).trim().toUpperCase()
+    : '';
+  var variasiBaru = info.variasiBaru !== undefined && info.variasiBaru !== null
+    ? String(info.variasiBaru).trim()
+    : '';
+
+  var grupBaru = String(info.grupBaru || '').trim().toUpperCase();
+  if (!grupBaru && penjahitBaru) {
+    var daftarPenjahit = SheetManager.bacaPenjahit() || [];
+    for (var i = 0; i < daftarPenjahit.length; i++) {
+      if (String(daftarPenjahit[i].nama || '').trim().toUpperCase() === penjahitBaru) {
+        var grupMentah = String(daftarPenjahit[i].grup || '').split(',')[0];
+        grupBaru = String(grupMentah || '').trim().toUpperCase();
+        break;
+      }
+    }
+  }
+
+  var hasil = SheetManager.ubahPenjahitPembagian({
+    noPesanan: info.noPesanan,
+    sku: info.sku,
+    variasi: info.variasi,
+    variasiBaru: variasiBaru,
+    penjahitLama: info.penjahitLama,
+    penjahitBaru: penjahitBaru,
+    grupBaru: grupBaru,
+    barisSheet: info.barisSheet
+  });
+
+  var ubahVar = String(hasil.variasiLama || '').toUpperCase() !== String(hasil.variasiBaru || '').toUpperCase();
+  var ubahPenj = String(hasil.penjahitLama || '').toUpperCase() !== String(hasil.penjahitBaru || '').toUpperCase();
+
+  if (hasil.berubah) {
+    var detailLog = [];
+    if (ubahVar) {
+      detailLog.push('variasi dari "' + (hasil.variasiLama || '-') + '" ke "' + (hasil.variasiBaru || '-') + '"');
+    }
+    if (ubahPenj) {
+      detailLog.push('penjahit dari ' + (hasil.penjahitLama || '-') + ' ke ' + (hasil.penjahitBaru || '-'));
+    }
+    SheetManager.logActivity(
+      ubahVar && !ubahPenj ? 'PRODUKSI_UBAH_VARIASI_BAGI' : 'PRODUKSI_UBAH_PENJAHIT_BAGI',
+      Number(hasil.qty || 1),
+      'SUKSES',
+      'Mengubah ' + (detailLog.join(' dan ') || 'data pembagian') + ' pesanan ' +
+      (hasil.noPesanan || '-') + ' (' + hasil.sku + ')' +
+      (hasil.digabung ? ' (digabung ke baris yang sudah ada).' : '.'),
+      '',
+      sesi.kode
+    );
+  }
+
+  var pesan = '';
+  if (!hasil.berubah) {
+    pesan = 'Data pesanan ' + (hasil.noPesanan || '-') + ' sudah tercatat sesuai pilihan.';
+  } else if (ubahVar && ubahPenj) {
+    pesan = 'Variasi (' + hasil.variasiBaru + ') dan penjahit (' + hasil.penjahitBaru + ') untuk pesanan ' + (hasil.noPesanan || '-') + ' berhasil disimpan.';
+  } else if (ubahVar) {
+    pesan = 'Variasi pesanan ' + (hasil.noPesanan || '-') + ' (' + hasil.sku + ') disimpan menjadi ' + hasil.variasiBaru + '.';
+  } else {
+    pesan = 'Penjahit pesanan ' + (hasil.noPesanan || '-') + ' (' + hasil.sku + ') disimpan menjadi ' + hasil.penjahitBaru + '.';
+  }
+
+  return {
+    berhasil: true,
+    hasil: hasil,
+    pesan: pesan
+  };
+}
+
+/**
+ * RPC: Alias khusus perubahan variasi warna pada tabel "Pcs yang sudah dibagi".
+ */
+function ubahVariasiPembagianDashboard(token, data) {
+  return ubahPenjahitPembagianDashboard(token, data);
+}
+
+/**
+ * Menyelaraskan variasi warna dan penjahit pada daftar baris DATA JAHIT dengan
+ * isi terkini sheet PEMBAGIAN JAHIT berdasarkan nomor pesanan dan SKU, sehingga
+ * cetakan SPK PDF selalu menampilkan variasi yang sudah diedit di tabel.
+ */
+function selaraskanProduksiDenganPembagian_(produksi) {
+  var daftarProd = produksi || [];
+  if (!daftarProd.length) return daftarProd;
+
+  var bagi = SheetManager.bacaPembagian() || [];
+  if (!bagi.length) return daftarProd;
+
+  var perPesananSkuPenjahit = {};
+  var perPesananSku = {};
+  for (var i = 0; i < bagi.length; i++) {
+    var b = bagi[i];
+    var pes = String(b.noPesanan || '').trim().toUpperCase();
+    var sku = kunciSkuProduksi_(b.sku);
+    var penj = String(b.penjahit || '').trim().toUpperCase();
+    if (!pes || !sku) continue;
+    var k2 = pes + '|' + sku;
+    var k3 = k2 + '|' + penj;
+    if (!perPesananSku[k2]) perPesananSku[k2] = [];
+    perPesananSku[k2].push(b);
+    if (!perPesananSkuPenjahit[k3]) perPesananSkuPenjahit[k3] = [];
+    perPesananSkuPenjahit[k3].push(b);
+  }
+
+  for (var j = 0; j < daftarProd.length; j++) {
+    var p = daftarProd[j];
+    var pesP = String(p.noPesanan || '').trim().toUpperCase();
+    var skuP = kunciSkuProduksi_(p.sku);
+    var penjP = String(p.penjahit || '').trim().toUpperCase();
+    if (!pesP || !skuP) continue;
+    var kunci3 = pesP + '|' + skuP + '|' + penjP;
+    var kunci2 = pesP + '|' + skuP;
+    var kandidat = perPesananSkuPenjahit[kunci3] || perPesananSku[kunci2] || [];
+    if (kandidat.length === 1) {
+      if (kandidat[0].variasi) p.variasi = kandidat[0].variasi;
+      if (kandidat[0].penjahit && kandidat[0].penjahit !== PENJAHIT_BELUM_DISET) {
+        p.penjahit = kandidat[0].penjahit;
+      }
+    }
+  }
+  return daftarProd;
+}
+
+var KUNCI_PROP_UNIT_TERTUTUP_ = 'PEMBAGIAN_UNIT_TERTUTUP_JSON';
+var statusUnitTertutupMemori_ = null;
+
+function bacaStatusUnitTertutup_() {
+  if (statusUnitTertutupMemori_) return statusUnitTertutupMemori_;
+  var bawaan = { resetOlehClear: false, peta: {} };
+  try {
+    if (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties) {
+      var raw = PropertiesService.getScriptProperties().getProperty(KUNCI_PROP_UNIT_TERTUTUP_);
+      if (raw) {
+        var urai = JSON.parse(raw);
+        if (urai && typeof urai === 'object') {
+          statusUnitTertutupMemori_ = {
+            resetOlehClear: Boolean(urai.resetOlehClear),
+            peta: (urai.peta && typeof urai.peta === 'object') ? urai.peta : {}
+          };
+          return statusUnitTertutupMemori_;
+        }
+      }
+    }
+  } catch (e) {}
+  statusUnitTertutupMemori_ = bawaan;
+  return statusUnitTertutupMemori_;
+}
+
+function simpanStatusUnitTertutup_(status) {
+  statusUnitTertutupMemori_ = status;
+  try {
+    if (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties) {
+      PropertiesService.getScriptProperties().setProperty(KUNCI_PROP_UNIT_TERTUTUP_, JSON.stringify(status));
+    }
+  } catch (e) {}
+}
+
+function catatUnitTertutupSesi_(daftarUnit) {
+  var status = bacaStatusUnitTertutup_();
+  var peta = (status && status.peta && !status.resetOlehClear) ? status.peta : {};
+  var perKunci = {};
+  var daftar = daftarUnit || [];
+  for (var i = 0; i < daftar.length; i++) {
+    var u = daftar[i];
+    if (!u) continue;
+    var pes = String(u.noPesanan || '').trim().toUpperCase();
+    var sku = kunciSkuProduksi_(u.sku);
+    if (!pes || !sku) continue;
+    var k2 = pes + '|' + sku;
+    var qty = Number(u.qty) > 0 ? Number(u.qty) : 1;
+    perKunci[k2] = (perKunci[k2] || 0) + qty;
+  }
+  for (var k in perKunci) {
+    if (Object.prototype.hasOwnProperty.call(perKunci, k)) {
+      if (!peta[k] || perKunci[k] > peta[k]) {
+        peta[k] = perKunci[k];
+      }
+    }
+  }
+  simpanStatusUnitTertutup_({ resetOlehClear: false, peta: peta });
+}
+
+function resetUnitTertutupSesi_() {
+  simpanStatusUnitTertutup_({ resetOlehClear: true, peta: {} });
+}
+
+/**
+ * Menyaring rekap.unit ("Pcs yang sudah dibagi") agar baris yang sudah ditutup
+ * ke DATA JAHIT pada sesi sebelumnya tidak lagi tampil di tabel dan siap
+ * mengolah pesanan baru.
+ */
+function saringUnitBelumDitutup_(rekap, daftarProduksi) {
+  if (!rekap || !Array.isArray(rekap.unit) || !rekap.unit.length) return rekap;
+
+  var status = bacaStatusUnitTertutup_();
+  var petaTutup = (status && status.peta) ? status.peta : {};
+  var resetOlehClear = Boolean(status && status.resetOlehClear);
+
+  var petaProduksi = {};
+  if (!resetOlehClear && Array.isArray(daftarProduksi)) {
+    for (var i = 0; i < daftarProduksi.length; i++) {
+      var p = daftarProduksi[i];
+      if (!p) continue;
+      var pesP = String(p.noPesanan || '').trim().toUpperCase();
+      var skuP = kunciSkuProduksi_(p.sku);
+      if (!pesP || !skuP) continue;
+      var kProd = pesP + '|' + skuP;
+      var jmlP = Number(p.jumlah) > 0 ? Number(p.jumlah) : 0;
+      if (jmlP > 0) petaProduksi[kProd] = (petaProduksi[kProd] || 0) + jmlP;
+    }
+  }
+
+  var sisaTertutup = {};
+  var semuaKunci = {};
+  for (var kp in petaProduksi) {
+    if (Object.prototype.hasOwnProperty.call(petaProduksi, kp)) semuaKunci[kp] = true;
+  }
+  for (var kt in petaTutup) {
+    if (Object.prototype.hasOwnProperty.call(petaTutup, kt)) semuaKunci[kt] = true;
+  }
+  for (var k in semuaKunci) {
+    if (Object.prototype.hasOwnProperty.call(semuaKunci, k)) {
+      sisaTertutup[k] = Math.max(Number(petaProduksi[k]) || 0, Number(petaTutup[k]) || 0);
+    }
+  }
+
+  var unitBaru = [];
+  for (var j = 0; j < rekap.unit.length; j++) {
+    var u = rekap.unit[j];
+    if (!u) continue;
+    var pesU = String(u.noPesanan || '').trim().toUpperCase();
+    var skuU = kunciSkuProduksi_(u.sku);
+    var kUnit = (pesU && skuU) ? (pesU + '|' + skuU) : '';
+    var qtyU = Number(u.qty) > 0 ? Number(u.qty) : 1;
+
+    if (kUnit && sisaTertutup[kUnit] > 0) {
+      var potong = Math.min(qtyU, sisaTertutup[kUnit]);
+      sisaTertutup[kUnit] -= potong;
+      var sisaQty = qtyU - potong;
+      if (sisaQty <= 0) continue;
+      u.qty = sisaQty;
+      if (u.harga !== undefined && u.harga !== null && Number(u.harga) > 0) {
+        u.hargaTotal = Number(u.harga) * sisaQty;
+      }
+    }
+    unitBaru.push(u);
+  }
+
+  rekap.unit = unitBaru;
+  if (Array.isArray(rekap.perPenjahit)) {
+    var perNama = {};
+    for (var m = 0; m < unitBaru.length; m++) {
+      var ub = unitBaru[m];
+      var namaP = String(ub.penjahit || '').trim().toUpperCase();
+      if (!namaP) continue;
+      if (!perNama[namaP]) perNama[namaP] = [];
+      perNama[namaP].push(ub);
+    }
+    for (var n = 0; n < rekap.perPenjahit.length; n++) {
+      var pj = rekap.perPenjahit[n];
+      if (!pj) continue;
+      var kunciNama = String(pj.nama || '').trim().toUpperCase();
+      pj.items = perNama[kunciNama] ? perNama[kunciNama] : [];
+    }
+  }
+
+  return rekap;
+}

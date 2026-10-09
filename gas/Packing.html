@@ -1097,7 +1097,7 @@
        ========================================================================== */
 
     const STORAGE_KEY = 'begood_packing_mobile_session';
-    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+    const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
     let appSession = null;
     let activePackage = null;
@@ -1255,11 +1255,23 @@
         nama: pengguna.nama,
         peran: pengguna.peran,
         toko: pengguna.toko || '',
-        expiresAt: Date.now() + TWELVE_HOURS_MS
+        expiresAt: Date.now() + SIX_HOURS_MS
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       appSession = data;
       perbaruiTampilanSesi();
+    }
+
+    function tanganiSesiKedaluwarsa_(err) {
+      const msg = String((err && err.message) || err || '');
+      if (msg.indexOf('Sesi tidak berlaku') !== -1 || msg.indexOf('Masuk terlebih dahulu') !== -1) {
+        localStorage.removeItem(STORAGE_KEY);
+        appSession = null;
+        perbaruiTampilanSesi();
+        tampilkanGalatLoginDanOpsi_('Sesi Anda telah berakhir (batas 6 jam). Silakan masuk kembali.');
+        return true;
+      }
+      return false;
     }
 
     function perbaruiTampilanSesi() {
@@ -1507,6 +1519,21 @@
       fokusInputScan();
     }
 
+    function resolveKodeLabelPacking_(toko, kodeLabel) {
+      if (kodeLabel && String(kodeLabel).trim() && String(kodeLabel).trim() !== '-') {
+        return String(kodeLabel).trim().toUpperCase();
+      }
+      const raw = String(toko || '').trim();
+      if (!raw || raw === '-') return '';
+      const rawLower = raw.toLowerCase();
+      if (rawLower.indexOf('begood') !== -1 || rawLower === 'bgd') return 'BG';
+      if (rawLower.indexOf('tidur') !== -1 || rawLower.indexOf('manis') !== -1 || rawLower === 'bgd2' || rawLower === 'tm') return 'TM';
+      if (raw.length <= 3) return raw.toUpperCase();
+      const words = raw.split(/[\s._-]+/).filter(Boolean);
+      if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+      return raw.substring(0, 2).toUpperCase();
+    }
+
     function bukaPaketDenganBarcode(code) {
       if (!appSession) {
         showToast('Silakan masuk terlebih dahulu.');
@@ -1527,6 +1554,7 @@
             if (submitBtn) submitBtn.disabled = false;
             playBeep('error');
             triggerVibrate('error');
+            if (tanganiSesiKedaluwarsa_(err)) return;
             setFeedback('Gagal menghubungi server: ' + (err.message || String(err)), 'danger');
             fokusInputScan();
           })
@@ -1561,6 +1589,7 @@
         city: o.city,
         courier: o.courier,
         toko: o.toko,
+        kodeLabel: resolveKodeLabelPacking_(o.toko, o.kodeLabel),
         internalStatus: o.internalStatus,
         note: o.note || '',
         items: o.items || []
@@ -1587,11 +1616,12 @@
         city: 'Bandung',
         courier: 'SPX Express',
         toko: 'BEGOOD OFFICIAL',
+        kodeLabel: 'BG',
         internalStatus: '[1] Siap Packing',
         note: 'Mohon dicek jahitan pinggir rapi ya kak. Terima kasih!',
         items: [
-          { id: 0, sku: 'BGD-BLOUSE-01', variation: 'Hitam / L', name: 'Blouse Wanita Katun Rayon Premium', targetQty: 2, scannedQty: 0 },
-          { id: 1, sku: 'BGD-SKIRT-03', variation: 'Mocca / Allsize', name: 'Rok Plisket Panjang Elegan', targetQty: 1, scannedQty: 0 }
+          { id: 0, sku: 'BGD-BLOUSE-01', variation: 'Hitam / L', name: 'Blouse Wanita Katun Rayon Premium', targetQty: 2, scannedQty: 0, kodeLabel: 'BG' },
+          { id: 1, sku: 'BGD-SKIRT-03', variation: 'Mocca / Allsize', name: 'Rok Plisket Panjang Elegan', targetQty: 1, scannedQty: 0, kodeLabel: 'BG' }
         ]
       };
       playBeep('success');
@@ -1606,25 +1636,29 @@
       if (!activePackage || !activePackage.items) return { cocok: false };
       const items = activePackage.items;
       const c = code.toLowerCase().trim();
+      if (!c || c === '-') return { cocok: false };
 
       /* Cari SKU yang belum lengkap terlebih dahulu */
       let targetIdx = items.findIndex((it) => {
         if (it.scannedQty >= it.targetQty) return false;
         const sku = String(it.sku || '').toLowerCase().trim();
         const variation = String(it.variation || '').toLowerCase().trim();
-        return (sku && sku === c) || (variation && variation === c);
+        return (sku && sku !== '-' && sku === c) || (variation && variation !== '-' && variation === c);
       });
 
       /* Pencocokan parsial bila tidak sama persis */
-      if (targetIdx === -1) {
+      if (targetIdx === -1 && c.length >= 3) {
         targetIdx = items.findIndex((it) => {
           if (it.scannedQty >= it.targetQty) return false;
           const sku = String(it.sku || '').toLowerCase().trim();
           const variation = String(it.variation || '').toLowerCase().trim();
           const name = String(it.name || '').toLowerCase().trim();
-          return (sku && (sku.includes(c) || c.includes(sku))) ||
-                 (variation && (variation.includes(c) || c.includes(variation))) ||
-                 (name && name.includes(c));
+          const skuValid = sku && sku !== '-' && sku.length >= 2;
+          const varValid = variation && variation !== '-' && variation.length >= 2;
+          const nameValid = name && name !== '-';
+          return (skuValid && (sku.includes(c) || c.includes(sku))) ||
+                 (varValid && (variation.includes(c) || c.includes(variation))) ||
+                 (nameValid && name.includes(c));
         });
       }
 
@@ -1654,7 +1688,11 @@
       /* Jika item sudah lengkap */
       const sudahLengkapIdx = items.findIndex((it) => {
         const sku = String(it.sku || '').toLowerCase().trim();
-        return sku && (sku === c || sku.includes(c) || c.includes(sku));
+        const variation = String(it.variation || '').toLowerCase().trim();
+        const skuValid = sku && sku !== '-' && sku.length >= 2;
+        const varValid = variation && variation !== '-' && variation.length >= 2;
+        return (skuValid && (sku === c || (c.length >= 3 && (sku.includes(c) || c.includes(sku))))) ||
+               (varValid && (variation === c || (c.length >= 3 && variation.includes(c))));
       });
 
       if (sudahLengkapIdx !== -1) {
@@ -1724,6 +1762,7 @@
       if (emptyState) emptyState.style.display = 'none';
 
       const p = activePackage;
+      const kodeLabel = resolveKodeLabelPacking_(p.toko, p.kodeLabel);
       const totalTarget = p.items.reduce((acc, it) => acc + it.targetQty, 0);
       const totalScan = p.items.reduce((acc, it) => acc + it.scannedQty, 0);
       const persen = totalTarget > 0 ? Math.min(100, Math.round((totalScan / totalTarget) * 100)) : 0;
@@ -1740,7 +1779,7 @@
       document.getElementById('pkg-sn').innerText = p.orderSn || '-';
       document.getElementById('pkg-resi').innerText = p.resi || '-';
       document.getElementById('pkg-courier').innerText = p.courier || '-';
-      document.getElementById('pkg-toko').innerText = p.toko || '-';
+      document.getElementById('pkg-toko').innerText = (p.toko || '-') + (kodeLabel ? ' [LABEL: ' + kodeLabel + ']' : '');
       document.getElementById('pkg-buyer').innerText = p.buyer || '-';
       document.getElementById('pkg-city').innerText = p.city || '-';
 
@@ -1799,13 +1838,17 @@
       if (itemsContainer) {
         itemsContainer.innerHTML = p.items.map((it, idx) => {
           const isDone = it.scannedQty >= it.targetQty;
+          const labelItem = resolveKodeLabelPacking_(p.toko, it.kodeLabel || kodeLabel);
+          const labelPill = labelItem
+            ? '<span class="item-badge" style="background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid #0284c7; margin-right: 4px;">LABEL: ' + labelItem + '</span>'
+            : '';
           let badgeHtml = '';
           if (isDone) {
-            badgeHtml = '<span class="item-badge badge-complete"><i class="fa-solid fa-check"></i> LENGKAP</span>';
+            badgeHtml = labelPill + '<span class="item-badge badge-complete"><i class="fa-solid fa-check"></i> LENGKAP</span>';
           } else if (it.scannedQty > 0) {
-            badgeHtml = '<span class="item-badge badge-partial">' + (it.targetQty - it.scannedQty) + ' KURANG</span>';
+            badgeHtml = labelPill + '<span class="item-badge badge-partial">' + (it.targetQty - it.scannedQty) + ' KURANG</span>';
           } else {
-            badgeHtml = '<span class="item-badge badge-pending">BELUM SCAN</span>';
+            badgeHtml = labelPill + '<span class="item-badge badge-pending">BELUM SCAN</span>';
           }
 
           return '<div class="item-card' + (isDone ? ' is-done' : '') + '">' +
@@ -1814,7 +1857,7 @@
                 '<div class="item-sku">' + it.sku + '</div>' +
                 '<div class="item-variation">' + it.variation + '</div>' +
               '</div>' +
-              badgeHtml +
+              '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' + badgeHtml + '</div>' +
             '</div>' +
             '<div class="item-name">' + it.name + '</div>' +
             '<div class="item-counter-row">' +
@@ -1892,6 +1935,7 @@
             }
             playBeep('error');
             triggerVibrate('error');
+            if (tanganiSesiKedaluwarsa_(err)) return;
             setFeedback('Gagal menyimpan: ' + (err.message || String(err)), 'danger');
           })
           .selesaikanPackingMobile(appSession.token, p.orderSn);

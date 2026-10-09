@@ -299,6 +299,70 @@ jalankan('uangTersembunyiPeran=false; terapkanTampilanUang_(); renderPaginatedOr
 const barisTampil=dokumen.getElementById('orders-tbody').innerHTML;
 cek('superadmin melihat angkanya', barisTampil.indexOf('ledger-money')!==-1&&barisTampil.indexOf('Rp 0')!==-1);
 
+console.log('=== 26: rentang hari penarikan pesanan dapat disetel dan disimpan ===');
+jalankan("handleSyncDropdownChange('7');");
+cek('label tombol mengikuti pilihan 7 hari', teks('label-sync-btn')==='Tarik 7 hari terakhir', teks('label-sync-btn'));
+cek('dropdown tersimpan pada 7', dokumen.getElementById('select-sync-days').value==='7', dokumen.getElementById('select-sync-days').value);
+cek('input tab konfigurasi ikut selaras ke 7', dokumen.getElementById('config-sync-days-input').value==='7', dokumen.getElementById('config-sync-days-input').value);
+cek('rentangHariSyncTersimpan_ mengembalikan 7', jalankan('rentangHariSyncTersimpan_()')===7, jalankan('rentangHariSyncTersimpan_()'));
+
+jalankan("handleSyncDropdownChange('custom');");
+cek('memilih custom membuka form inline tanpa mereset ke 3', dokumen.getElementById('sync-custom-wrap').hidden===false && dokumen.getElementById('select-sync-days').value==='7');
+jalankan("document.getElementById('input-sync-days-custom').value='45'; simpanRentangHariKustom();");
+cek('menyimpan nilai kustom 45 menutup form inline', dokumen.getElementById('sync-custom-wrap').hidden===true);
+cek('opsi kustom tampil dengan 45 hari', dokumen.getElementById('opt-sync-custom-val').hidden===false && teks('opt-sync-custom-val')==='45 hari', teks('opt-sync-custom-val'));
+cek('label tombol berubah ke Tarik 45 hari terakhir', teks('label-sync-btn')==='Tarik 45 hari terakhir', teks('label-sync-btn'));
+cek('dropdown bernilai 45', dokumen.getElementById('select-sync-days').value==='45', dokumen.getElementById('select-sync-days').value);
+
+jalankan("document.getElementById('config-sync-days-input').value='1'; simpanRentangHariDariKonfig();");
+cek('simpan 1 hari dari tab konfigurasi mengubah tombol ke Tarik hari ini', teks('label-sync-btn')==='Tarik hari ini', teks('label-sync-btn'));
+cek('opsi kustom disembunyikan kembali saat memilih preset', dokumen.getElementById('opt-sync-custom-val').hidden===true);
+cek('angka di luar 1..365 ditolak dan nilai lama tetap terjaga', jalankan('simpanPengaturanHariSync_(999, false)')===false && jalankan('rentangHariSyncTersimpan_()')===1);
+
+console.log('=== 27: fitur clear data pada pembagian pekerjaan jahit ===');
+jalankan('bukaModalClearPembagian();');
+cek('modal clear pembagian terbuka', dokumen.getElementById('pembagian-clear-modal').hidden===false);
+cek('mode awal clear pembagian adalah TIDAK (hanya PEMBAGIAN JAHIT)', dokumen.getElementById('clear-pembagian-mode').value==='TIDAK');
+jalankan("document.getElementById('clear-pembagian-mode').value='SESI_INI'; perbaruiInfoClearPembagian_();");
+cek('keterangan clear data menyebut DATA JAHIT untuk sesi terpilih', teks('clear-pembagian-info').indexOf('DATA JAHIT')!==-1, teks('clear-pembagian-info'));
+jalankan('tutupModalClearPembagian();');
+cek('modal clear pembagian tertutup kembali', dokumen.getElementById('pembagian-clear-modal').hidden===true);
+
+console.log('=== 28: edit penjahit pada Pcs yang sudah dibagi dengan dropdown dan ceklis ===');
+jalankan("sesiPengguna={kode:'ADMIN1',nama:'Admin',peran:'ADMIN'}; pembagianTerakhir={setelan:{penjahit:[{nama:'ADUL',grup:'BC',aktif:'YA'},{nama:'ELSI',grup:'SPREI',aktif:'YA'}]},rekap:{unit:[]}}; renderUnitPembagian_([{noPesanan:'SN-101',sku:'BEDCOVER 180',variasi:'Lilac',qty:1,penjahit:'ADUL',grup:'BC',harga:45000,hargaTotal:45000,barisSheet:2}]);");
+const htmlUnitAdmin=dokumen.getElementById('pembagian-unit-tbody').innerHTML;
+cek('admin melihat dropdown pilihan penjahit (ADUL dan ELSI)', htmlUnitAdmin.indexOf('<select')!==-1 && htmlUnitAdmin.indexOf('value="ADUL" selected')!==-1 && htmlUnitAdmin.indexOf('value="ELSI"')!==-1, htmlUnitAdmin);
+cek('admin melihat tombol ceklis untuk menyimpan', htmlUnitAdmin.indexOf('simpanPenjahitUnitAction(0, this)')!==-1 && htmlUnitAdmin.indexOf('fa-check')!==-1);
+jalankan("pilihPenjahitUnit_(0, 'ELSI');");
+cek('pilihan penjahit baru tercatat di memori sebelum disimpan', jalankan("pilihanPenjahitUnit_[0]")==='ELSI');
+jalankan("sesiPengguna={kode:'PACKING1',nama:'Packing',peran:'PACKING'}; renderUnitPembagian_([{noPesanan:'SN-101',sku:'BEDCOVER 180',variasi:'Lilac',qty:1,penjahit:'ADUL',grup:'BC'}]);");
+const htmlUnitPacking=dokumen.getElementById('pembagian-unit-tbody').innerHTML;
+cek('peran packing hanya melihat teks nama penjahit tanpa dropdown edit', htmlUnitPacking.indexOf('<select')===-1 && htmlUnitPacking.indexOf('ADUL')!==-1);
+
+console.log('=== 29: edit variasi warna pada Pcs yang sudah dibagi dengan dropdown Variasi Warna dan ceklis ===');
+jalankan("sesiPengguna={kode:'ADMIN1',nama:'Admin',peran:'ADMIN'}; pembagianTerakhir={setelan:{penjahit:[{nama:'ADUL',grup:'BC',aktif:'YA'}],variasiWarna:['Mocca','Sage Green','Lilac']},rekap:{perPenjahit:[{nama:'ADUL',grup:'BC',pcs:1,upah:45000,items:[{noPesanan:'SN-102',sku:'BEDCOVER 180',variasi:'Lilac',qty:1,penjahit:'ADUL',grup:'BC',harga:45000,hargaTotal:45000}]}],unit:[{noPesanan:'SN-102',sku:'BEDCOVER 180',variasi:'Lilac',qty:1,penjahit:'ADUL',grup:'BC',harga:45000,hargaTotal:45000,barisSheet:3}]},estimasiHariIni:{tanggal:'2026-09-27',total:{baris:1,pcs:1,waktuJahit:30,waktuPotong:10,waktu:40,upah:45000},sesi:{PAGI:{baris:1,pcs:1,waktuJahit:30,waktuPotong:10,waktu:40,upah:45000},SIANG:{}},penjahit:[{nama:'ADUL',pcs:1,waktuJahit:30,waktuPotong:10,waktu:40,upah:45000,sesi:{PAGI:{upah:45000,waktuJahit:30,waktuPotong:10,waktu:40},SIANG:{}},items:[{sesi:'PAGI',sku:'BEDCOVER 180',variasi:'Lilac',jumlah:1,waktuJahit:30,waktuPotong:10,waktu:40,upah:45000,hargaSatuan:45000,noPesanan:'SN-102'}]}],kunciSesi:{'sn-102|bedcover 180|lilac|adul':'PAGI'}}}; renderUnitPembagian_(pembagianTerakhir.rekap.unit);");
+const htmlVarAdmin=dokumen.getElementById('pembagian-unit-tbody').innerHTML;
+cek('admin melihat dropdown pilihan Variasi Warna (Mocca, Sage Green, Lilac)',
+  htmlVarAdmin.indexOf('value="Mocca"')!==-1 && htmlVarAdmin.indexOf('value="Sage Green"')!==-1 && htmlVarAdmin.indexOf('value="Lilac" selected')!==-1, htmlVarAdmin);
+cek('admin melihat tombol ceklis simpan variasi',
+  htmlVarAdmin.indexOf('simpanVariasiUnitAction(0, this)')!==-1 && htmlVarAdmin.indexOf('pilihVariasiUnit_(0, this.value)')!==-1);
+jalankan("pilihVariasiUnit_(0, 'Sage Green');");
+cek('pilihan variasi warna baru tercatat di memori sebelum disimpan', jalankan("pilihanVariasiUnit_[0]")==='Sage Green');
+const varSpkSetelahEdit = jalankan("(function(){ const d = kumpulkanDataKartu_(pembagianTerakhir, 'PAGI'); const p = d.penjahit.find(x => x.nama === 'ADUL'); return p && p.sesi.PAGI.items[0] ? p.sesi.PAGI.items[0].variasi : ''; })()");
+cek('data SPK PDF (kumpulkanDataKartu_) langsung memakai variasi baru Sage Green', varSpkSetelahEdit==='Sage Green', varSpkSetelahEdit);
+jalankan("sesiPengguna={kode:'PACKING1',nama:'Packing',peran:'PACKING'}; renderUnitPembagian_([{noPesanan:'SN-102',sku:'BEDCOVER 180',variasi:'Lilac',qty:1,penjahit:'ADUL',grup:'BC'}]);");
+const htmlVarPacking=dokumen.getElementById('pembagian-unit-tbody').innerHTML;
+cek('peran packing hanya melihat teks variasi tanpa dropdown edit', htmlVarPacking.indexOf('simpanVariasiUnitAction')===-1 && htmlVarPacking.indexOf('Lilac')!==-1);
+
+console.log('=== 30: Tutup sesi & simpan hasil mengosongkan tabel Pcs yang sudah dibagi ===');
+jalankan('bersihkanTabelUnitSetelahTutupSesi_();');
+const htmlSetelahTutup=dokumen.getElementById('pembagian-unit-tbody').innerHTML;
+cek('baris pesanan pada Pcs yang sudah dibagi langsung bersih setelah tutup sesi',
+  htmlSetelahTutup.indexOf('SN-102')===-1 && jalankan('unitPembagianTampil_.length')===0, htmlSetelahTutup);
+cek('status menampilkan pesan siap mengolah pesanan baru',
+  htmlSetelahTutup.indexOf('siap mengolah pesanan baru')!==-1 && teks('pembagian-unit-note')==='Menampilkan 0 baris',
+  teks('pembagian-unit-note'));
+
 console.log('');
 console.log('HASIL LAYAR PENGGUNA: '+(gagal===0?'SEMUA LULUS':gagal+' KEGAGALAN'));
 process.exit(gagal===0?0:1);

@@ -32,7 +32,10 @@ export class PdfStamperService {
 
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
-        const { width } = page.getSize();
+        const { width, height } = page.getSize();
+        const mediaBox = page.getMediaBox ? page.getMediaBox() : { x: 0, y: 0, width, height };
+        const originX = mediaBox.x || 0;
+        const originY = mediaBox.y || 0;
 
         // Cocokkan data pesanan untuk halaman ke-i
         const orderInfo: ShippingOrderItemParam | undefined =
@@ -48,8 +51,8 @@ export class PdfStamperService {
 
         // Dimensi Kotak Footer QC di bagian bawah label (Bottom 0 - 75 pt)
         const margin = 8;
-        const boxX = margin;
-        const boxY = margin;
+        const boxX = originX + margin;
+        const boxY = originY + margin;
         const boxW = Math.max(width - (margin * 2), 260);
         const boxH = 68;
 

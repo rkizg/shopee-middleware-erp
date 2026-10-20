@@ -1,0 +1,550 @@
+/**
+ * ============================================================================
+ * ERP Begood - ShippingService.js
+ * Modul Meja Pengiriman & Resi Thermal Shopee (A6 / 100x150 mm)
+ * Menyimpan & membaca data dari Spreadsheet Distribusi Operasional:
+ * ID: 1DxvKSTHjXH8jWOg5-AVpmhgJ-ELKhfpfSMtnn0Xemgc
+ * ============================================================================
+ */
+
+var ID_SPREADSHEET_DISTRIBUSI_BARU = '1DxvKSTHjXH8jWOg5-AVpmhgJ-ELKhfpfSMtnn0Xemgc';
+
+/**
+ * Membuka spreadsheet operasional distribusi (sheet yang sama dengan Distribusi.html)
+ */
+function getSpreadsheetPengiriman_() {
+  try {
+    if (ID_SPREADSHEET_DISTRIBUSI_BARU) {
+      return SpreadsheetApp.openById(ID_SPREADSHEET_DISTRIBUSI_BARU);
+    }
+  } catch (err) {
+    console.warn('[ShippingService] Gagal membuka spreadsheet via ID, menggunakan active spreadsheet:', err);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+/**
+ * Render halaman mandiri Meja Pengiriman Web App
+ */
+function renderPengirimanPage_() {
+  try {
+    return HtmlService.createHtmlOutputFromFile('Pengiriman')
+      .setTitle('Meja Pengiriman & Resi Shopee - ERP Begood')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+  } catch (err) {
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Setup Pengiriman.html - ERP Begood</title>' +
+      '<style>body{font-family:sans-serif;padding:20px;background:#f6f8fa;color:#0f172a;text-align:center;}' +
+      '.box{max-width:480px;margin:30px auto;background:#ffffff;padding:24px;border-radius:12px;border:1px solid #e2e8f0;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,0.05);}' +
+      'h2{color:#0f172a;font-size:18px;margin-bottom:8px;text-align:center;}p{color:#64748b;font-size:13px;line-height:1.5;margin-bottom:12px;}' +
+      'ol{color:#334155;font-size:13px;line-height:1.8;padding-left:20px;margin-bottom:16px;}code{background:#f1f5f9;color:#0f172a;padding:2px 6px;border-radius:4px;font-family:monospace;}' +
+      '.btn{display:block;text-align:center;background:#0f172a;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:14px;}' +
+      '</style></head><body><div class="box">' +
+      '<h2>Berkas Pengiriman.html Belum Dibuat di Apps Script</h2>' +
+      '<p>Google Apps Script belum menemukan berkas <code>Pengiriman.html</code> di editor proyek Anda:</p>' +
+      '<ol>' +
+      '<li>Buka editor Apps Script (<strong>Ekstensi &gt; Apps Script</strong>).</li>' +
+      '<li>Klik tombol <strong>+</strong> di samping Berkas &gt; pilih <strong>HTML</strong>.</li>' +
+      '<li>Beri nama: <code>Pengiriman</code> (huruf besar P).</li>' +
+      '<li>Salin isi berkas <code>gas/Pengiriman.html</code> ke dalamnya, lalu Simpan.</li>' +
+      '<li>Klik <strong>Deploy &gt; Kelola deployment &gt; Edit &gt; Versi baru &gt; Deploy</strong>.</li>' +
+      '</ol>' +
+      '<a class="btn" href="' + (ScriptApp.getService().getUrl() || '#') + '">Buka Dashboard Utama</a>' +
+      '</div></body></html>'
+    ).setTitle('Setup Pengiriman.html - ERP Begood');
+  }
+}
+
+/**
+ * Menu pembuka Meja Pengiriman di tab baru dari Spreadsheet
+ */
+function bukaMejaPengirimanPrompt() {
+  var ui = SpreadsheetApp.getUi();
+  var webAppUrl = '';
+  try {
+    webAppUrl = ScriptApp.getService().getUrl();
+  } catch (e) {}
+
+  if (!webAppUrl) {
+    ui.alert(
+      'Web App Belum Di-deploy',
+      'Untuk membuka Meja Pengiriman & Resi di tab baru:\n\n' +
+      '1. Buka editor Apps Script (Ekstensi > Apps Script).\n' +
+      '2. Deploy > New deployment > Web app.\n' +
+      '3. Salin URL deployment dan buka dengan parameter "?page=pengiriman"',
+      ui.ButtonSet.OK
+    );
+    return;
+  }
+
+  var targetUrl = webAppUrl + (webAppUrl.indexOf('?') !== -1 ? '&' : '?') + 'page=pengiriman';
+  var html = HtmlService.createHtmlOutput(
+    '<p style="font-family:sans-serif;font-size:13px;">Klik tombol di bawah untuk membuka Meja Pengiriman & Resi Shopee:</p>' +
+    '<p><a href="' + targetUrl + '" target="_blank" style="display:inline-block;padding:10px 16px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;">Buka Meja Pengiriman &rarr;</a></p>'
+  ).setWidth(380).setHeight(140);
+  ui.showModalDialog(html, 'Meja Pengiriman & Resi Shopee');
+}
+
+/**
+ * Mendapatkan daftar pesanan aktif untuk Meja Pengiriman
+ * dari Spreadsheet Distribusi Baru (Sheet "Pesanan Masuk")
+ */
+function getShippingOrdersSummary(kodeToko) {
+  var ss = getSpreadsheetPengiriman_();
+  var orderSheet = ss.getSheetByName('Pesanan Masuk');
+
+  if (!orderSheet) {
+    return {
+      success: false,
+      message: 'Sheet "Pesanan Masuk" tidak ditemukan di Spreadsheet Distribusi (' + (ss.getName ? ss.getName() : 'ID: ' + ID_SPREADSHEET_DISTRIBUSI_BARU) + ')'
+    };
+  }
+
+  var lastRow = orderSheet.getLastRow();
+  var lastCol = orderSheet.getLastColumn();
+  var kode = String(kodeToko || '').trim().toUpperCase();
+
+  var stats = {
+    needArrange: 0,
+    readyToPrint: 0,
+    alreadyPrinted: 0,
+    totalPackages: 0
+  };
+
+  var ordersMap = {};
+  var orderOrder = [];
+  var courierStats = {};
+
+  // Baca status cetak dari ScriptProperties (cache tanda cetak)
+  var props = PropertiesService.getScriptProperties();
+  var printedRaw = props.getProperty('PRINTED_RESI_SNS') || '[]';
+  var printedSet = {};
+  try {
+    var printedList = JSON.parse(printedRaw);
+    for (var p = 0; p < printedList.length; p++) {
+      printedSet[String(printedList[p])] = true;
+    }
+  } catch (errP) {}
+
+  if (lastRow >= 2 && lastCol >= 1) {
+    var rangeValues = orderSheet.getRange(1, 1, lastRow, lastCol).getValues();
+    var headers = rangeValues[0];
+
+    // Pemetaan indeks kolom secara dinamis dan aman
+    var colSn = headers.indexOf('No. Pesanan');
+    var colDate = headers.indexOf('Tanggal Pesanan (WIB)');
+    var colShopeeStatus = headers.indexOf('Status Shopee');
+    var colInternalStatus = headers.indexOf('Status Internal Begood');
+    var colToko = headers.indexOf('Toko');
+    var colBuyer = headers.indexOf('Nama Pembeli');
+    var colProduct = headers.indexOf('Ringkasan Produk');
+    var colSku = headers.indexOf('Nomor Referensi SKU');
+    var colVariation = headers.indexOf('Nama Variasi');
+    var colQty = headers.indexOf('Total Qty');
+    var colCourier = headers.indexOf('Ekspedisi / Kurir');
+    var colResi = headers.indexOf('No. Resi');
+    var colCity = headers.indexOf('Kota Tujuan');
+    var colNotes = headers.indexOf('Catatan Pembeli');
+
+    // Loop dari baris paling baru ke lama
+    for (var i = rangeValues.length - 1; i >= 1; i--) {
+      var row = rangeValues[i];
+      var orderSn = (colSn !== -1 && row[colSn]) ? String(row[colSn]).trim() : '';
+      if (!orderSn) continue;
+
+      var rowToko = (colToko !== -1 && row[colToko]) ? String(row[colToko]).trim().toUpperCase() : '';
+      if (kode && rowToko && rowToko !== kode) continue;
+
+      var shopeeStatus = (colShopeeStatus !== -1 && row[colShopeeStatus]) ? String(row[colShopeeStatus]).trim().toUpperCase() : '';
+      var internalStatus = (colInternalStatus !== -1 && row[colInternalStatus]) ? String(row[colInternalStatus]).trim() : '';
+      var trackingNumber = (colResi !== -1 && row[colResi]) ? String(row[colResi]).trim() : '';
+      var courier = (colCourier !== -1 && row[colCourier]) ? String(row[colCourier]).trim() : 'Lainnya';
+      if (!courier) courier = 'Lainnya';
+
+      // Saring pesanan batal
+      var isCancelled = shopeeStatus === 'CANCELLED' || internalStatus === '[6] Dibatalkan';
+      if (isCancelled) continue;
+
+      if (!ordersMap[orderSn]) {
+        var isPrinted = Boolean(printedSet[orderSn]);
+
+        // Tentukan tahap dokumen:
+        // 1 = need_arrange: belum ada resi asli & status masih READY_TO_SHIP / Siap Packing
+        // 2 = ready_to_print: sudah ada resi atau PROCESSED tapi belum dicetak
+        // 3 = already_printed: sudah pernah dicetak resinya
+        var shippingStage = 'ready_to_print';
+        var belumAdaResi = !trackingNumber || trackingNumber === '-' || trackingNumber === 'BELUM ADA RESI';
+
+        if (belumAdaResi && (shopeeStatus === 'READY_TO_SHIP' || internalStatus === '[1] Siap Packing')) {
+          shippingStage = 'need_arrange';
+          stats.needArrange++;
+        } else if (isPrinted) {
+          shippingStage = 'already_printed';
+          stats.alreadyPrinted++;
+        } else {
+          shippingStage = 'ready_to_print';
+          stats.readyToPrint++;
+        }
+
+        stats.totalPackages++;
+        courierStats[courier] = (courierStats[courier] || 0) + 1;
+
+        ordersMap[orderSn] = {
+          order_sn: orderSn,
+          order_date: (colDate !== -1 && row[colDate]) ? String(row[colDate]) : '',
+          shopee_status: shopeeStatus,
+          internal_status: internalStatus,
+          buyer_name: (colBuyer !== -1 && row[colBuyer]) ? String(row[colBuyer]) : '-',
+          courier: courier,
+          tracking_number: belumAdaResi ? '' : trackingNumber,
+          notes: (colNotes !== -1 && row[colNotes]) ? String(row[colNotes]) : '',
+          city: (colCity !== -1 && row[colCity]) ? String(row[colCity]) : '-',
+          toko: rowToko || 'BEGOOD',
+          stage: shippingStage,
+          is_printed: isPrinted,
+          total_qty: 0,
+          total_amount: 0,
+          items: []
+        };
+        orderOrder.push(orderSn);
+      }
+
+      // Kumpulkan item variasi/SKU produk
+      var itemSku = (colSku !== -1 && row[colSku]) ? String(row[colSku]).trim() : '-';
+      var itemName = (colProduct !== -1 && row[colProduct]) ? String(row[colProduct]).trim() : 'Produk';
+      var itemVariation = (colVariation !== -1 && row[colVariation]) ? String(row[colVariation]).trim() : '';
+      var itemQty = (colQty !== -1 && Number(row[colQty])) ? Number(row[colQty]) : 1;
+
+      ordersMap[orderSn].total_qty += itemQty;
+      ordersMap[orderSn].items.push({
+        sku: itemSku,
+        name: itemName,
+        variation: itemVariation,
+        qty: itemQty
+      });
+    }
+  }
+
+  var ordersList = [];
+  for (var k = 0; k < orderOrder.length; k++) {
+    ordersList.push(ordersMap[orderOrder[k]]);
+  }
+
+  return {
+    success: true,
+    stats: stats,
+    orders: ordersList,
+    courier_stats: courierStats,
+    spreadsheet_id: ss.getId(),
+    spreadsheet_name: ss.getName ? ss.getName() : 'Spreadsheet Operasional',
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * RPC: Sinkronisasi / Tarik Pesanan Siap Kirim Terbaru dari Shopee langsung ke Spreadsheet Baru
+ */
+function syncOrdersPengirimanRpc(kodeToko) {
+  try {
+    // Manfaatkan fungsi penarikan data yang sudah ada di DistribusiService
+    if (typeof ambilPesananSiapKirimKeSpreadsheetBaru === 'function') {
+      var res = ambilPesananSiapKirimKeSpreadsheetBaru('', kodeToko);
+      return {
+        success: true,
+        message: res.message || ('Berhasil menarik ' + res.countOrders + ' pesanan ke Spreadsheet.'),
+        count: res.countOrders
+      };
+    } else {
+      throw new Error('Fungsi ambilPesananSiapKirimKeSpreadsheetBaru belum tersedia di Apps Script.');
+    }
+  } catch (err) {
+    return {
+      success: false,
+      message: err.message || String(err)
+    };
+  }
+}
+
+/**
+ * Memperbarui Nomor Resi dan Status Shopee di Spreadsheet Operasional Baru
+ * (dan Master Spreadsheet jika terpasang)
+ */
+function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusShopee) {
+  var ss = getSpreadsheetPengiriman_();
+  if (!ss) return false;
+
+  var sheet = ss.getSheetByName('Pesanan Masuk');
+  if (!sheet || sheet.getLastRow() < 2) return false;
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var range = sheet.getRange(1, 1, lastRow, lastCol);
+  var values = range.getValues();
+  var headers = values[0];
+
+  var colSn = headers.indexOf('No. Pesanan');
+  var colResi = headers.indexOf('No. Resi');
+  var colStatus = headers.indexOf('Status Shopee');
+  var colSync = headers.indexOf('Waktu Sinkronisasi');
+
+  if (colSn === -1) return false;
+
+  var targetSn = String(orderSn).trim();
+  var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  var updated = false;
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][colSn]).trim() === targetSn) {
+      if (trackingNumber && colResi !== -1) values[i][colResi] = trackingNumber;
+      if (newStatusShopee && colStatus !== -1) values[i][colStatus] = newStatusShopee;
+      if (colSync !== -1) values[i][colSync] = nowWIB;
+      updated = true;
+    }
+  }
+
+  if (updated) {
+    range.setValues(values);
+  }
+
+  // Update juga No. Resi di PEMBAGIAN PACKING jika barisnya sudah ada
+  try {
+    var sheetPacking = ss.getSheetByName('PEMBAGIAN PACKING');
+    if (sheetPacking && sheetPacking.getLastRow() > 1 && trackingNumber) {
+      var pRange = sheetPacking.getRange(1, 1, sheetPacking.getLastRow(), sheetPacking.getLastColumn());
+      var pVals = pRange.getValues();
+      var pHdrs = pVals[0];
+      var pSnCol = pHdrs.indexOf('No. Pesanan');
+      var pResiCol = pHdrs.indexOf('No. Resi');
+      if (pSnCol !== -1 && pResiCol !== -1) {
+        var pUpdated = false;
+        for (var p = 1; p < pVals.length; p++) {
+          if (String(pVals[p][pSnCol]).trim() === targetSn) {
+            pVals[p][pResiCol] = trackingNumber;
+            pUpdated = true;
+          }
+        }
+        if (pUpdated) pRange.setValues(pVals);
+      }
+    }
+  } catch (ePack) {
+    console.warn('[ShippingService] Gagal update resi di PEMBAGIAN PACKING:', ePack);
+  }
+
+  return updated;
+}
+
+/**
+ * Helper untuk mengambil token Shopee aktif dari Spreadsheet Master (DB_Token)
+ */
+function getActiveShopeeToken_(kodeToko) {
+  var target = String(kodeToko || '').trim().toUpperCase();
+  var daftar = [];
+
+  // 1. Coba melalui getTokoUntukSync
+  try {
+    if (typeof SheetManager !== 'undefined' && SheetManager.getTokoUntukSync) {
+      daftar = SheetManager.getTokoUntukSync(target && target !== 'SEMUA' ? target : undefined);
+    }
+  } catch (e1) {}
+
+  // 2. Coba melalui getTokenRecords
+  if (!daftar || daftar.length === 0) {
+    try {
+      if (typeof SheetManager !== 'undefined' && SheetManager.getTokenRecords) {
+        var semua = SheetManager.getTokenRecords();
+        for (var i = 0; i < semua.length; i++) {
+          if (semua[i].access_token && semua[i].aktif !== 'TIDAK') {
+            if (!target || target === 'SEMUA' || String(semua[i].kode_toko || '').toUpperCase() === target) {
+              daftar.push(semua[i]);
+            }
+          }
+        }
+        if (daftar.length === 0 && semua.length > 0) daftar.push(semua[0]);
+      }
+    } catch (e2) {}
+  }
+
+  // 3. Fallback ke getTokenRecord tunggal
+  if (!daftar || daftar.length === 0) {
+    try {
+      if (typeof SheetManager !== 'undefined' && SheetManager.getTokenRecord) {
+        var rec = SheetManager.getTokenRecord();
+        if (rec && rec.access_token) daftar.push(rec);
+      }
+    } catch (e3) {}
+  }
+
+  if (!daftar || daftar.length === 0 || !daftar[0].access_token) {
+    throw new Error('Tidak ditemukan Access Token aktif di sheet DB_Token. Pastikan toko sudah terhubung di ERP Begood.');
+  }
+
+  return daftar[0];
+}
+
+/**
+ * RPC: Ambil parameter pengiriman (dropoff / pickup options)
+ */
+function getShippingParameterRpc(orderSn, kodeToko) {
+  try {
+    var primary = getActiveShopeeToken_(kodeToko);
+
+    var res = ShopeeApi.getShippingParameter({
+      order_sn: orderSn,
+      shop_id: primary.shop_id,
+      access_token: primary.access_token,
+      refresh_token: primary.refresh_token,
+      expired_at: primary.expired_at
+    });
+
+    return { success: true, data: res.data || res };
+  } catch (err) {
+    return { success: false, message: err.message || String(err) };
+  }
+}
+
+/**
+ * RPC: Eksekusi Atur Pengiriman (Dropoff / Pickup)
+ */
+function processShipOrderRpc(orderSn, method, extraParams, kodeToko) {
+  try {
+    var primary = getActiveShopeeToken_(kodeToko);
+
+    var payload = {
+      order_sn: orderSn,
+      shop_id: primary.shop_id,
+      access_token: primary.access_token,
+      refresh_token: primary.refresh_token,
+      expired_at: primary.expired_at
+    };
+
+    if (method === 'pickup') {
+      payload.pickup = extraParams || {};
+    } else {
+      payload.dropoff = extraParams || {};
+    }
+
+    var shipRes = ShopeeApi.shipOrder(payload);
+
+    // Ambil nomor resi terbaru setelah diatur
+    var trackingNumber = '';
+    try {
+      var fetchRes = ShopeeApi.fetchDailyOrders({
+        order_sn_list: [orderSn],
+        shop_id: primary.shop_id,
+        access_token: primary.access_token,
+        refresh_token: primary.refresh_token
+      });
+      if (fetchRes && fetchRes.data && fetchRes.data.orders && fetchRes.data.orders.length > 0) {
+        trackingNumber = fetchRes.data.orders[0].tracking_number || '';
+      }
+    } catch (eTrack) {
+      console.warn('Gagal menarik nomor resi otomatis setelah ship:', eTrack);
+    }
+
+    // Perbarui sheet Pesanan Masuk di Spreadsheet Distribusi Baru
+    updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, 'PROCESSED');
+
+    return {
+      success: true,
+      order_sn: orderSn,
+      tracking_number: trackingNumber,
+      message: 'Pesanan ' + orderSn + ' berhasil diatur pengirimannya.'
+    };
+  } catch (err) {
+    return { success: false, message: err.message || String(err) };
+  }
+}
+
+/**
+ * RPC: Atur Pengiriman Massal (Batch)
+ */
+function processBatchShipOrdersRpc(orderSnList, method, extraParams, kodeToko) {
+  if (!orderSnList || orderSnList.length === 0) {
+    return { success: false, message: 'Daftar pesanan kosong.' };
+  }
+
+  var successCount = 0;
+  var errors = [];
+  var updatedSns = [];
+
+  for (var i = 0; i < orderSnList.length; i++) {
+    var sn = orderSnList[i];
+    var res = processShipOrderRpc(sn, method, extraParams, kodeToko);
+    if (res.success) {
+      successCount++;
+      updatedSns.push(sn);
+    } else {
+      errors.push(sn + ': ' + res.message);
+    }
+  }
+
+  return {
+    success: true,
+    total: orderSnList.length,
+    success_count: successCount,
+    fail_count: errors.length,
+    errors: errors,
+    updated_sns: updatedSns
+  };
+}
+
+/**
+ * RPC: Ambil Berkas PDF Dokumen Resi Thermal A6 Resmi Shopee (Base64)
+ */
+function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
+  try {
+    if (!orderSnList || orderSnList.length === 0) {
+      throw new Error('Daftar order_sn tidak boleh kosong.');
+    }
+
+    var primary = getActiveShopeeToken_(kodeToko);
+
+    var res = ShopeeApi.getShippingDocument({
+      order_sn_list: orderSnList,
+      document_type: 'THERMAL_AIR_WAYBILL',
+      shop_id: primary.shop_id,
+      access_token: primary.access_token,
+      refresh_token: primary.refresh_token,
+      expired_at: primary.expired_at
+    });
+
+    if (!res || !res.data || !res.data.pdf_base64) {
+      throw new Error(res.message || 'Gagal menerima berkas PDF resi dari server Shopee.');
+    }
+
+    return {
+      success: true,
+      pdf_base64: res.data.pdf_base64,
+      order_count: res.data.order_count || orderSnList.length
+    };
+  } catch (err) {
+    return { success: false, message: err.message || String(err) };
+  }
+}
+
+/**
+ * RPC: Tandai pesanan sudah dicetak resinya
+ */
+function markOrdersAsPrintedRpc(orderSnList) {
+  if (!orderSnList || orderSnList.length === 0) return { success: true };
+
+  var props = PropertiesService.getScriptProperties();
+  var printedRaw = props.getProperty('PRINTED_RESI_SNS') || '[]';
+  var printedList = [];
+  try {
+    printedList = JSON.parse(printedRaw);
+  } catch (e) {}
+
+  var set = {};
+  for (var i = 0; i < printedList.length; i++) set[printedList[i]] = true;
+  for (var j = 0; j < orderSnList.length; j++) set[orderSnList[j]] = true;
+
+  var updatedList = Object.keys(set);
+  if (updatedList.length > 500) {
+    updatedList = updatedList.slice(updatedList.length - 500);
+  }
+
+  props.setProperty('PRINTED_RESI_SNS', JSON.stringify(updatedList));
+  return { success: true, count: orderSnList.length };
+}

@@ -342,7 +342,7 @@
     .chip-accent { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 
     .pembagian-nav-tabs {
-      display: inline-flex;
+      display: inline-flex; flex-wrap: wrap; max-width: 100%;
       background: var(--desk-sunk);
       padding: 3px;
       border-radius: var(--r-control);
@@ -350,7 +350,7 @@
       border: 1px solid var(--rule);
     }
     .pembagian-nav-tabs .btn {
-      border: none;
+      border: none; flex: 1 1 auto;
       border-radius: calc(var(--r-control) - 2px);
     }
     .pembagian-nav-tabs .btn.is-active {
@@ -573,7 +573,7 @@
       margin-right: 6px;
       font-size: 13px;
     }
-
+    .btn-kanban-sticker { margin-top: 6px; } .btn-kanban-sticker i { color: var(--brand); }
     /* ---------- table ---------- */
     .table-wrap { overflow-x: auto; }
 
@@ -922,7 +922,7 @@
     .scrim[hidden] { display: none; }
 
     .modal {
-      width: 100%; max-height: 90vh;
+      width: 100%; max-height: 90vh; max-height: 90dvh;
       display: flex; flex-direction: column;
       background: var(--paper);
       border: 1px solid var(--rule-strong);
@@ -963,7 +963,7 @@
 
     .stack { display: flex; flex-direction: column; gap: 8px; }
     .stack-sm { display: flex; flex-direction: column; gap: 6px; }
-    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
     /* ---------- analytics ---------- */
     /* Batang sebaran pada kartu grafik. Tingginya tetap tipis karena yang
@@ -1006,7 +1006,7 @@
 
       .sidebar {
         position: fixed; inset: 0 auto 0 0; z-index: 60;
-        width: 264px; height: 100vh;
+        width: min(280px, 84vw); height: 100vh; height: 100dvh;
         transform: translateX(-100%);
         transition: transform var(--step) ease;
         box-shadow: var(--shadow-lift);
@@ -1019,26 +1019,26 @@
       }
       .sidebar-scrim[hidden] { display: none; }
 
-      .sidebar-toggle { display: inline-flex; }
-      .topbar-title { order: -1; flex: 1 1 100%; margin-right: 0; }
+      .sidebar-toggle { display: inline-flex; order: -2; min-height: 40px; padding: 0 11px; }
+      .topbar-title { order: -1; flex: 1 1 calc(100% - 110px); margin-right: 0; }
     }
 
     @media (max-width: 640px) {
-      .topbar-inner { padding: 9px 14px; gap: 8px; }
+      .topbar-inner { padding: 10px 14px; gap: 8px; }
       .desk { padding: 14px 14px 56px; gap: 12px; }
-      .kpi-grid { grid-template-columns: minmax(0, 1fr); }
-      .chart-grid { grid-template-columns: minmax(0, 1fr); }
-      .kpi-value { font-size: 26px; }
-      .queue { padding: 16px; gap: 16px; }
+      .kpi-grid, .chart-grid { grid-template-columns: minmax(0, 1fr); }
+      .form-grid-setelan { grid-template-columns: minmax(0, 1fr) !important; }
+      .kpi-value { font-size: 26px; } .queue { padding: 16px; gap: 16px; }
       .queue-number { font-size: 34px; }
-      .queue-do { width: 100%; }
-      .queue-do .btn { flex: 1 1 auto; min-height: 38px; }
-      .divider-y { display: none; }
-      .modal-foot { flex-direction: column-reverse; align-items: stretch; }
-      .modal-foot .btn { min-height: 38px; }
-      .toast { left: 14px; right: 14px; bottom: 14px; max-width: none; }
-      table.ledger td, table.ledger th { padding: 8px; }
-      .hide-sm { display: none !important; }
+      .queue-do, .pembagian-nav-tabs, .toolbar-group { width: 100%; }
+      .queue-do .btn, .pembagian-nav-tabs .btn { flex: 1 1 auto; min-height: 40px; }
+      .btn, .theme-toggle, .modal-foot .btn, .form-grid-setelan .btn { min-height: 40px !important; }
+      .btn-sm { min-height: 36px; padding: 0 10px; font-size: 12px; } .btn-icon, .btn-sm.btn-icon, .pager .btn { min-width: 38px; min-height: 38px; }
+      .field, select.field, input.field, textarea.field { min-height: 40px; font-size: 16px; }
+      .search { flex: 1 1 100%; max-width: none; } .divider-y { display: none; }
+      .modal-foot { flex-direction: column-reverse; align-items: stretch; } .scrim { padding: 10px; }
+      .toast { left: 14px; right: 14px; bottom: 14px; max-width: none; } .tab { min-height: 44px; }
+      table.ledger td, table.ledger th { padding: 8px; } .hide-sm { display: none !important; }
     }
 
     /* ---------- packing slip ----------
@@ -1107,7 +1107,7 @@
     .scan-progress-track { height: 8px; background: var(--rule); border-radius: 999px; overflow: hidden; }
     .scan-progress-bar { height: 100%; background: var(--accent-fill); width: 0%; transition: width .2s ease, background-color .2s ease; }
     .scan-progress-bar.is-complete { background: var(--ok); }
-    .scan-checklist-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .scan-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; } .scan-checklist-table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 13px; }
     .scan-checklist-table th { background: var(--desk); text-align: left; padding: 8px 12px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .03em; }
     .scan-checklist-table td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
     .scan-row.is-complete { background: #f0fdf4; }
@@ -1162,7 +1162,7 @@
           Pembagian jahit
         </button>
         <button type="button" class="tab butuh-admin" id="tab-produksi" role="tab" aria-selected="false"
-                aria-controls="content-produksi" onclick="switchTab('produksi')">
+                aria-controls="content-produksi" onclick="switchTab('produksi')" style="display: none !important;" hidden>
           <i class="fa-solid fa-scissors" aria-hidden="true"></i>
           Antrian &amp; tarif SKU
           <span class="tab-count" id="tab-count-produksi">0</span>
@@ -1214,11 +1214,11 @@
       <header class="topbar">
         <div class="topbar-inner">
 
-          <button type="button" class="btn btn-icon sidebar-toggle" id="sidebar-toggle"
+          <button type="button" class="btn sidebar-toggle" id="sidebar-toggle"
                   onclick="bukaSidebar()" aria-controls="sidebar" aria-expanded="false"
-                  title="Buka menu">
+                  title="Buka menu navigasi">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
-            <span class="sr-only">Buka menu</span>
+            <span>Menu</span>
           </button>
 
           <div class="topbar-title">
@@ -1698,7 +1698,7 @@
          pesanan berstatus "[2] Menunggu Pickup" pada sheet Pesanan Masuk, karena
          itulah barang yang benar-benar harus dikerjakan. Yang tetap diisi manusia
          hanya dua hal yang tidak ada di pesanan: sesi kerja dan nama penjahit. -->
-    <section class="tab-panel" id="content-produksi" role="tabpanel" aria-labelledby="tab-produksi" hidden>
+    <section class="tab-panel" id="content-produksi" role="tabpanel" aria-labelledby="tab-produksi" style="display: none !important;" hidden>
 
       <div class="notice" id="produksi-notice" hidden>
         <strong>Versi kode yang sedang dimuat belum lengkap.</strong>
@@ -2089,6 +2089,7 @@
                 <option value="PAGI">PAGI</option>
                 <option value="SIANG">SIANG</option>
               </select>
+              <span class="panel-note" style="font-size:10px; margin-top:2px;">Pagi: &gt;12.00 kemarin | Siang: resi &lt;12.00</span>
             </div>
             <button type="button" class="btn" onclick="muatPembagianJahit()" id="btn-muat-pembagian">
               Muat ulang
@@ -2136,10 +2137,17 @@
       <div class="panel">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">Beban dan upah per penjahit</h2>
+            <div class="pembagian-nav-tabs" role="tablist" aria-label="Pilihan tampilan beban kerja" style="margin-bottom:6px;">
+              <button type="button" class="btn btn-sm is-active" id="btn-sub-beban-penjahit" onclick="gantiSubBebanKerja_('penjahit')">
+                <i class="fa-solid fa-scissors" aria-hidden="true"></i> Beban Penjahit
+              </button>
+              <button type="button" class="btn btn-sm btn-quiet" id="btn-sub-beban-packing" onclick="gantiSubBebanKerja_('packing')">
+                <i class="fa-solid fa-boxes-packing" aria-hidden="true"></i> Beban Petugas Packing (<span id="rekap-packing-badge-resi">0 resi</span>)
+              </button>
+            </div>
             <span class="panel-note" id="pembagian-rekap-note">Dihitung dari pekerjaan yang masih menunggu</span>
           </div>
-          <div class="toolbar-group">
+          <div class="toolbar-group" id="toolbar-view-penjahit">
             <div class="pembagian-nav-tabs" role="tablist" aria-label="Mode tampilan penjahit">
               <button type="button" class="btn btn-sm is-active" id="tab-view-penjahit-cards" onclick="gantiTampilanPenjahit_('cards')">
                 <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i> Tampilan Kartu
@@ -2149,11 +2157,18 @@
               </button>
             </div>
           </div>
+          <div class="toolbar-group" id="toolbar-view-packing" style="display: none;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-unduh-semua-lembar-packing" onclick="unduhSemuaLembarKerjaPackingPdf()">
+              <i class="fa-solid fa-print" aria-hidden="true"></i> Cetak Semua Lembar Kerja Packing (PDF)
+            </button>
+          </div>
         </div>
 
         <div class="panel-body">
-          <!-- VIEW 1: KARTU PENJAHIT (SESUAI MOCKUP) -->
-          <div id="view-penjahit-cards">
+          <!-- WADAH BEBAN PENJAHIT -->
+          <div id="view-beban-penjahit-container">
+            <!-- VIEW 1: KARTU PENJAHIT (SESUAI MOCKUP) -->
+            <div id="view-penjahit-cards">
             <!-- TOP SUMMARY BOX: TOTAL SEMUA PENJAHIT (PAGI + SIANG) -->
             <div class="pembagian-summary-box">
               <div class="pembagian-summary-title">TOTAL SEMUA PENJAHIT (PAGI + SIANG)</div>
@@ -2186,9 +2201,9 @@
                     <div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>
                     <div class="pembagian-potong-val" id="card-sesi-pagi-potong">0 menit (2 Personil Cutting)</div>
                   </div>
-                  <button type="button" class="btn-pdf-a6" id="btn-pdf-a6-semua-pagi" onclick="unduhSemuaSpkPenjahitPdf('PAGI')">
-                    <i class="fa-solid fa-print" aria-hidden="true"></i> Download Semua PDF A6 (Pagi)
-                  </button>
+                  <button type="button" class="btn-pdf-a6" id="btn-pdf-a6-semua-pagi" onclick="unduhSemuaSpkPenjahitPdf('PAGI')"><i class="fa-solid fa-print" aria-hidden="true"></i> Download Semua PDF A6 (Pagi)</button>
+                  <button type="button" class="btn-pdf-a6 btn-kanban-sticker" id="btn-kanban-semua-pagi" onclick="unduhSemuaStickerKanbanPdf('PAGI')">
+                    <i class="fa-solid fa-tags" aria-hidden="true"></i> Download Semua Sticker Kanban (Pagi)</button>
                 </div>
 
                 <!-- SESI SIANG -->
@@ -2208,9 +2223,9 @@
                     <div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>
                     <div class="pembagian-potong-val" id="card-sesi-siang-potong">0 menit (2 Personil Cutting)</div>
                   </div>
-                  <button type="button" class="btn-pdf-a6" id="btn-pdf-a6-semua-siang" onclick="unduhSemuaSpkPenjahitPdf('SIANG')">
-                    <i class="fa-solid fa-print" aria-hidden="true"></i> Download Semua PDF A6 (Siang)
-                  </button>
+                  <button type="button" class="btn-pdf-a6" id="btn-pdf-a6-semua-siang" onclick="unduhSemuaSpkPenjahitPdf('SIANG')"><i class="fa-solid fa-print" aria-hidden="true"></i> Download Semua PDF A6 (Siang)</button>
+                  <button type="button" class="btn-pdf-a6 btn-kanban-sticker" id="btn-kanban-semua-siang" onclick="unduhSemuaStickerKanbanPdf('SIANG')">
+                    <i class="fa-solid fa-tags" aria-hidden="true"></i> Download Semua Sticker Kanban (Siang)</button>
                 </div>
               </div>
             </div>
@@ -2254,8 +2269,43 @@
               </table>
             </div>
           </div>
+        </div><!-- end of view-beban-penjahit-container -->
+
+        <!-- WADAH BEBAN PETUGAS PACKING -->
+        <div id="view-beban-packing-container" style="display: none;">
+          <!-- TOP SUMMARY BOX: TOTAL PACKING -->
+          <div class="pembagian-summary-box">
+            <div class="pembagian-summary-title">RINGKASAN BEBAN PETUGAS PACKING (DIBAGI RATA PER RESI)</div>
+            <div class="pembagian-summary-hero">
+              <div>
+                <div class="pembagian-metric-label">Total Lembar Resi / Pesanan</div>
+                <div class="pembagian-metric-val-green" id="card-packing-total-resi">0 Resi</div>
+              </div>
+              <div>
+                <div class="pembagian-metric-label">Total Pcs Produk</div>
+                <div class="pembagian-metric-val-blue" id="card-packing-total-pcs">0 Pcs</div>
+              </div>
+              <div>
+                <div class="pembagian-metric-label">Petugas Packing Aktif</div>
+                <div class="pembagian-metric-val-blue" id="card-packing-total-petugas">0 Orang</div>
+              </div>
+              <div>
+                <div class="pembagian-metric-label">Rata-rata Resi / Petugas</div>
+                <div class="pembagian-metric-val-green" id="card-packing-rata-resi">0 Resi</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GRID KARTU PETUGAS PACKING -->
+          <div class="pembagian-cards-grid" id="kartu-packing-list-container" style="margin-top:16px;">
+            <div class="state" style="grid-column: 1 / -1; padding: 24px; text-align: center;">
+              <div class="state-title">Belum ada pembagian packing</div>
+              <p class="state-note">Tekan tombol Bagi pekerjaan sekarang untuk membagi rata resi ke petugas packing.</p>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
       <div class="chart-grid">
         <div class="panel">
@@ -2314,11 +2364,11 @@
           </div>
           <div class="toolbar-group">
             <div class="pembagian-nav-tabs" role="tablist" aria-label="Sub tab setelan pembagian">
-              <button type="button" class="btn btn-sm is-active" id="tab-sub-penjahit" onclick="gantiSubTabSetelan_('penjahit')">
-                <i class="fa-solid fa-users-gear" aria-hidden="true"></i> Penjahit (<span id="setelan-penjahit-count">0</span>)
-              </button>
-              <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-aturan" onclick="gantiSubTabSetelan_('aturan')">
-                <i class="fa-solid fa-list-check" aria-hidden="true"></i> Aturan SKU (<span id="setelan-aturan-count">0</span>)
+              <button type="button" class="btn btn-sm is-active" id="tab-sub-penjahit" onclick="gantiSubTabSetelan_('penjahit')"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> Penjahit (<span id="setelan-penjahit-count">0</span>)</button>
+              <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-packing" onclick="gantiSubTabSetelan_('packing')"><i class="fa-solid fa-boxes-packing" aria-hidden="true"></i> Petugas Packing (<span id="setelan-packing-count">0</span>)</button>
+              <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-aturan" onclick="gantiSubTabSetelan_('aturan')"><i class="fa-solid fa-list-check" aria-hidden="true"></i> Aturan SKU (<span id="setelan-aturan-count">0</span>)</button>
+              <button type="button" class="btn btn-sm btn-quiet" id="tab-sub-kelengkapan" onclick="gantiSubTabSetelan_('kelengkapan')">
+                <i class="fa-solid fa-tags" aria-hidden="true"></i> Kelengkapan Kanban (<span id="setelan-kelengkapan-count">0</span>)
               </button>
               <button type="button" class="btn btn-sm btn-quiet butuh-superadmin" id="tab-sub-toko" onclick="gantiSubTabSetelan_('toko')">
                 <i class="fa-solid fa-store" aria-hidden="true"></i> Kode Toko (<span id="setelan-toko-count">0</span>)
@@ -2353,7 +2403,7 @@
             <div class="panel" style="background:var(--desk); border:1px solid var(--rule-strong); padding:12px 14px;">
               <div class="stack-sm">
                 <span class="label">Tambah Penjahit Baru</span>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)) 100px; gap:8px; align-items:end;">
+                <div class="form-grid-setelan" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)) 100px; gap:8px; align-items:end;">
                   <div>
                     <label class="sr-only" for="input-penjahit-nama">Nama Penjahit</label>
                     <input type="text" id="input-penjahit-nama" class="field" placeholder="Nama Penjahit *" style="text-transform:uppercase;">
@@ -2412,6 +2462,71 @@
             </div>
           </div>
 
+          <!-- SUB-TAB PETUGAS PACKING INTERAKTIF -->
+          <div id="setelan-sub-packing" class="stack" style="display:none;">
+            <div class="toolbar" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+              <div class="toolbar-group" style="flex:1 1 240px; max-width:380px;">
+                <div class="search" style="width:100%;">
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  <input type="text" id="cari-setelan-packing" class="field" placeholder="Cari nama petugas packing..." oninput="filterTabelPackingSetelan_()">
+                </div>
+              </div>
+              <div class="toolbar-group">
+                <span id="setelan-packing-ringkasan" class="chip chip-accent">0 petugas (0 aktif)</span>
+                <button type="button" class="btn btn-primary" onclick="simpanPackingDariTabelAction()" id="btn-simpan-packing-tabel">
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan petugas packing
+                </button>
+                <span class="panel-note" id="pembagian-packing-status"></span>
+              </div>
+            </div>
+
+            <!-- Form Tambah Petugas Packing -->
+            <div class="panel" style="background:var(--desk); border:1px solid var(--rule-strong); padding:12px 14px;">
+              <div class="stack-sm">
+                <span class="label">Tambah Petugas Packing Baru</span>
+                <div class="form-grid-setelan" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)) 100px; gap:8px; align-items:end;">
+                  <div>
+                    <label class="sr-only" for="input-packing-nama">Nama Petugas Packing</label>
+                    <input type="text" id="input-packing-nama" class="field num" placeholder="Nama petugas (misal: KELVIN) *" style="text-transform:uppercase;">
+                  </div>
+                  <div>
+                    <label class="sr-only" for="input-packing-catatan">Catatan / Meja Packing</label>
+                    <input type="text" id="input-packing-catatan" class="field" placeholder="Catatan (misal: Meja 1, Siap Packing)">
+                  </div>
+                  <div>
+                    <button type="button" class="btn btn-sm btn-primary" style="width:100%; min-height:32px;" onclick="tambahPetugasPackingAction()">
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="ledger" id="tabel-packing-setelan">
+                <caption class="sr-only">Tabel pengelolaan petugas packing, status kehadiran aktif sesi, dan bobot</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" style="width:40px; text-align:center;">No</th>
+                    <th scope="col" style="min-width:160px;">Nama Petugas Packing</th>
+                    <th scope="col" style="width:160px; text-align:center;">Status Hadir / Aktif</th>
+                    <th scope="col" style="width:90px; text-align:center;">Bobot</th>
+                    <th scope="col" style="min-width:180px;">Catatan</th>
+                    <th scope="col" style="width:60px; text-align:center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-packing-setelan"></tbody>
+              </table>
+            </div>
+
+            <div class="panel-note" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span>Centang <strong>Hadir / Aktif</strong> untuk menentukan siapa saja yang masuk dan mendapat jatah lembar resi pada sesi ini.</span>
+              <span id="packing-dirty-indicator" class="mark is-wait" style="display:none;">
+                <span class="dot"></span> Perubahan belum disimpan
+              </span>
+            </div>
+          </div>
+
           <!-- SUB-TAB 2: DAFTAR ATURAN SKU INTERAKTIF -->
           <div id="setelan-sub-aturan" class="stack" style="display:none;">
             <div class="toolbar" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
@@ -2434,7 +2549,7 @@
             <div class="panel" style="background:var(--desk); border:1px solid var(--rule-strong); padding:12px 14px;">
               <div class="stack-sm">
                 <span class="label">Tambah Aturan SKU Baru</span>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:8px; align-items:end;">
+                <div class="form-grid-setelan" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:8px; align-items:end;">
                   <div>
                     <label class="sr-only" for="input-aturan-pola">Pola SKU</label>
                     <input type="text" id="input-aturan-pola" class="field num" placeholder="Pola SKU (misal: KAOS-*) *" style="text-transform:uppercase;">
@@ -2457,7 +2572,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </div><div id="aturan-sku-bantuan-panel" class="stack-sm"></div>
 
             <!-- Tabel Interaktif Aturan SKU -->
             <div class="table-wrap">
@@ -2511,7 +2626,7 @@
             <div class="panel" style="background:var(--desk); border:1px solid var(--rule-strong); padding:12px 14px;">
               <div class="stack-sm">
                 <span class="label">Tambah Pemetaan Toko Baru (Superadmin)</span>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:8px; align-items:end;">
+                <div class="form-grid-setelan" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)) 100px; gap:8px; align-items:end;">
                   <div>
                     <label class="sr-only" for="input-toko-nama">Nama / Asal Toko</label>
                     <input type="text" id="input-toko-nama" class="field" placeholder="Nama Toko (misal: begood.bdg) *">
@@ -2556,7 +2671,8 @@
               </span>
             </div>
           </div>
-
+          <!-- SUB-TAB KELENGKAPAN KANBAN (DISIMPAN KE KONFIGURASI & DATA PROSES KOLOM E) -->
+          <div id="setelan-sub-kelengkapan" class="stack" style="display:none;"><div class="toolbar" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;"><div class="toolbar-group" style="flex:1 1 240px; max-width:380px;"><div class="search" style="width:100%;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="text" id="cari-setelan-kelengkapan" class="field" placeholder="Cari SKU atau teks kelengkapan..." oninput="filterTabelKelengkapanSetelan_()"></div></div><div class="toolbar-group"><span id="setelan-kelengkapan-ringkasan" class="chip chip-accent">0 SKU/pola</span><button type="button" class="btn btn-primary" onclick="simpanKelengkapanDariTabelAction()" id="btn-simpan-kelengkapan-tabel"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Simpan kelengkapan</button><span class="panel-note" id="pembagian-kelengkapan-status"></span></div></div><div class="panel" style="background:var(--desk); border:1px solid var(--rule-strong); padding:12px 14px;"><div class="stack-sm"><span class="label">Tambah SKU / Pola SKU &amp; Kelengkapan Sticker Kanban</span><div class="form-grid-setelan" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)) 100px; gap:8px; align-items:end;"><div><label class="sr-only" for="input-kelengkapan-sku">SKU atau Pola SKU</label><input type="text" id="input-kelengkapan-sku" class="field num" placeholder="SKU / Pola (misal: SPREI*90*SET) *" style="text-transform:uppercase;"></div><div><label class="sr-only" for="input-kelengkapan-teks">Teks Kelengkapan</label><input type="text" id="input-kelengkapan-teks" class="field" placeholder="Kelengkapan (misal: 1 Bantal + 1 Guling + 2 Tali) *"></div><div><button type="button" class="btn btn-sm btn-primary" style="width:100%; min-height:32px;" onclick="tambahKelengkapanBaruAction()"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah</button></div></div><div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:4px;"><span class="panel-note">Isi cepat:</span><button type="button" class="btn btn-sm btn-quiet" style="min-height:24px; padding:2px 8px; font-size:11px;" onclick="isiCepatTeksKelengkapan_('1 Bantal + 1 Guling + 2 Tali')">+ 1 Bantal + 1 Guling + 2 Tali</button><button type="button" class="btn btn-sm btn-quiet" style="min-height:24px; padding:2px 8px; font-size:11px;" onclick="isiCepatTeksKelengkapan_('2 Bantal + 2 Guling + 2 Tali')">+ 2 Bantal + 2 Guling + 2 Tali</button><button type="button" class="btn btn-sm btn-quiet" style="min-height:24px; padding:2px 8px; font-size:11px;" onclick="isiCepatTeksKelengkapan_('1 Bantal + 1 Guling')">+ 1 Bantal + 1 Guling</button></div></div></div><div class="table-wrap"><table class="ledger" id="tabel-kelengkapan-setelan"><caption class="sr-only">Tabel pemetaan SKU atau pola SKU ke teks kelengkapan untuk Sticker Tiket Kanban</caption><thead><tr><th scope="col" style="width:40px; text-align:center;">No</th><th scope="col" style="min-width:200px;">SKU / Pola SKU (Mendukung * Wildcard)</th><th scope="col" style="min-width:240px;">Teks Kelengkapan di Sticker Kanban</th><th scope="col" style="width:60px; text-align:center;">Aksi</th></tr></thead><tbody id="tbody-kelengkapan-setelan"></tbody></table></div><div class="panel-note" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;"><span><strong>Hemat Tabsheet:</strong> Data disimpan otomatis ke <strong>Konfigurasi</strong> &amp; diselaraskan ke <strong>Kolom E (Kelengkapan) pada sheet DATA PROSES</strong> tanpa menambah tab sheet baru. Anda bisa menulis nama SKU persis atau memakai pola wildcard <code>*</code> (contoh: <code>SPREI*90*SET</code>).</span><span id="kelengkapan-dirty-indicator" class="mark is-wait" style="display:none;"><span class="dot"></span> Perubahan belum disimpan</span></div></div>
           <!-- SUB-TAB 4: MODE SALIN / TEMPEL MASSAL (TSV) -->
           <div id="setelan-sub-tsv" class="stack" style="display:none;">
             <div class="panel" style="background:var(--desk); border:1px solid var(--rule); padding:12px 14px;">
@@ -2601,20 +2717,32 @@
       </div>
 
       <div class="panel">
-        <div class="panel-head">
-          <h2 class="panel-title">Pcs yang sudah dibagi</h2>
-          <span class="panel-note" id="pembagian-unit-note">Menampilkan 0 pcs</span>
+        <div class="panel-head" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <h2 class="panel-title">Pcs yang sudah dibagi</h2>
+            <span class="panel-note" id="pembagian-unit-note">Menampilkan 0 pcs</span>
+          </div>
+          <div class="toolbar-group" style="align-items:center; gap:8px;">
+            <label class="label" for="filter-sesi-antrian" style="margin:0; font-size:12px;">Filter Sesi:</label>
+            <select id="filter-sesi-antrian" class="field num" style="min-width:140px; height:32px; padding:2px 8px; font-size:12px;" onchange="filterTabelUnitSesi_()">
+              <option value="SEMUA">Semua Sesi</option>
+              <option value="PAGI">Sesi PAGI</option>
+              <option value="SIANG">Sesi SIANG</option>
+            </select>
+          </div>
         </div>
         <div class="table-wrap">
           <table class="ledger">
             <caption class="sr-only">Daftar pembagian yang sudah ditetapkan kepada penjahit</caption>
             <thead>
               <tr>
+                <th scope="col">Sesi</th>
                 <th scope="col">No. Pesanan</th>
                 <th scope="col">SKU</th>
                 <th scope="col">Variasi</th>
                 <th scope="col">Qty</th>
                 <th scope="col">Penjahit</th>
+                <th scope="col">Petugas Packing</th>
                 <th scope="col">Grup</th>
                 <th scope="col" class="butuh-uang">Harga jahit</th>
                 <th scope="col" class="butuh-uang">Harga total</th>
@@ -3354,7 +3482,7 @@
     </div>
   </div>
 
-  <script>
+    <script>
     (function () {
       var DEPLOY_LAMA = /(?:^|[?&])deploy=lama(?:&|$)/.test(window.location.search);
       var PERAN_UJI = (function () {
@@ -3374,6 +3502,11 @@
       var PEMBAGIAN = {
         cakupan: '',
         setelan: {
+          petugasPacking: [
+            { nama: 'KELVIN', aktif: 'YA', bobot: 1, catatan: 'Meja 1' },
+            { nama: 'DENI', aktif: 'YA', bobot: 1, catatan: 'Meja 2' },
+            { nama: 'AGUS', aktif: 'YA', bobot: 1, catatan: 'Meja 3' }
+          ],
           penjahit: [
             { nama: 'UGUN', grup: 'SPREI', aktif: 'YA', bobot: 1, catatan: 'Sprei, sarkur, sarban' },
             { nama: 'ZAE', grup: 'SPREI', aktif: 'YA', bobot: 1, catatan: 'Sprei, sarkur, sarban' },
@@ -3430,12 +3563,44 @@
             { toko: 'BGD2', pcs: 2, upah: 30000, jumlahOrder: 1, jumlahSku: 1 }
           ],
           total: { upah: 252000, selisih: 60000, rataUpah: 63000 },
+          rekapPacking: {
+            totalResi: 8,
+            totalPcs: 9,
+            belumDitetapkan: 0,
+            petugasAktif: 3,
+            rataResi: 3,
+            perPetugas: [
+              {
+                nama: 'KELVIN', aktif: 'YA', bobot: 1, resiCount: 3, pcsCount: 3,
+                daftarPesanan: [
+                  { noPesanan: '260927P001', toko: 'BGD', resi: 'SPX12345678', totalQty: 1, items: [{ sku: 'SPREI DK 180/30 SET', variasi: 'Mocca', qty: 1, penjahit: 'UGUN' }] },
+                  { noPesanan: '260927P002', toko: 'BGD', resi: 'SPX12345679', totalQty: 1, items: [{ sku: 'BG-HD-014', variasi: 'SINGLE', qty: 1, penjahit: 'UGUN' }] },
+                  { noPesanan: '260927P003', toko: 'BGD', resi: 'JNT98765432', totalQty: 1, items: [{ sku: 'BG-BC-002', variasi: 'Maroon', qty: 1, penjahit: 'ADUL' }] }
+                ]
+              },
+              {
+                nama: 'DENI', aktif: 'YA', bobot: 1, resiCount: 3, pcsCount: 3,
+                daftarPesanan: [
+                  { noPesanan: '260927P004', toko: 'BGD', resi: 'SPX12345680', totalQty: 1, items: [{ sku: 'BG-NEW-099', variasi: 'Standar', qty: 1, penjahit: 'BELUM DISET' }] },
+                  { noPesanan: '260927P005', toko: 'BGD2', resi: 'JNT98765433', totalQty: 1, items: [{ sku: 'BG-KS-001', variasi: 'Hitam, L', qty: 1, penjahit: 'ZAE' }] },
+                  { noPesanan: '260927P006', toko: 'BGD', resi: 'SPX12345681', totalQty: 1, items: [{ sku: 'BG-HD-014', variasi: 'SINGLE', qty: 1, penjahit: 'UGUN' }] }
+                ]
+              },
+              {
+                nama: 'AGUS', aktif: 'YA', bobot: 1, resiCount: 2, pcsCount: 3,
+                daftarPesanan: [
+                  { noPesanan: '260927P007', toko: 'BGD2', resi: 'JNT98765434', totalQty: 2, items: [{ sku: 'BG-KS-001', variasi: 'Hitam, L', qty: 2, penjahit: 'ZAE' }] },
+                  { noPesanan: '260927P008', toko: 'BGD', resi: 'SPX12345682', totalQty: 1, items: [{ sku: 'BG-HD-014', variasi: 'SINGLE', qty: 1, penjahit: 'UGUN' }] }
+                ]
+              }
+            ]
+          },
           unit: [
-            { noPesanan: '260927P001', sku: 'BG-KS-001', variasi: 'Hitam, L', part: '1/2', penjahit: 'UGUN', grup: 'SPREI', harga: 22000 },
-            { noPesanan: '260927P001', sku: 'BG-KS-001', variasi: 'Hitam, L', part: '2/2', penjahit: 'ZAE', grup: 'SPREI', harga: 22000 },
-            { noPesanan: '260927P002', sku: 'BG-HD-014', variasi: 'SINGLE', part: '1/3', penjahit: 'UGUN', grup: 'SPREI', harga: 18000 },
-            { noPesanan: '260927P003', sku: 'BG-BC-002', variasi: 'Maroon', part: '', penjahit: 'ADUL', grup: 'BC', harga: 90000 },
-            { noPesanan: '260927P004', sku: 'BG-NEW-099', variasi: 'Standar', part: '', penjahit: 'BELUM DISET', grup: 'BELUM DISET', harga: 0 }
+            { noPesanan: '260927P001', sku: 'BG-KS-001', variasi: 'Hitam, L', part: '1/2', penjahit: 'UGUN', grup: 'SPREI', harga: 22000, petugasPacking: 'KELVIN' },
+            { noPesanan: '260927P001', sku: 'BG-KS-001', variasi: 'Hitam, L', part: '2/2', penjahit: 'ZAE', grup: 'SPREI', harga: 22000, petugasPacking: 'KELVIN' },
+            { noPesanan: '260927P002', sku: 'BG-HD-014', variasi: 'SINGLE', part: '1/3', penjahit: 'UGUN', grup: 'SPREI', harga: 18000, petugasPacking: 'DENI' },
+            { noPesanan: '260927P003', sku: 'BG-BC-002', variasi: 'Maroon', part: '', penjahit: 'ADUL', grup: 'BC', harga: 90000, petugasPacking: 'DENI' },
+            { noPesanan: '260927P004', sku: 'BG-NEW-099', variasi: 'Standar', part: '', penjahit: 'BELUM DISET', grup: 'BELUM DISET', harga: 0, petugasPacking: 'AGUS' }
           ],
           peringatan: [
             { tipe: 'GRUP_TIDAK_DITEMUKAN', noPesanan: '260927P004', sku: 'BG-NEW-099', variasi: 'Standar',
@@ -3591,12 +3756,21 @@
                         pesan: '4 baris hasil jahit disimpan untuk sesi ' + (c || 'SIANG') +
                           ' tanggal ' + (b || '2026-09-27') + '. 1 baris sudah pernah tersimpan. ' +
                           '1 pcs belum punya penjahit, jadi belum ikut disimpan (pratinjau lokal).' };
+              } else if (prop === 'simpanPackingDashboard') {
+                var daftarPacking = b || [];
+                PEMBAGIAN.setelan.petugasPacking = daftarPacking;
+                res = { berhasil: true, jumlah: daftarPacking.length,
+                        pesan: daftarPacking.length + ' petugas packing disimpan (pratinjau lokal).' };
               } else if (prop === 'simpanPenjahitDashboard') {
                 res = { berhasil: true, jumlah: (b || []).length,
                         pesan: (b || []).length + ' baris penjahit disimpan (pratinjau lokal).' };
               } else if (prop === 'simpanAturanDashboard') {
                 res = { berhasil: true, jumlah: (b || []).length,
                         pesan: (b || []).length + ' aturan SKU disimpan (pratinjau lokal).' };
+              } else if (prop === 'simpanKelengkapanSkuDashboard') {
+                var daftarKel = Array.isArray(b) ? b : [];
+                PEMBAGIAN.setelan.kelengkapanSku = daftarKel;
+                res = { berhasil: true, jumlah: daftarKel.length, pesan: daftarKel.length + ' kelengkapan SKU Kanban disimpan (pratinjau lokal).' };
               } else if (prop === 'simpanKodeTokoDashboard') {
                 var daftar = b || [];
                 var peta = {};
@@ -4252,7 +4426,7 @@
     /* Dipanggil hanya setelah server memastikan sesinya berlaku. Sebelum itu,
        tidak ada data yang diminta ke server. */
     function mulaiDashboard_() {
-      loadDashboard(false);
+      loadDashboard(false); mulaiSinkronRealtime_();
     }
 
     /* ---- cache peramban & debounce ---- */
@@ -4287,7 +4461,7 @@
       const icon = document.getElementById('refresh-icon');
       if (icon) icon.classList.add('fa-spin');
       if (isManual) showToast('Mengambil data terbaru dari Google Sheets…', 'loading');
-
+      cacheBarisStatus = {}; antrianProduksiSudahDimuat = false; inventarisSudahDimuat = false; daftarPenggunaSudahDimuat = false; try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(SNAPSHOT_KEY_); } catch (e) {}
       // Stale-While-Revalidate: render seketika bila ada snapshot tersimpan
       if (!globalData && !isManual) {
         const snapshot = bacaSnapshotDashboard_();
@@ -4307,7 +4481,7 @@
              tabel tidak sempat menampilkan toko yang sudah ditinggalkan. */
           if (data && String(data.cakupan || '') !== scopedToko) return;
 
-          globalData = data;
+          globalData = data; if (data && data.versiData) versiDataTerkini_ = String(data.versiData); waktuMuatTerakhir_ = Date.now();
           simpanSnapshotDashboard_(data);
           // Data sheet baru dibaca, sehingga cache per status ikut disegarkan
           cacheBarisStatus = {};
@@ -4316,7 +4490,7 @@
           renderDashboard(data);
           // Daftar status diambil sekali, dan diambil ulang saat muat ulang manual
           if (!inventarisSudahDimuat || isManual) muatInventarisStatus();
-          if (isManual) showToast('Data terbaru sudah ditampilkan.');
+          if (isManual) { if (tabAktifSekarang_ === 'pembagian') muatPembagianJahit(); else if (tabAktifSekarang_ === 'produksi') muatAntrianProduksi(true); else if (tabAktifSekarang_ === 'estimasi') muatEstimasiProduksi(); else if (tabAktifSekarang_ === 'pengguna') muatDaftarPengguna(); showToast('Data terbaru sudah ditampilkan.'); }
         })
         .withFailureHandler((err) => {
           if (icon) icon.classList.remove('fa-spin');
@@ -4325,7 +4499,7 @@
           showToast('Gagal memuat data: ' + message, 'error');
           renderTableState('error', message);
         })
-        .getDashboardData(sesiToken, Boolean(isManual), scopedToko);
+        .getDashboardData(sesiToken, true || Boolean(isManual), scopedToko);
     }
     /* ---- master render ---- */
     function renderDashboard(data) {
@@ -5538,6 +5712,7 @@
 
       renderTabelPenjahitPembagian_(rekap.perPenjahit || []);
       renderKartuPenjahitPembagian_(payload);
+      renderRekapPacking_(payload);
       renderTabelRingkasPembagian_('pembagian-grup-tbody', (rekap.perGrup || []).map((g) => [
         esc(g.grup || '-'), angkaBagi_(g.pcs), angkaBagi_(g.jumlahPenjahit), teksUangBagi_(g.upah)
       ]), 'Belum ada grup yang terbaca.');
@@ -5731,7 +5906,7 @@
         const jml = Number(it.jumlah !== undefined ? it.jumlah : it.qty) || 1;
         const wJahit = Number(it.waktuJahit) || 0;
         const wPotong = Number(it.waktuPotong) || 0;
-        const upah = Number(it.upah !== undefined ? it.upah : (it.hargaTotal || it.harga)) || 0;
+        const upah = Number(it.upah !== undefined ? it.upah : (it.hargaTotal || it.harga)) || 0; const dpItem = (Array.isArray(it.daftarPesanan) && it.daftarPesanan.length) ? it.daftarPesanan.slice() : Array.from({ length: jml }, () => String(it.noPesanan || ''));
         if (!peta[kunci]) {
           peta[kunci] = {
             sesi: it.sesi || '',
@@ -5742,18 +5917,86 @@
             waktuPotong: wPotong,
             upah: upah,
             hargaSatuan: Number(it.hargaSatuan !== undefined ? it.hargaSatuan : it.harga) || 0,
-            noPesanan: it.noPesanan || '',
-            toko: toko
+            noPesanan: it.noPesanan || (dpItem[0] || ''), daftarPesanan: dpItem,
+            toko: toko, kelengkapan: it.kelengkapan !== undefined ? it.kelengkapan : undefined
           };
           urutan.push(peta[kunci]);
         } else {
-          peta[kunci].jumlah += jml;
+          peta[kunci].jumlah += jml; peta[kunci].daftarPesanan = (peta[kunci].daftarPesanan || []).concat(dpItem); if (!peta[kunci].noPesanan && dpItem[0]) peta[kunci].noPesanan = dpItem[0]; if (!peta[kunci].kelengkapan && it.kelengkapan) peta[kunci].kelengkapan = it.kelengkapan;
           peta[kunci].waktuJahit += wJahit;
           peta[kunci].waktuPotong += wPotong;
           peta[kunci].upah += upah;
         }
       });
       return urutan;
+    }
+
+    function parseTglJamKlien_(nilai) {
+      if (!nilai) return null;
+      let teks = '';
+      if (nilai instanceof Date) {
+        if (isNaN(nilai.getTime())) return null;
+        const y = nilai.getFullYear();
+        const m = String(nilai.getMonth() + 1).padStart(2, '0');
+        const d = String(nilai.getDate()).padStart(2, '0');
+        const h = String(nilai.getHours()).padStart(2, '0');
+        teks = y + '-' + m + '-' + d + ' ' + h + ':00:00';
+      } else {
+        teks = String(nilai).trim();
+      }
+      if (!teks) return null;
+
+      const mIso = teks.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2})(?::(\d{1,2}))?)?/);
+      if (mIso) {
+        const b = mIso[2].padStart(2, '0');
+        const t = mIso[3].padStart(2, '0');
+        const j = mIso[4] !== undefined ? parseInt(mIso[4], 10) : 0;
+        return { tgl: mIso[1] + '-' + b + '-' + t, jam: j };
+      }
+
+      const mMiring = teks.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})(?:[T\s](\d{1,2})(?::(\d{1,2}))?)?/);
+      if (mMiring) {
+        const bM = mMiring[2].padStart(2, '0');
+        const tM = mMiring[1].padStart(2, '0');
+        const jM = mMiring[4] !== undefined ? parseInt(mMiring[4], 10) : 0;
+        return { tgl: mMiring[3] + '-' + bM + '-' + tM, jam: jM };
+      }
+
+      const parsed = new Date(teks);
+      if (!isNaN(parsed.getTime())) {
+        const yP = parsed.getFullYear();
+        const mP = String(parsed.getMonth() + 1).padStart(2, '0');
+        const dP = String(parsed.getDate()).padStart(2, '0');
+        return { tgl: yP + '-' + mP + '-' + dP, jam: parsed.getHours() };
+      }
+      return null;
+    }
+
+    function tentukanSesiPesananKlien_(orderDate, resi, syncTime, tanggalAcuan, sesiCadangan) {
+      let acuan = '';
+      if (tanggalAcuan) {
+        const pAcuan = parseTglJamKlien_(tanggalAcuan);
+        if (pAcuan && pAcuan.tgl) acuan = pAcuan.tgl;
+      }
+      if (!acuan) {
+        const now = new Date();
+        acuan = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      }
+
+      const info = parseTglJamKlien_(orderDate) || parseTglJamKlien_(syncTime);
+      if (!info || !info.tgl) {
+        return sesiCadangan || 'PAGI';
+      }
+
+      const adaResi = Boolean(resi && String(resi).trim() !== '' && String(resi).trim() !== '-');
+
+      if (info.tgl === acuan) {
+        if (info.jam < 12 && adaResi) {
+          return 'SIANG';
+        }
+        return 'PAGI';
+      }
+      return 'PAGI';
     }
 
     function kumpulkanDataKartu_(payload, sesiDiminta) {
@@ -5782,7 +6025,7 @@
         setelan.penjahit.forEach((p) => {
           const nama = String(p.nama || '').trim().toUpperCase();
           const aktif = String(p.aktif || 'YA').trim().toUpperCase();
-          if (nama && aktif !== 'TIDAK') {
+          if (nama && nama !== 'BELUM DISET' && aktif !== 'TIDAK') {
             penjahitMap[nama] = {
               nama: nama,
               grup: p.grup || '',
@@ -5800,7 +6043,7 @@
       if (estimasi && Array.isArray(estimasi.penjahit)) {
         estimasi.penjahit.forEach((p) => {
           const nama = String(p.nama || '').trim().toUpperCase();
-          if (!nama) return;
+          if (!nama || nama === 'BELUM DISET' || nama === '(TANPA NAMA)') return;
           if (!penjahitMap[nama]) {
             penjahitMap[nama] = {
               nama: nama,
@@ -5848,25 +6091,19 @@
         const nilaiSesi = (sesiDiminta === 'PAGI' || sesiDiminta === 'SIANG') ? sesiDiminta : ((elSesi && (elSesi.value === 'PAGI' || elSesi.value === 'SIANG')) ? elSesi.value : '');
         const pagiAdaData = (sesiPagi.waktuJahit > 0 || sesiPagi.upah > 0);
         const currentShift = nilaiSesi || (pagiAdaData ? 'SIANG' : ((new Date().getHours() < 13) ? 'PAGI' : 'SIANG'));
+        const shiftBaru = pagiAdaData ? 'SIANG' : ((elSesi && (elSesi.value === 'PAGI' || elSesi.value === 'SIANG')) ? elSesi.value : currentShift);
 
         if (!hasEstimasi) {
           const rekapTotal = rekap.total || {};
           totalUpah = Number(rekapTotal.upah) || 0;
           totalWaktuJahit = Number(rekapTotal.waktuJahit) || 0;
 
-          if (currentShift === 'PAGI') {
-            sesiPagi.upah = totalUpah;
-            sesiPagi.waktuJahit = totalWaktuJahit;
-            sesiPagi.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
-          } else {
-            sesiSiang.upah = totalUpah;
-            sesiSiang.waktuJahit = totalWaktuJahit;
-            sesiSiang.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
-          }
+          let hitungPagiUpah = 0, hitungPagiJahit = 0, hitungPagiPotong = 0;
+          let hitungSiangUpah = 0, hitungSiangJahit = 0, hitungSiangPotong = 0;
 
           rekap.perPenjahit.forEach((p) => {
             const nama = String(p.nama || '').trim().toUpperCase();
-            if (!nama) return;
+            if (!nama || nama === 'BELUM DISET') return;
             if (!penjahitMap[nama]) {
               penjahitMap[nama] = {
                 nama: nama,
@@ -5882,29 +6119,81 @@
             const entry = penjahitMap[nama];
             entry.upah = Number(p.upah) || 0;
             entry.waktuJahit = Number(p.waktuJahit) || 0;
-            const targetSesi = entry.sesi[currentShift];
-            targetSesi.upah = Number(p.upah) || 0;
-            targetSesi.waktuJahit = Number(p.waktuJahit) || 0;
-            targetSesi.waktuPotong = Number(p.waktuPotong) || 0;
-            targetSesi.items = gabungItemSpk_((p.items || []).map((it) => ({
-              sesi: currentShift,
-              sku: it.sku || '',
-              variasi: it.variasi || '',
-              jumlah: Number(it.qty) || 1,
-              waktuJahit: Number(it.waktuJahit) || 0,
-              waktuPotong: Number(it.waktuPotong) || 0,
-              upah: Number(it.hargaTotal || it.harga) || 0,
-              hargaSatuan: Number(it.harga) || 0,
-              noPesanan: it.noPesanan || '',
-              toko: it.toko || cariTokoItem_(it, payload) || ''
-            })));
+
+            let adaItemDiolah = false;
+            (p.items || []).forEach((it) => {
+              const sesiItem = it.sesi || currentShift;
+              const targetSesi = entry.sesi[sesiItem] || entry.sesi.PAGI;
+              const wJ = (Number(it.waktuJahit) || 0) * (Number(it.qty) || 1);
+              const wP = (Number(it.waktuPotong) || 0) * (Number(it.qty) || 1);
+              const u = Number(it.hargaTotal || it.harga) || 0;
+
+              targetSesi.upah += u;
+              targetSesi.waktuJahit += wJ;
+              targetSesi.waktuPotong += wP;
+
+              if (sesiItem === 'SIANG') {
+                hitungSiangUpah += u;
+                hitungSiangJahit += wJ;
+                hitungSiangPotong += wP;
+              } else {
+                hitungPagiUpah += u;
+                hitungPagiJahit += wJ;
+                hitungPagiPotong += wP;
+              }
+
+              targetSesi.items.push({
+                sesi: sesiItem,
+                sku: it.sku || '',
+                variasi: it.variasi || '',
+                jumlah: Number(it.qty) || 1,
+                waktuJahit: wJ,
+                waktuPotong: wP,
+                upah: u,
+                hargaSatuan: Number(it.harga) || 0,
+                noPesanan: it.noPesanan || '',
+                daftarPesanan: Array.from({ length: Number(it.qty) || 1 }, () => String(it.noPesanan || '')),
+                toko: it.toko || cariTokoItem_(it, payload) || '',
+                kelengkapan: it.kelengkapan
+              });
+              adaItemDiolah = true;
+            });
+
+            if (adaItemDiolah && hitungPagiUpah === 0 && hitungSiangUpah === 0 && Number(p.upah) > 0) {
+              const cadanganSesi = entry.sesi[currentShift];
+              cadanganSesi.upah = Number(p.upah) || 0;
+              cadanganSesi.waktuJahit = Number(p.waktuJahit) || 0;
+              cadanganSesi.waktuPotong = Number(p.waktuPotong) || 0;
+            }
+
+            entry.sesi.PAGI.items = gabungItemSpk_(entry.sesi.PAGI.items);
+            entry.sesi.SIANG.items = gabungItemSpk_(entry.sesi.SIANG.items);
           });
+
+          if (hitungPagiUpah > 0 || hitungSiangUpah > 0 || hitungPagiJahit > 0 || hitungSiangJahit > 0) {
+            sesiPagi.upah = hitungPagiUpah;
+            sesiPagi.waktuJahit = hitungPagiJahit;
+            sesiPagi.waktuPotong = hitungPagiPotong;
+            sesiSiang.upah = hitungSiangUpah;
+            sesiSiang.waktuJahit = hitungSiangJahit;
+            sesiSiang.waktuPotong = hitungSiangPotong;
+          } else {
+            if (currentShift === 'PAGI') {
+              sesiPagi.upah = totalUpah;
+              sesiPagi.waktuJahit = totalWaktuJahit;
+              sesiPagi.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
+            } else {
+              sesiSiang.upah = totalUpah;
+              sesiSiang.waktuJahit = totalWaktuJahit;
+              sesiSiang.waktuPotong = Number(rekapTotal.waktuPotong) || 0;
+            }
+          }
         } else {
           /* Sesi Pagi sudah ditutup ke DATA JAHIT, namun ada pesanan baru yang
              dibagi untuk sesi berikutnya dan belum ditutup ke DATA JAHIT. */
           rekap.perPenjahit.forEach((p) => {
             const nama = String(p.nama || '').trim().toUpperCase();
-            if (!nama) return;
+            if (!nama || nama === 'BELUM DISET') return;
             const itemBaru = (p.items || []).filter((it) => {
               const k = kunciItemProduksiKlien_(it.noPesanan, it.sku, it.variasi, nama);
               return !kunciSesiEstimasi[k];
@@ -5924,47 +6213,51 @@
               };
             }
             const entry = penjahitMap[nama];
-            const targetSesi = entry.sesi[currentShift];
-            const mappedBaru = itemBaru.map((it) => ({
-              sesi: currentShift,
-              sku: it.sku || '',
-              variasi: it.variasi || '',
-              jumlah: Number(it.qty) || 1,
-              waktuJahit: Number(it.waktuJahit) || 0,
-              waktuPotong: Number(it.waktuPotong) || 0,
-              upah: Number(it.hargaTotal || it.harga) || 0,
-              hargaSatuan: Number(it.harga) || 0,
-              noPesanan: it.noPesanan || '',
-              toko: it.toko || cariTokoItem_(it, payload) || ''
-            }));
 
-            let tambahUpah = 0;
-            let tambahJahit = 0;
-            let tambahPotong = 0;
-            mappedBaru.forEach((m) => {
-              tambahUpah += m.upah;
-              tambahJahit += m.waktuJahit;
-              tambahPotong += m.waktuPotong;
+            itemBaru.forEach((it) => {
+              const sItem = it.sesi || shiftBaru;
+              const targetSesi = entry.sesi[sItem] || entry.sesi.SIANG;
+              const wJ = (Number(it.waktuJahit) || 0) * (Number(it.qty) || 1);
+              const wP = (Number(it.waktuPotong) || 0) * (Number(it.qty) || 1);
+              const u = Number(it.hargaTotal || it.harga) || 0;
+
+              entry.upah += u;
+              entry.waktuJahit += wJ;
+              totalUpah += u;
+              totalWaktuJahit += wJ;
+
+              targetSesi.upah += u;
+              targetSesi.waktuJahit += wJ;
+              targetSesi.waktuPotong += wP;
+
+              if (sItem === 'PAGI') {
+                sesiPagi.upah += u;
+                sesiPagi.waktuJahit += wJ;
+                sesiPagi.waktuPotong += wP;
+              } else {
+                sesiSiang.upah += u;
+                sesiSiang.waktuJahit += wJ;
+                sesiSiang.waktuPotong += wP;
+              }
+
+              targetSesi.items.push({
+                sesi: sItem,
+                sku: it.sku || '',
+                variasi: it.variasi || '',
+                jumlah: Number(it.qty) || 1,
+                waktuJahit: wJ,
+                waktuPotong: wP,
+                upah: u,
+                hargaSatuan: Number(it.harga) || 0,
+                noPesanan: it.noPesanan || '',
+                daftarPesanan: Array.from({ length: Number(it.qty) || 1 }, () => String(it.noPesanan || '')),
+                toko: it.toko || cariTokoItem_(it, payload) || '',
+                kelengkapan: it.kelengkapan
+              });
             });
 
-            entry.upah += tambahUpah;
-            entry.waktuJahit += tambahJahit;
-            targetSesi.upah += tambahUpah;
-            targetSesi.waktuJahit += tambahJahit;
-            targetSesi.waktuPotong += tambahPotong;
-            targetSesi.items = gabungItemSpk_(targetSesi.items.concat(mappedBaru));
-
-            totalUpah += tambahUpah;
-            totalWaktuJahit += tambahJahit;
-            if (currentShift === 'PAGI') {
-              sesiPagi.upah += tambahUpah;
-              sesiPagi.waktuJahit += tambahJahit;
-              sesiPagi.waktuPotong += tambahPotong;
-            } else {
-              sesiSiang.upah += tambahUpah;
-              sesiSiang.waktuJahit += tambahJahit;
-              sesiSiang.waktuPotong += tambahPotong;
-            }
+            entry.sesi.PAGI.items = gabungItemSpk_(entry.sesi.PAGI.items);
+            entry.sesi.SIANG.items = gabungItemSpk_(entry.sesi.SIANG.items);
           });
         }
       }
@@ -6036,9 +6329,9 @@
               '<div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>' +
               '<div class="pembagian-potong-val">' + formatEstimasiPotong_(pagi.waktuPotong) + '</div>' +
             '</div>' +
-            '<button type="button" class="btn-pdf-a6" onclick="unduhSpkPenjahitPdf(\'' + namaAttr + '\', \'PAGI\')">' +
-              '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF (A6)' +
-            '</button>' +
+            '<button type="button" class="btn-pdf-a6" onclick="unduhSpkPenjahitPdf(\'' + namaAttr + '\', \'PAGI\')"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF (A6)</button>' +
+            '<button type="button" class="btn-pdf-a6 btn-kanban-sticker" onclick="unduhStickerKanbanPenjahitPdf(\'' + namaAttr + '\', \'PAGI\')">' +
+              '<i class="fa-solid fa-tags" aria-hidden="true"></i> Download Sticker Kanban</button>' +
           '</div>' +
 
           '<!-- Sesi SIANG -->' +
@@ -6058,9 +6351,135 @@
               '<div class="pembagian-potong-label">ESTIMASI POTONG KESELURUHAN</div>' +
               '<div class="pembagian-potong-val">' + formatEstimasiPotong_(siang.waktuPotong) + '</div>' +
             '</div>' +
-            '<button type="button" class="btn-pdf-a6" onclick="unduhSpkPenjahitPdf(\'' + namaAttr + '\', \'SIANG\')">' +
-              '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF (A6)' +
-            '</button>' +
+            '<button type="button" class="btn-pdf-a6" onclick="unduhSpkPenjahitPdf(\'' + namaAttr + '\', \'SIANG\')"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Download PDF (A6)</button>' +
+            '<button type="button" class="btn-pdf-a6 btn-kanban-sticker" onclick="unduhStickerKanbanPenjahitPdf(\'' + namaAttr + '\', \'SIANG\')">' +
+              '<i class="fa-solid fa-tags" aria-hidden="true"></i> Download Sticker Kanban</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function gantiSubBebanKerja_(mode) {
+      const isPacking = (mode === 'packing');
+      const btnPenjahit = document.getElementById('btn-sub-beban-penjahit');
+      const btnPacking = document.getElementById('btn-sub-beban-packing');
+      const toolbarPenjahit = document.getElementById('toolbar-view-penjahit');
+      const toolbarPacking = document.getElementById('toolbar-view-packing');
+      const viewPenjahit = document.getElementById('view-beban-penjahit-container');
+      const viewPacking = document.getElementById('view-beban-packing-container');
+
+      if (btnPenjahit) btnPenjahit.className = isPacking ? 'btn btn-sm btn-quiet' : 'btn btn-sm is-active';
+      if (btnPacking) btnPacking.className = isPacking ? 'btn btn-sm is-active' : 'btn btn-sm btn-quiet';
+      if (toolbarPenjahit) toolbarPenjahit.style.display = isPacking ? 'none' : '';
+      if (toolbarPacking) toolbarPacking.style.display = isPacking ? '' : 'none';
+      if (viewPenjahit) viewPenjahit.style.display = isPacking ? 'none' : '';
+      if (viewPacking) viewPacking.style.display = isPacking ? '' : 'none';
+    }
+
+    function renderRekapPacking_(payload) {
+      const rk = (payload && payload.rekap && payload.rekap.rekapPacking) || null;
+      const totalResi = rk ? Number(rk.totalResi || 0) : 0;
+      const totalPcs = rk ? Number(rk.totalPcs || 0) : 0;
+      const petugasAktif = rk ? Number(rk.petugasAktif || 0) : 0;
+      const rataResi = rk ? Number(rk.rataResi || 0) : 0;
+
+      setText('card-packing-total-resi', totalResi + ' Resi');
+      setText('card-packing-total-pcs', totalPcs + ' Pcs');
+      setText('card-packing-total-petugas', petugasAktif + ' Orang');
+      setText('card-packing-rata-resi', rataResi + ' Resi');
+      setText('rekap-packing-badge-resi', totalResi + ' resi');
+
+      const container = document.getElementById('kartu-packing-list-container');
+      if (!container) return;
+
+      const perPetugas = (rk && rk.perPetugas) || [];
+      if (!perPetugas.length) {
+        container.innerHTML = '<div class="state" style="grid-column: 1 / -1; padding: 24px; text-align: center;">' +
+          '<div class="state-title">Belum ada pembagian packing</div>' +
+          '<p class="state-note">Tekan tombol Bagi pekerjaan sekarang untuk membagi rata lembar resi ke petugas packing.</p>' +
+          '</div>';
+        return;
+      }
+
+      const kodeTokoMap = bangunPetaKodeToko_();
+
+      container.innerHTML = perPetugas.map((pet) => {
+        const namaEsc = esc(pet.nama);
+        const namaAttr = pet.nama.replace(/'/g, "\\'");
+        const isAktif = (pet.aktif !== 'TIDAK');
+        const badgeAktif = isAktif
+          ? '<span class="chip chip-accent">Aktif</span>'
+          : '<span class="chip" style="opacity:0.6;">Libur</span>';
+        const resiJml = Number(pet.resiCount || (pet.daftarPesanan || []).length || 0);
+        const pcsJml = Number(pet.pcsCount || 0);
+        const pesananList = pet.daftarPesanan || [];
+        const batasTampil = 8;
+        const sisaPesanan = Math.max(0, pesananList.length - batasTampil);
+
+        const rowsHtml = pesananList.slice(0, batasTampil).map((order, idx) => {
+          const rawToko = order.toko || '';
+          const tokoKode = resolveKodeToko_(rawToko, kodeTokoMap) || rawToko || '-';
+          const items = order.items || [];
+          const skuPreview = items.length
+            ? items.map((it) => esc(it.sku + (it.variasi && it.variasi !== '-' ? (' / ' + it.variasi) : ''))).join(', ')
+            : '-';
+          const penjahitList = items.map((it) => it.penjahit).filter(Boolean);
+          const penjahitTeks = penjahitList.length ? penjahitList.join(', ') : '-';
+
+          return '<tr>' +
+            '<td style="text-align:center; font-size:11px; color:#64748b;">' + (idx + 1) + '</td>' +
+            '<td class="num ledger-sn" style="font-size:11.5px;">' + esc(order.noPesanan || '-') + '</td>' +
+            '<td style="text-align:center;"><span class="chip" style="font-size:10.5px;">' + esc(tokoKode) + '</span></td>' +
+            '<td style="font-size:11.5px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + skuPreview + '">' + skuPreview + '</td>' +
+            '<td class="num" style="font-weight:700; text-align:center;">' + (order.totalQty || 1) + '</td>' +
+            '<td style="font-size:11px; color:#334155;">' + esc(penjahitTeks) + '</td>' +
+          '</tr>';
+        }).join('');
+
+        return '<div class="penjahit-card" style="display:flex; flex-direction:column; justify-content:space-between;">' +
+          '<div>' +
+            '<div class="penjahit-card-head" style="align-items:flex-start; margin-bottom:12px;">' +
+              '<div>' +
+                '<div style="display:flex; align-items:center; gap:8px;">' +
+                  '<h3 class="penjahit-card-name" style="margin:0;">' + namaEsc + '</h3>' +
+                  badgeAktif +
+                '</div>' +
+                '<span class="panel-note" style="font-size:11px; margin-top:2px;">Bobot Kapasitas: ' + (pet.bobot || 1) + 'x</span>' +
+              '</div>' +
+              '<button type="button" class="btn btn-sm btn-primary" onclick="unduhLembarKerjaPackingPdf(\'' + namaAttr + '\')" style="white-space:nowrap;">' +
+                '<i class="fa-solid fa-print" aria-hidden="true"></i> Lembar Kerja (PDF)' +
+              '</button>' +
+            '</div>' +
+
+            '<div class="pembagian-summary-sesi-grid" style="grid-template-columns:1fr 1fr; margin-bottom:12px;">' +
+              '<div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; text-align:center;">' +
+                '<div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:600;">Jatah Resi</div>' +
+                '<div style="font-size:18px; font-weight:800; color:#059669;">' + resiJml + ' <span style="font-size:11px; font-weight:normal;">lembar</span></div>' +
+              '</div>' +
+              '<div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; text-align:center;">' +
+                '<div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:600;">Total Produk</div>' +
+                '<div style="font-size:18px; font-weight:800; color:#1e3a8a;">' + pcsJml + ' <span style="font-size:11px; font-weight:normal;">pcs</span></div>' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="table-wrap" style="max-height:220px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:6px; margin-bottom:8px;">' +
+              '<table class="ledger" style="font-size:11.5px;">' +
+                '<thead>' +
+                  '<tr>' +
+                    '<th style="width:30px; text-align:center;">No</th>' +
+                    '<th>No. Pesanan</th>' +
+                    '<th style="width:50px; text-align:center;">Toko</th>' +
+                    '<th>SKU / Variasi</th>' +
+                    '<th style="width:40px; text-align:center;">Qty</th>' +
+                    '<th>Penjahit</th>' +
+                  '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                  (rowsHtml || '<tr><td colspan="6" style="text-align:center; padding:12px; color:#64748b;">Belum ada resi untuk sesi ini.</td></tr>') +
+                '</tbody>' +
+              '</table>' +
+            '</div>' +
+            (sisaPesanan > 0 ? '<p class="panel-note" style="text-align:center; font-size:11px; margin-top:4px;">... dan ' + sisaPesanan + ' lembar resi lainnya tercantum lengkap pada lembar kerja PDF.</p>' : '') +
           '</div>' +
         '</div>';
       }).join('');
@@ -6170,6 +6589,96 @@
       });
     }
 
+    function kumpulkanDataLembarPacking_(namaPetugasTarget) {
+      if (!pembagianTerakhir) return [];
+      const rk = (pembagianTerakhir.rekap && pembagianTerakhir.rekap.rekapPacking) || null;
+      if (!rk || !rk.perPetugas || !rk.perPetugas.length) return [];
+
+      const sesi = (document.getElementById('bagi-sesi') && document.getElementById('bagi-sesi').value) || 'PAGI';
+      const tanggal = (pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal) || tanggalHariIni_();
+      const kodeTokoMap = bangunPetaKodeToko_();
+
+      const perPetugas = rk.perPetugas.filter((p) => {
+        if (namaPetugasTarget) return p.nama === namaPetugasTarget;
+        return (p.daftarPesanan || []).length > 0;
+      });
+
+      return perPetugas.map((pet) => {
+        const rows = [];
+        let noUrut = 1;
+        (pet.daftarPesanan || []).forEach((order) => {
+          const rawToko = order.toko || '';
+          const tokoKode = resolveKodeToko_(rawToko, kodeTokoMap) || rawToko || '-';
+          const items = order.items || [];
+          if (!items.length) {
+            rows.push({
+              no: noUrut++,
+              noPesanan: order.noPesanan || '-',
+              toko: tokoKode,
+              skuVariasi: '-',
+              qty: order.totalQty || 1,
+              penjahit: '-'
+            });
+          } else {
+            items.forEach((it) => {
+              const skuVar = (it.variasi && it.variasi !== '-')
+                ? (it.sku + ' - ' + it.variasi)
+                : (it.sku || '-');
+              rows.push({
+                no: noUrut++,
+                noPesanan: order.noPesanan || '-',
+                toko: tokoKode,
+                skuVariasi: skuVar,
+                qty: Number(it.qty) || 1,
+                penjahit: it.penjahit || '-'
+              });
+            });
+          }
+        });
+
+        return {
+          petugas: pet.nama,
+          sesi: sesi,
+          tanggal: tanggal,
+          totalResi: pet.resiCount || (pet.daftarPesanan || []).length,
+          totalPcs: pet.pcsCount || 0,
+          rows: rows
+        };
+      });
+    }
+
+    function unduhLembarKerjaPackingPdf(namaPetugas) {
+      const dataList = kumpulkanDataLembarPacking_(namaPetugas);
+      if (!dataList.length) {
+        showToast('Tidak ada data pembagian packing untuk ' + namaPetugas + '.', 'error');
+        return;
+      }
+      const info = dataList[0];
+      showToast('Menyiapkan Lembar Kerja Packing ' + namaPetugas + '...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildLembarKerjaPackingPdf(JsPDF, info);
+        const filename = 'LEMBAR_PACKING_' + namaPetugas + '_' + info.sesi + '_' + pdfKit.yyyymmdd(new Date());
+        const savedName = pdfKit.simpan(doc, filename);
+        showToast('Lembar Kerja Packing PDF siap: ' + savedName, 'success');
+      });
+    }
+
+    function unduhSemuaLembarKerjaPackingPdf() {
+      const dataList = kumpulkanDataLembarPacking_();
+      if (!dataList.length) {
+        showToast('Belum ada data pembagian packing untuk dicetak.', 'error');
+        return;
+      }
+      showToast('Menyiapkan ' + dataList.length + ' Lembar Kerja Packing (PDF)...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildBatchLembarKerjaPackingPdf(JsPDF, dataList);
+        const sesi = (document.getElementById('bagi-sesi') && document.getElementById('bagi-sesi').value) || 'PAGI';
+        const filename = 'LEMBAR_PACKING_SEMUA_' + sesi + '_' + pdfKit.yyyymmdd(new Date());
+        const savedName = pdfKit.simpan(doc, filename);
+        showToast(dataList.length + ' Lembar Kerja Packing PDF siap: ' + savedName, 'success');
+      });
+    }
+
     function renderTabelRingkasPembagian_(id, baris, pesanKosong) {
       const tbody = document.getElementById(id);
       if (!tbody) return;
@@ -6212,7 +6721,31 @@
           ? '<p class="panel-note">dan ' + (daftar.length - batas) + ' peringatan lain.</p>' : '');
     }
 
+    let unitPembagianSemua_ = [];
+
+    function filterTabelUnitSesi_() {
+      const el = document.getElementById('filter-sesi-antrian');
+      const sesi = el ? el.value : 'SEMUA';
+      if (!unitPembagianSemua_) return;
+      if (sesi === 'PAGI' || sesi === 'SIANG') {
+        renderUnitPembagianInternal_(unitPembagianSemua_.filter((u) => (u.sesi || 'PAGI') === sesi));
+      } else {
+        renderUnitPembagianInternal_(unitPembagianSemua_);
+      }
+    }
+
     function renderUnitPembagian_(unit) {
+      unitPembagianSemua_ = unit || [];
+      const el = document.getElementById('filter-sesi-antrian');
+      const sesi = el ? el.value : 'SEMUA';
+      if (sesi === 'PAGI' || sesi === 'SIANG') {
+        renderUnitPembagianInternal_(unitPembagianSemua_.filter((u) => (u.sesi || 'PAGI') === sesi));
+      } else {
+        renderUnitPembagianInternal_(unitPembagianSemua_);
+      }
+    }
+
+    function renderUnitPembagianInternal_(unit) {
       const tbody = document.getElementById('pembagian-unit-tbody');
       if (!tbody) return;
 
@@ -6225,7 +6758,7 @@
       };
 
       if (!unit.length) {
-        tbody.innerHTML = '<tr><td colspan="8"><div class="state">' +
+        tbody.innerHTML = '<tr><td colspan="10"><div class="state">' +
           '<div class="state-title">' + judulKosongUnitPembagian_() + '</div>' +
           '<p class="state-note">' + catatanKosongUnitPembagian_() + '</p>' +
           '</div></td></tr>';
@@ -6239,17 +6772,23 @@
         ? 'Menampilkan ' + batas + ' dari ' + unit.length + ' baris (' + qtyTampil + ' pcs), sisanya ada di sheet PEMBAGIAN JAHIT'
         : 'Menampilkan ' + unit.length + ' baris, ' + qtyTampil + ' pcs');
 
-      tbody.innerHTML = unit.slice(0, batas).map((u, idx) =>
-        '<tr>' +
+      tbody.innerHTML = unit.slice(0, batas).map((u, idx) => {
+        const sesiChip = (u.sesi === 'SIANG')
+          ? '<span class="chip chip-accent">SIANG</span>'
+          : '<span class="chip">PAGI</span>';
+        return '<tr>' +
+          '<td>' + sesiChip + '</td>' +
           '<td class="num ledger-sn">' + esc(u.noPesanan || '-') + '</td>' +
           '<td>' + esc(u.sku || '-') + '</td>' +
           '<td class="ledger-sub">' + selVariasiUnit_(u, idx) + '</td>' +
           '<td class="num" style="font-weight:700">' + angkaBagi_(u.qty || 1) + '</td>' +
           '<td style="font-weight:600">' + selPenjahitUnit_(u, idx) + '</td>' +
+          '<td><span class="chip chip-accent" style="font-size:11px; font-weight:600;">' + esc(u.petugasPacking || '-') + '</span></td>' +
           '<td><span class="chip">' + esc(u.grup || '-') + '</span></td>' +
           '<td class="num ledger-money butuh-uang">' + teksUangBagi_(u.harga) + '</td>' +
           '<td class="num ledger-money butuh-uang" style="font-weight:700">' + teksUangBagi_(totalBaris(u)) + '</td>' +
-        '</tr>').join('');
+        '</tr>';
+      }).join('');
     }
 
     /* Setelan disunting sebagai tabel teks, karena jumlah penjahit dan aturan
@@ -6274,13 +6813,15 @@
 
     let dataSetelanPenjahit_ = [];
     let dataSetelanAturan_ = [];
-    let dataSetelanToko_ = [];
+    let dataSetelanToko_ = []; let dataSetelanKelengkapan_ = []; let kelengkapanDirty_ = false;
+    let dataSetelanPacking_ = [];
     let penjahitDirty_ = false;
     let aturanDirty_ = false;
     let tokoDirty_ = false;
+    let packingDirty_ = false;
 
     function gantiSubTabSetelan_(tab) {
-      const subTabs = ['penjahit', 'aturan', 'toko', 'tsv'];
+      const subTabs = ['penjahit', 'packing', 'aturan', 'kelengkapan', 'toko', 'tsv'];
       subTabs.forEach((t) => {
         const el = document.getElementById('setelan-sub-' + t);
         const btn = document.getElementById('tab-sub-' + t);
@@ -6294,6 +6835,160 @@
           }
         }
       });
+    }
+
+    function setPackingDirty_(dirty) {
+      packingDirty_ = Boolean(dirty);
+      const ind = document.getElementById('packing-dirty-indicator');
+      if (ind) ind.style.display = packingDirty_ ? 'inline-flex' : 'none';
+    }
+
+    function renderTabelPackingSetelan_() {
+      const tbody = document.getElementById('tbody-packing-setelan');
+      if (!tbody) return;
+
+      const q = String((document.getElementById('cari-setelan-packing') && document.getElementById('cari-setelan-packing').value) || '').trim().toLowerCase();
+      const list = (dataSetelanPacking_ || []).filter((p) => {
+        if (!q) return true;
+        return (p.nama && p.nama.toLowerCase().indexOf(q) !== -1) ||
+               (p.catatan && p.catatan.toLowerCase().indexOf(q) !== -1);
+      });
+
+      const total = dataSetelanPacking_.length;
+      const aktif = dataSetelanPacking_.filter((p) => p.aktif === 'YA').length;
+      const ringkasEl = document.getElementById('setelan-packing-ringkasan');
+      if (ringkasEl) ringkasEl.textContent = total + ' petugas (' + aktif + ' aktif)';
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:16px; color:#64748b;">' +
+          (q ? 'Tidak ada petugas packing yang cocok dengan pencarian.' : 'Belum ada data petugas packing.') +
+          '</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => {
+        const realIdx = dataSetelanPacking_.indexOf(item);
+        const isAktif = (item.aktif !== 'TIDAK');
+        const badgeAktif = isAktif
+          ? '<span class="chip chip-accent" style="cursor:pointer;" onclick="toggleStatusPacking_(' + realIdx + ')"><i class="fa-solid fa-check" aria-hidden="true"></i> Hadir (Aktif)</span>'
+          : '<span class="chip" style="cursor:pointer; opacity:0.6;" onclick="toggleStatusPacking_(' + realIdx + ')"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Libur (Tidak)</span>';
+
+        return '<tr>' +
+          '<td style="text-align:center; color:#64748b; font-size:12px;">' + (idx + 1) + '</td>' +
+          '<td>' +
+            '<input type="text" class="field field-sm num" value="' + esc(item.nama || '') + '" onchange="ubahFieldPacking_(' + realIdx + ', \'nama\', this.value)" style="width:100%; text-transform:uppercase; font-weight:700;">' +
+          '</td>' +
+          '<td style="text-align:center;">' + badgeAktif + '</td>' +
+          '<td style="text-align:center;">' +
+            '<input type="number" step="0.1" min="0.1" max="10" class="field field-sm num" value="' + (item.bobot || 1) + '" onchange="ubahFieldPacking_(' + realIdx + ', \'bobot\', this.value)" style="width:70px; text-align:center;">' +
+          '</td>' +
+          '<td>' +
+            '<input type="text" class="field field-sm" value="' + esc(item.catatan || '') + '" onchange="ubahFieldPacking_(' + realIdx + ', \'catatan\', this.value)" style="width:100%;" placeholder="Catatan / Meja">' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<button type="button" class="btn btn-sm btn-quiet" onclick="hapusPetugasPackingAction(' + realIdx + ')" title="Hapus petugas packing" style="color:#dc2626;">' +
+              '<i class="fa-solid fa-trash" aria-hidden="true"></i>' +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function filterTabelPackingSetelan_() {
+      renderTabelPackingSetelan_();
+    }
+
+    function toggleStatusPacking_(idx) {
+      if (dataSetelanPacking_[idx]) {
+        dataSetelanPacking_[idx].aktif = (dataSetelanPacking_[idx].aktif === 'TIDAK') ? 'YA' : 'TIDAK';
+        setPackingDirty_(true);
+        renderTabelPackingSetelan_();
+      }
+    }
+
+    function ubahFieldPacking_(idx, field, val) {
+      if (!dataSetelanPacking_[idx]) return;
+      if (field === 'nama') {
+        dataSetelanPacking_[idx].nama = String(val || '').trim().toUpperCase();
+      } else if (field === 'bobot') {
+        dataSetelanPacking_[idx].bobot = Math.max(0.1, Number(val) || 1);
+      } else if (field === 'catatan') {
+        dataSetelanPacking_[idx].catatan = String(val || '').trim();
+      }
+      setPackingDirty_(true);
+    }
+
+    function tambahPetugasPackingAction() {
+      const elNama = document.getElementById('input-packing-nama');
+      const elCatatan = document.getElementById('input-packing-catatan');
+      const nama = elNama ? String(elNama.value || '').trim().toUpperCase() : '';
+      const catatan = elCatatan ? String(elCatatan.value || '').trim() : '';
+
+      if (!nama) {
+        showToast('Nama petugas packing tidak boleh kosong.', 'error');
+        if (elNama) elNama.focus();
+        return;
+      }
+
+      const sudahAda = dataSetelanPacking_.some((p) => p.nama.toUpperCase() === nama);
+      if (sudahAda) {
+        showToast('Petugas packing ' + nama + ' sudah ada dalam daftar.', 'error');
+        if (elNama) elNama.focus();
+        return;
+      }
+
+      dataSetelanPacking_.push({
+        nama: nama,
+        aktif: 'YA',
+        bobot: 1,
+        catatan: catatan
+      });
+
+      if (elNama) elNama.value = '';
+      if (elCatatan) elCatatan.value = '';
+
+      setPackingDirty_(true);
+      renderTabelPackingSetelan_();
+      showToast('Petugas packing ' + nama + ' berhasil ditambahkan ke daftar.', 'success');
+    }
+
+    function hapusPetugasPackingAction(idx) {
+      if (!dataSetelanPacking_[idx]) return;
+      const nama = dataSetelanPacking_[idx].nama;
+      if (!confirm('Hapus petugas packing ' + nama + '?')) return;
+      dataSetelanPacking_.splice(idx, 1);
+      setPackingDirty_(true);
+      renderTabelPackingSetelan_();
+      showToast('Petugas packing ' + nama + ' dihapus dari daftar.', 'info');
+    }
+
+    function simpanPackingDariTabelAction() {
+      const tombol = document.getElementById('btn-simpan-packing-tabel');
+      const statusEl = document.getElementById('pembagian-packing-status');
+      if (tombol) tombol.disabled = true;
+      if (statusEl) statusEl.textContent = 'Menyimpan...';
+
+      const daftar = dataSetelanPacking_.map((p) => ({
+        nama: String(p.nama || '').trim().toUpperCase(),
+        aktif: String(p.aktif || 'YA').trim().toUpperCase() === 'TIDAK' ? 'TIDAK' : 'YA',
+        bobot: Math.max(0.1, Number(p.bobot) || 1),
+        catatan: String(p.catatan || '').trim()
+      }));
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (tombol) tombol.disabled = false;
+          if (statusEl) statusEl.textContent = '';
+          setPackingDirty_(false);
+          showToast((res && res.pesan) || 'Daftar petugas packing berhasil disimpan.', 'success');
+          muatPembagianJahit();
+        })
+        .withFailureHandler((err) => {
+          if (tombol) tombol.disabled = false;
+          if (statusEl) statusEl.textContent = '';
+          showToast('Gagal menyimpan petugas packing: ' + ((err && err.message) || err), 'error');
+        })
+        .simpanPackingDashboard(sesiToken, daftar);
     }
 
     function setPenjahitDirty_(dirty) {
@@ -6577,12 +7272,21 @@
         }
       }
 
+      dataSetelanPacking_ = (((setelan && (setelan.petugasPacking || setelan.packing)) || [])).map((p) => ({
+        nama: String((p && (p.nama || p.Nama)) || '').trim().toUpperCase(),
+        aktif: String((p && p.aktif) || 'YA').trim().toUpperCase() === 'TIDAK' ? 'TIDAK' : 'YA',
+        bobot: Math.max(0.1, Number(p && p.bobot) || 1),
+        catatan: String((p && p.catatan) || '').trim()
+      }));
+
       renderTabelPenjahitSetelan_();
+      renderTabelPackingSetelan_();
       renderTabelAturanSetelan_();
-      renderTabelTokoSetelan_();
+      renderTabelTokoSetelan_(); isiSetelanKelengkapan_(setelan);
       sinkronkanKeTsv_();
       perbaruiDatalistGrup_();
       setPenjahitDirty_(false);
+      setPackingDirty_(false);
       setAturanDirty_(false);
       setTokoDirty_(false);
     }
@@ -6593,7 +7297,7 @@
       sembunyikanPeringatanPembagian_();
       showToast('Membagi pekerjaan jahit…', 'loading');
 
-      google.script.run
+      simpanPerubahanDropdownTertunda_(() => { google.script.run
         .withSuccessHandler((res) => {
           if (tombol) tombol.disabled = false;
 
@@ -6608,7 +7312,7 @@
           if (tanganiGalatRpc_(err)) return;
           tampilkanPeringatanPembagian_((err && err.message) ? err.message : String(err));
         })
-        .bagiPembagianDashboard(sesiToken, scopedToko);
+        .bagiPembagianDashboard(sesiToken, scopedToko); });
     }
 
     /**
@@ -6642,12 +7346,12 @@
         tombol.disabled = true;
         tombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Menyimpan...';
       }
-      sembunyikanPeringatanPembagian_(); simpanPerubahanDropdownTertunda_();
+      sembunyikanPeringatanPembagian_();
       showToast('Menutup sesi jahit...', 'loading');
 
       const elSesi = document.getElementById('bagi-sesi');
       const sesi = elSesi ? String(elSesi.value || '') : '';
-
+      simpanPerubahanDropdownTertunda_(() => {
       google.script.run
         .withSuccessHandler((res) => {
           if (tombol) {
@@ -6670,7 +7374,7 @@
           if (tanganiGalatRpc_(err)) return;
           tampilkanPeringatanPembagian_((err && err.message) ? err.message : String(err));
         })
-        .tutupSesiJahit(sesiToken, tanggalHariIni_(), sesi, scopedToko);
+        .tutupSesiJahit(sesiToken, tanggalHariIni_(), sesi, scopedToko); });
     }
 
     function simpanPenjahitAction() {
@@ -6683,7 +7387,7 @@
         nama: g[0] || '',
         grup: g[1] || '',
         aktif: g[2] || 'YA',
-        bobot: g[3] || 1,
+        bobot: Math.max(0.1, parseFloat(String(g[3] || '1').replace(',', '.')) || 1),
         catatan: g[4] || ''
       })).filter((p) => p.nama);
 
@@ -7058,6 +7762,22 @@
             if (!p) return;
             const namaP = String(p.nama || '').trim().toUpperCase();
             p.items = grupUnitPerPenjahit[namaP] ? grupUnitPerPenjahit[namaP].slice() : [];
+            let pcsP = 0;
+            let upahP = 0;
+            let wJahitP = 0;
+            let wPotongP = 0;
+            p.items.forEach((u) => {
+              const qU = Number(u.qty) > 0 ? Number(u.qty) : 1;
+              const hU = Number(u.hargaTotal) > 0 ? Number(u.hargaTotal) : ((Number(u.harga) || 0) * qU);
+              pcsP += qU;
+              upahP += hU;
+              wJahitP += (Number(u.waktuJahit) || 0) * qU;
+              wPotongP += (Number(u.waktuPotong) || 0) * qU;
+            });
+            p.pcs = pcsP;
+            p.upah = upahP;
+            p.waktuJahit = wJahitP;
+            p.waktuPotong = wPotongP;
           });
         }
 
@@ -7092,6 +7812,7 @@
             }
           }
 
+          const unitTerpakaiGlobal = [];
           estimasi.penjahit.forEach((ep) => {
             if (!ep || !Array.isArray(ep.items) || ep.items.length === 0) return;
             const namaEp = String(ep.nama || '').trim().toUpperCase();
@@ -7101,15 +7822,43 @@
             ep.items.forEach((it) => {
               if (!it) return;
               const skuIt = String(it.sku || '').trim().toUpperCase();
+              const varIt = String(it.variasi || '').trim().toUpperCase();
               const sesiIt = (it.sesi === 'SIANG') ? 'SIANG' : 'PAGI';
-              const unitSkuCocok = unitMilik.filter((u) =>
-                String(u.sku || '').trim().toUpperCase() === skuIt &&
-                (!u.sesiEstimasi_ || u.sesiEstimasi_ === sesiIt)
-              );
+              const pesList = (Array.isArray(it.daftarPesanan) && it.daftarPesanan.length)
+                ? it.daftarPesanan.map((x) => String(x || '').trim().toUpperCase()).filter(Boolean)
+                : (it.noPesanan ? [String(it.noPesanan).trim().toUpperCase()] : []);
+
+              const kandidatSesiSku = unitMilik.filter((u) => {
+                if (!u || unitTerpakaiGlobal.indexOf(u) !== -1) return false;
+                if (String(u.sku || '').trim().toUpperCase() !== skuIt) return false;
+                const pesU = String(u.noPesanan || '').trim().toUpperCase();
+                if (u.sesiEstimasi_ === sesiIt) return true;
+                if (!u.sesiEstimasi_ && pesList.length > 0 && pesU && pesList.indexOf(pesU) !== -1) return true;
+                return false;
+              });
+
+              const kandidatPesanan = pesList.length > 0
+                ? kandidatSesiSku.filter((u) => {
+                    const pesU = String(u.noPesanan || '').trim().toUpperCase();
+                    return !pesU || pesList.indexOf(pesU) !== -1;
+                  })
+                : kandidatSesiSku;
+
+              const kandidatVariasi = kandidatPesanan.filter((u) => {
+                const vAsal = String(u.variasiAsal_ !== undefined ? u.variasiAsal_ : (u.variasi || '')).trim().toUpperCase();
+                const vKini = String(u.variasi || '').trim().toUpperCase();
+                return vAsal === varIt || vKini === varIt;
+              });
+
+              const unitSkuCocok = kandidatVariasi.length > 0
+                ? kandidatVariasi
+                : (kandidatPesanan.length > 0 ? kandidatPesanan : []);
 
               if (unitSkuCocok.length > 1) {
                 unitSkuCocok.forEach((u) => {
+                  unitTerpakaiGlobal.push(u);
                   const jmlU = Number(u.qty) || 1;
+                  const noPesU = u.noPesanan || it.noPesanan || '';
                   const kU = kunciItemProduksiKlien_(u.noPesanan, u.sku, u.variasi, namaEp);
                   kunciSesi[kU] = sesiIt;
                   itemsBaru.push({
@@ -7121,7 +7870,9 @@
                     waktuPotong: (Number(u.waktuPotong) || 0) * jmlU,
                     upah: Number(u.hargaTotal || u.harga) || 0,
                     hargaSatuan: Number(u.harga || it.hargaSatuan) || 0,
-                    noPesanan: u.noPesanan || it.noPesanan || '',
+                    noPesanan: noPesU,
+                    daftarPesanan: Array.from({ length: jmlU }, () => String(noPesU)),
+                    kelengkapan: u.kelengkapan !== undefined ? u.kelengkapan : it.kelengkapan,
                     toko: u.toko || it.toko || ''
                   });
                 });
@@ -7130,21 +7881,35 @@
 
               if (unitSkuCocok.length === 1) {
                 const uSatu = unitSkuCocok[0];
+                unitTerpakaiGlobal.push(uSatu);
                 it.variasi = uSatu.variasi || it.variasi;
+                if (!it.noPesanan && uSatu.noPesanan) it.noPesanan = uSatu.noPesanan;
+                if (it.kelengkapan === undefined && uSatu.kelengkapan !== undefined) it.kelengkapan = uSatu.kelengkapan;
+                if (!Array.isArray(it.daftarPesanan) || !it.daftarPesanan.length) {
+                  const jmlSatu = Number(it.jumlah !== undefined ? it.jumlah : uSatu.qty) || 1;
+                  it.daftarPesanan = Array.from({ length: jmlSatu }, () => String(it.noPesanan || uSatu.noPesanan || ''));
+                }
                 const kSatu = kunciItemProduksiKlien_(uSatu.noPesanan, uSatu.sku, uSatu.variasi, namaEp);
                 kunciSesi[kSatu] = sesiIt;
                 itemsBaru.push(it);
                 return;
               }
 
-              const uGlobal = daftarUnit.find((u) =>
-                u &&
-                String(u.sku || '').trim().toUpperCase() === skuIt &&
-                ((it.noPesanan && u.noPesanan && String(u.noPesanan).trim().toUpperCase() === String(it.noPesanan).trim().toUpperCase()) ||
-                  (u.variasiAsal_ && String(u.variasiAsal_).trim().toLowerCase() === String(it.variasi || '').trim().toLowerCase()))
-              );
-              if (uGlobal && uGlobal.variasi) {
-                it.variasi = uGlobal.variasi;
+              const uGlobal = daftarUnit.find((u) => {
+                if (!u || unitTerpakaiGlobal.indexOf(u) !== -1) return false;
+                if (String(u.sku || '').trim().toUpperCase() !== skuIt) return false;
+                const pesU = String(u.noPesanan || '').trim().toUpperCase();
+                if (pesList.length > 0 && pesU && pesList.indexOf(pesU) === -1) return false;
+                const vAsal = String(u.variasiAsal_ !== undefined ? u.variasiAsal_ : (u.variasi || '')).trim().toUpperCase();
+                const vKini = String(u.variasi || '').trim().toUpperCase();
+                return (pesList.length > 0 && pesU && pesList.indexOf(pesU) !== -1 && (vAsal === varIt || vKini === varIt)) ||
+                  (!pesList.length && (vAsal === varIt || vKini === varIt));
+              });
+              if (uGlobal) {
+                unitTerpakaiGlobal.push(uGlobal);
+                if (uGlobal.variasi) it.variasi = uGlobal.variasi;
+                if (!it.noPesanan && uGlobal.noPesanan) it.noPesanan = uGlobal.noPesanan;
+                if (it.kelengkapan === undefined && uGlobal.kelengkapan !== undefined) it.kelengkapan = uGlobal.kelengkapan;
               }
               itemsBaru.push(it);
             });
@@ -7283,8 +8048,12 @@
       renderUnitPembagian_([]);
     }
 
-    function simpanPerubahanDropdownTertunda_() {
-      if (!Array.isArray(unitPembagianTampil_) || !unitPembagianTampil_.length) return;
+    function simpanPerubahanDropdownTertunda_(selesaiCallback) {
+      if (!Array.isArray(unitPembagianTampil_) || !unitPembagianTampil_.length) {
+        if (typeof selesaiCallback === 'function') selesaiCallback.call(null);
+        return;
+      }
+      const daftarKirim = [];
       for (let i = 0; i < unitPembagianTampil_.length; i++) {
         const u = unitPembagianTampil_[i];
         if (!u || u.sedangSimpanOtomatis_) continue;
@@ -7300,20 +8069,32 @@
           u.penjahit = pBaru;
           u.variasiAsal_ = vBaru;
           u.penjahitAsal_ = pBaru;
-          google.script.run
-            .withSuccessHandler(() => { u.sedangSimpanOtomatis_ = false; })
-            .withFailureHandler(() => { u.sedangSimpanOtomatis_ = false; })
-            .ubahPenjahitPembagianDashboard(sesiToken, {
-              noPesanan: u.noPesanan || '',
-              sku: u.sku || '',
-              variasi: vAsal,
-              variasiBaru: vBaru,
-              penjahitLama: pAsal,
-              penjahitBaru: pBaru,
-              barisSheet: u.barisSheet || 0
-            });
+          daftarKirim.push({ u: u, vAsal: vAsal, vBaru: vBaru, pAsal: pAsal, pBaru: pBaru });
         }
       }
+      if (!daftarKirim.length) {
+        if (typeof selesaiCallback === 'function') selesaiCallback.call(null);
+        return;
+      }
+      let sisa = daftarKirim.length;
+      function selesaiSatu_() {
+        sisa--;
+        if (sisa <= 0 && typeof selesaiCallback === 'function') selesaiCallback.call(null);
+      }
+      daftarKirim.forEach((item) => {
+        google.script.run
+          .withSuccessHandler(() => { item.u.sedangSimpanOtomatis_ = false; selesaiSatu_(); })
+          .withFailureHandler(() => { item.u.sedangSimpanOtomatis_ = false; selesaiSatu_(); })
+          .ubahPenjahitPembagianDashboard(sesiToken, {
+            noPesanan: item.u.noPesanan || '',
+            sku: item.u.sku || '',
+            variasi: item.vAsal,
+            variasiBaru: item.vBaru,
+            penjahitLama: item.pAsal,
+            penjahitBaru: item.pBaru,
+            barisSheet: item.u.barisSheet || 0
+          });
+      });
     }
 
     /* ---- Handler Tabel Interaktif Setelan Pembagian ---- */
@@ -7392,7 +8173,7 @@
       } else if (field === 'grup') {
         dataSetelanPenjahit_[idx].grup = String(value || '').trim().toUpperCase();
       } else if (field === 'bobot') {
-        dataSetelanPenjahit_[idx].bobot = Math.max(0.1, Number(value || 1) || 1);
+        dataSetelanPenjahit_[idx].bobot = Math.max(0.1, parseFloat(String(value || '1').replace(',', '.')) || 1); renderTabelPenjahitSetelan_();
       } else if (field === 'catatan') {
         dataSetelanPenjahit_[idx].catatan = String(value || '').trim();
       }
@@ -7418,7 +8199,7 @@
 
       const nama = String(elNama ? elNama.value : '').trim().toUpperCase();
       const grup = String(elGrup ? elGrup.value : '').trim().toUpperCase();
-      const bobot = Math.max(0.1, Number(elBobot ? elBobot.value : 1) || 1);
+      const bobot = Math.max(0.1, parseFloat(String(elBobot ? elBobot.value : '1').replace(',', '.')) || 1);
       const catatan = String(elCatatan ? elCatatan.value : '').trim();
 
       if (!nama) {
@@ -7526,6 +8307,264 @@
         .simpanPenjahitDashboard(sesiToken, dataSetelanPenjahit_);
     }
 
+    const PRESET_ATURAN_STANDAR_ = [
+      { pola: 'TAS MIKA', grup: 'IGNORE', catatan: 'Item packing, bukan pekerjaan jahit' },
+      { pola: 'PLASTIK', grup: 'IGNORE', catatan: 'Item packing, bukan pekerjaan jahit' },
+      { pola: 'BONUS', grup: 'IGNORE', catatan: 'Item non-jahit' },
+      { pola: 'BC AJA', grup: 'BC', catatan: 'Bedcover' },
+      { pola: 'BEDCOVER', grup: 'BC', catatan: 'Bedcover' },
+      { pola: 'BALMUT', grup: 'SPREI', catatan: 'Balmut' },
+      { pola: 'SARKUR', grup: 'SPREI', catatan: 'Sarung kasur' },
+      { pola: 'SPREI', grup: 'SPREI', catatan: 'Sprei' },
+      { pola: 'SARUNG BANTAL & GULING', grup: 'SPREI', catatan: 'Sarban dan sargul' },
+      { pola: 'SARBAN+SARGUL', grup: 'SPREI', catatan: 'Sarban dan sargul' },
+      { pola: 'SARBAN SAMBUNG', grup: 'SPREI', catatan: 'Sarban sambung' },
+      { pola: 'SARBAN', grup: 'SPREI', catatan: 'Sarung bantal' },
+      { pola: 'SARUNG BANTAL', grup: 'SPREI', catatan: 'Sarung bantal' },
+      { pola: 'SARUNG GULING', grup: 'SPREI', catatan: 'Sarung guling' },
+      { pola: 'SARGUL', grup: 'SPREI', catatan: 'Sarung guling (singkatan)' },
+      { pola: 'BC', grup: 'BC', catatan: 'Bedcover (kode singkat BC)' },
+      { pola: 'GORDEN', grup: 'SPREI', catatan: 'Gorden' }
+    ];
+
+    let teksUjiAturanSku_ = '';
+
+    function normalisasiKunciSkuKlien_(teks) {
+      return String(teks || '').trim().toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    function ujiPolaAturanSkuKlien_(sku) {
+      const kunci = normalisasiKunciSkuKlien_(sku);
+      if (!kunci) return null;
+      for (let i = 0; i < dataSetelanAturan_.length; i++) {
+        const a = dataSetelanAturan_[i];
+        const pola = normalisasiKunciSkuKlien_(a && a.pola);
+        if (pola && kunci.indexOf(pola) !== -1) {
+          return {
+            prioritas: i + 1,
+            pola: a.pola,
+            grup: String(a.grup || '').trim().toUpperCase(),
+            catatan: a.catatan || ''
+          };
+        }
+      }
+      return null;
+    }
+
+    function ambilSkuBelumTerpetakan_() {
+      const unik = [];
+      const sudah = {};
+      function cekSku(skuMentah) {
+        const sku = String(skuMentah || '').trim().toUpperCase();
+        if (!sku || sku === '-' || sudah[sku]) return;
+        if (ujiPolaAturanSkuKlien_(sku)) return;
+        sudah[sku] = true;
+        unik.push(sku);
+      }
+
+      const rekap = (pembagianTerakhir && pembagianTerakhir.rekap) || {};
+      (rekap.peringatan || []).forEach((w) => {
+        const tipe = w && (w.tipe || w.jenis);
+        if (tipe === 'GRUP_TIDAK_DITEMUKAN' && w.sku) cekSku(w.sku);
+      });
+      (rekap.unit || []).forEach((u) => {
+        if (u && u.sku && (!u.grup || u.grup === 'BELUM DISET')) cekSku(u.sku);
+      });
+      return unik;
+    }
+
+    function renderPanelBantuanAturanSku_() {
+      const panel = document.getElementById('aturan-sku-bantuan-panel');
+      if (!panel) return;
+
+      const grups = ambilSemuaGrupTersedia_();
+      const skuBelumAda = ambilSkuBelumTerpetakan_();
+      const polaSudahAda = {};
+      (dataSetelanAturan_ || []).forEach((a) => {
+        const p = normalisasiKunciSkuKlien_(a && a.pola);
+        if (p) polaSudahAda[p] = true;
+      });
+
+      const presetBelumAda = PRESET_ATURAN_STANDAR_.filter((p) => !polaSudahAda[normalisasiKunciSkuKlien_(p.pola)]);
+
+      let htmlUnmapped = '';
+      if (skuBelumAda.length > 0) {
+        const barisSku = skuBelumAda.map((sku) => {
+          const skuEsc = esc(sku);
+          const skuJs = sku.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const tombolGrup = grups.concat(['IGNORE']).map((g) => {
+            const gEsc = esc(g);
+            const gJs = g.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            return '<button type="button" class="btn btn-sm" style="min-height:24px; padding:2px 8px; font-size:11px;" ' +
+              'onclick="petakanSkuCepatAction(\'' + skuJs + '\', \'' + gJs + '\')" ' +
+              'title="Tambahkan aturan ' + skuEsc + ' ke grup ' + gEsc + '">' +
+              '+ ' + gEsc + '</button>';
+          }).join('');
+
+          return '<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; background:#fff; border:1px solid #fcd34d; border-radius:6px;">' +
+            '<span class="num" style="font-weight:700; color:#92400e;">' + skuEsc + '</span>' +
+            '<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">' +
+              '<span class="panel-note" style="font-size:11px;">Petakan langsung ke:</span>' +
+              tombolGrup +
+              '<button type="button" class="btn btn-sm btn-quiet" style="min-height:24px; padding:2px 8px; font-size:11px;" ' +
+                'onclick="isiPolaAturanCepat_(\'' + skuJs + '\')">Isi ke Form</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+
+        htmlUnmapped = '<div class="panel" style="background:#fffbeb; border:1px solid #f59e0b; padding:10px 12px;">' +
+          '<div class="stack-sm">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">' +
+              '<strong style="color:#92400e; font-size:12px;"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' +
+                skuBelumAda.length + ' SKU di Antrean Belum Punya Aturan</strong>' +
+              '<span class="panel-note" style="color:#b45309;">Klik tombol grup di samping SKU untuk langsung menambahkannya ke tabel aturan</span>' +
+            '</div>' +
+            barisSku +
+          '</div>' +
+        '</div>';
+      }
+
+      let htmlPreset = '';
+      if (presetBelumAda.length > 0) {
+        const chipsPreset = presetBelumAda.map((p) => {
+          const pJs = p.pola.replace(/'/g, "\\'");
+          const gJs = p.grup.replace(/'/g, "\\'");
+          const cJs = p.catatan.replace(/'/g, "\\'");
+          return '<button type="button" class="btn btn-sm btn-quiet" style="min-height:24px; padding:2px 8px; font-size:11px; border:1px solid #cbd5e1;" ' +
+            'onclick="tambahPresetAturanSku_(\'' + pJs + '\', \'' + gJs + '\', \'' + cJs + '\')" ' +
+            'title="Tambahkan pola ' + esc(p.pola) + ' (' + esc(p.catatan) + ')">' +
+            '+ <span class="num" style="font-weight:700;">' + esc(p.pola) + '</span> &rarr; ' + esc(p.grup) +
+          '</button>';
+        }).join('');
+
+        htmlPreset = '<div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">' +
+          '<div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">' +
+            '<span class="panel-note" style="font-weight:600;">Tambah cepat pola umum:</span>' +
+            chipsPreset +
+          '</div>' +
+          '<button type="button" class="btn btn-sm" style="min-height:26px; font-size:11px;" onclick="lengkapiPresetAturanBawaanAction()">' +
+            '<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Lengkapi Semua Pola Standar (' + presetBelumAda.length + ')' +
+          '</button>' +
+        '</div>';
+      }
+
+      const hasilUji = teksUjiAturanSku_ ? HasilUjiAturanHtml_(teksUjiAturanSku_) : '<span class="panel-note">Ketik nama SKU untuk mengetes aturan prioritas mana yang menangkapnya.</span>';
+
+      const htmlTester = '<div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:8px 12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px;">' +
+        '<label class="label" for="input-uji-aturan-sku" style="margin:0; white-space:nowrap;">Uji Coba SKU:</label>' +
+        '<input type="text" id="input-uji-aturan-sku" class="field num" style="flex:1 1 200px; max-width:280px; min-height:28px; text-transform:uppercase;" ' +
+          'placeholder="Contoh: SARGUL LILAC / BC 180..." value="' + esc(teksUjiAturanSku_) + '" oninput="jalankanUjiAturanSku_(this.value)">' +
+        '<div id="hasil-uji-aturan-sku" style="flex:2 1 260px; font-size:12px;">' + hasilUji + '</div>' +
+      '</div>';
+
+      panel.innerHTML = htmlUnmapped + htmlPreset + htmlTester;
+    }
+
+    function HasilUjiAturanHtml_(skuUji) {
+      const bersih = String(skuUji || '').trim().toUpperCase();
+      if (!bersih) return '<span class="panel-note">Ketik nama SKU untuk mengetes aturan prioritas mana yang menangkapnya.</span>';
+      const cocok = ujiPolaAturanSkuKlien_(bersih);
+      if (cocok) {
+        return '<span class="mark is-ok" style="padding:2px 8px;">Cocok Prioritas #' + cocok.prioritas + '</span> ' +
+          'Pola <strong class="num">' + esc(cocok.pola) + '</strong> &rarr; Grup <strong>' + esc(cocok.grup) + '</strong>' +
+          (cocok.catatan ? ' <span class="panel-note">(' + esc(cocok.catatan) + ')</span>' : '');
+      }
+      const skuJs = bersih.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      return '<span class="mark is-wait" style="padding:2px 8px;">BELUM DISET</span> ' +
+        '<span>Tidak ada pola yang cocok.</span> ' +
+        '<button type="button" class="btn btn-sm" style="min-height:22px; padding:1px 8px; font-size:11px; margin-left:6px;" ' +
+          'onclick="isiPolaAturanCepat_(\'' + skuJs + '\')">+ Jadikan Aturan</button>';
+    }
+
+    function jalankanUjiAturanSku_(nilai) {
+      teksUjiAturanSku_ = String(nilai === undefined ? ((document.getElementById('input-uji-aturan-sku') || {}).value || '') : nilai).trim().toUpperCase();
+      const elHasil = document.getElementById('hasil-uji-aturan-sku');
+      if (elHasil) {
+        elHasil.innerHTML = HasilUjiAturanHtml_(teksUjiAturanSku_);
+      }
+    }
+
+    function isiPolaAturanCepat_(sku) {
+      const elPola = document.getElementById('input-aturan-pola');
+      const elGrup = document.getElementById('input-aturan-grup');
+      if (elPola) elPola.value = String(sku || '').trim().toUpperCase();
+      if (elGrup) elGrup.focus();
+    }
+
+    function petakanSkuCepatAction(sku, grup) {
+      tambahPresetAturanSku_(sku, grup, 'Dipetakan dari SKU antrian');
+    }
+
+    function tambahPresetAturanSku_(pola, grup, catatan) {
+      const p = String(pola || '').trim().toUpperCase();
+      const g = String(grup || '').trim().toUpperCase();
+      const c = String(catatan || '').trim();
+      if (!p || !g) return;
+
+      const sudahAda = dataSetelanAturan_.some((a) => normalisasiKunciSkuKlien_(a.pola) === normalisasiKunciSkuKlien_(p));
+      if (sudahAda) {
+        showToast('Pola SKU ' + p + ' sudah ada di dalam tabel aturan.', 'info');
+        return;
+      }
+
+      /* Bila pola umum (seperti BC atau SPREI) sudah ada di tabel dan pola baru
+         memuat kata umum tersebut (misal SET BC), sisipkan sebelum pola umum
+         agar tidak tertutup prioritasnya. */
+      let posisiSisip = dataSetelanAturan_.length;
+      for (let i = 0; i < dataSetelanAturan_.length; i++) {
+        const polaLama = normalisasiKunciSkuKlien_(dataSetelanAturan_[i].pola);
+        if (polaLama && normalisasiKunciSkuKlien_(p).indexOf(polaLama) !== -1) {
+          posisiSisip = i;
+          break;
+        }
+      }
+
+      dataSetelanAturan_.splice(posisiSisip, 0, { pola: p, grup: g, catatan: c });
+      sinkronSemuaKomponenGrupDanAturan_();
+      setAturanDirty_(true);
+      showToast('Aturan "' + p + ' → ' + g + '" ditambahkan pada prioritas #' + (posisiSisip + 1) + '. Klik Simpan aturan SKU untuk menyimpan.');
+    }
+
+    function lengkapiPresetAturanBawaanAction() {
+      let ditambah = 0;
+      PRESET_ATURAN_STANDAR_.forEach((preset) => {
+        const pKunci = normalisasiKunciSkuKlien_(preset.pola);
+        const sudah = dataSetelanAturan_.some((a) => normalisasiKunciSkuKlien_(a.pola) === pKunci);
+        if (!sudah) {
+          let posisi = dataSetelanAturan_.length;
+          for (let i = 0; i < dataSetelanAturan_.length; i++) {
+            const polaLama = normalisasiKunciSkuKlien_(dataSetelanAturan_[i].pola);
+            if (polaLama && pKunci.indexOf(polaLama) !== -1) {
+              posisi = i;
+              break;
+            }
+          }
+          dataSetelanAturan_.splice(posisi, 0, {
+            pola: preset.pola,
+            grup: preset.grup,
+            catatan: preset.catatan
+          });
+          ditambah++;
+        }
+      });
+
+      if (ditambah === 0) {
+        showToast('Seluruh pola standar sudah ada di tabel aturan SKU.', 'info');
+        return;
+      }
+
+      sinkronSemuaKomponenGrupDanAturan_();
+      setAturanDirty_(true);
+      showToast(ditambah + ' pola standar ditambahkan ke tabel. Klik Simpan aturan SKU untuk menyimpan permanen.');
+    }
+
+    function sinkronSemuaKomponenGrupDanAturan_() {
+      renderTabelAturanSetelan_();
+      sinkronkanKeTsv_();
+      perbaruiDatalistGrup_();
+      renderTabelPenjahitSetelan_();
+    }
+
     function renderTabelAturanSetelan_() {
       const tbody = document.getElementById('tbody-aturan-setelan');
       if (!tbody) return;
@@ -7535,6 +8574,7 @@
 
       setText('setelan-aturan-count', String(total));
       setText('setelan-aturan-ringkasan', total + ' aturan pemetaan SKU');
+      renderPanelBantuanAturanSku_();
 
       const barisTampil = dataSetelanAturan_
         .map((item, idx) => ({ item, idx }))
@@ -7588,8 +8628,7 @@
       } else if (field === 'catatan') {
         dataSetelanAturan_[idx].catatan = String(value || '').trim();
       }
-      renderTabelAturanSetelan_();
-      sinkronkanKeTsv_();
+      sinkronSemuaKomponenGrupDanAturan_();
       setAturanDirty_(true);
     }
 
@@ -7625,7 +8664,17 @@
         return;
       }
 
-      dataSetelanAturan_.push({
+      let posisiSisip = dataSetelanAturan_.length;
+      const polaKunci = normalisasiKunciSkuKlien_(pola);
+      for (let i = 0; i < dataSetelanAturan_.length; i++) {
+        const polaLama = normalisasiKunciSkuKlien_(dataSetelanAturan_[i].pola);
+        if (polaLama && polaKunci.indexOf(polaLama) !== -1) {
+          posisiSisip = i;
+          break;
+        }
+      }
+
+      dataSetelanAturan_.splice(posisiSisip, 0, {
         pola: pola,
         grup: grup,
         catatan: catatan
@@ -7635,9 +8684,7 @@
       if (elGrup) elGrup.value = '';
       if (elCatatan) elCatatan.value = '';
 
-      renderTabelAturanSetelan_();
-      sinkronkanKeTsv_();
-      perbaruiDatalistGrup_();
+      sinkronSemuaKomponenGrupDanAturan_();
       setAturanDirty_(true);
       showToast('Aturan SKU ' + pola + ' ditambahkan ke tabel. Klik Simpan aturan SKU untuk menyimpan.');
     }
@@ -7648,9 +8695,7 @@
       if (!confirm('Hapus aturan SKU "' + item.pola + '"?')) return;
 
       dataSetelanAturan_.splice(idx, 1);
-      renderTabelAturanSetelan_();
-      sinkronkanKeTsv_();
-      perbaruiDatalistGrup_();
+      sinkronSemuaKomponenGrupDanAturan_();
       setAturanDirty_(true);
       showToast('Aturan SKU ' + item.pola + ' dihapus dari tabel.');
     }
@@ -7735,8 +8780,7 @@
         return;
       }
       dataSetelanAturan_ = daftar;
-      renderTabelAturanSetelan_();
-      perbaruiDatalistGrup_();
+      sinkronSemuaKomponenGrupDanAturan_();
       setAturanDirty_(true);
       gantiSubTabSetelan_('aturan');
       showToast(daftar.length + ' aturan SKU berhasil disinkronkan ke tabel.');
@@ -7751,10 +8795,10 @@
     }
 
     /* ---- tabs ---- */
-    const TAB_NAMES = ['orders', 'analytics', 'produksi', 'pembagian', 'estimasi', 'token', 'pengguna', 'logs'];
+    let tabAktifSekarang_ = 'orders'; const TAB_NAMES = ['orders', 'analytics', 'produksi', 'pembagian', 'estimasi', 'token', 'pengguna', 'logs'];
 
     function switchTab(tabName) {
-      TAB_NAMES.forEach((name) => {
+      tabAktifSekarang_ = tabName; TAB_NAMES.forEach((name) => {
         const isActive = name === tabName;
         const panel = document.getElementById('content-' + name);
         const button = document.getElementById('tab-' + name);
@@ -7943,7 +8987,9 @@
         .withSuccessHandler((res) => {
           if (icon) icon.className = 'fa-solid fa-cloud-arrow-down';
           showToast((res && res.message) ? res.message : 'Penarikan pesanan selesai.');
-          loadDashboard(false);
+          cacheBarisStatus = {};
+          try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(SNAPSHOT_KEY_); } catch (e) {}
+          loadDashboard(true);
         })
         .withFailureHandler((err) => {
           if (icon) icon.className = 'fa-solid fa-cloud-arrow-down';
@@ -7961,7 +9007,9 @@
       google.script.run
         .withSuccessHandler((res) => {
           showToast((res && res.message) ? res.message : 'Pesanan berhasil ditarik.');
-          loadDashboard(false);
+          cacheBarisStatus = {};
+          try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(SNAPSHOT_KEY_); } catch (e) {}
+          loadDashboard(true);
         })
         .withFailureHandler((err) => {
           if (tanganiGalatRpc_(err)) return;
@@ -7990,6 +9038,9 @@
       google.script.run
         .withSuccessHandler(() => {
           showToast('Pesanan ' + orderSn + ' kini berstatus "' + newStatus + '".');
+          cacheBarisStatus = {};
+          try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(SNAPSHOT_KEY_); } catch (e) {}
+          loadDashboard(true);
         })
         .withFailureHandler((err) => {
           /* Rollback bila server gagal */
@@ -8052,7 +9103,9 @@
         .withSuccessHandler((res) => {
           showToast('Status ' + ((res && res.count) || list.length) + ' pesanan berhasil diubah.');
           clearSelection();
-          loadDashboard(false);
+          cacheBarisStatus = {};
+          try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(SNAPSHOT_KEY_); } catch (e) {}
+          loadDashboard(true);
         })
         .withFailureHandler((err) => {
           if (tanganiGalatRpc_(err)) return;
@@ -10412,6 +11465,860 @@
       return doc;
     }
 
+    function renderLembarKerjaPackingKeDoc_(doc, info, isBatch) {
+      const pageW = 210;
+      const pageH = 297;
+      const margin = 10;
+      const width = pageW - (margin * 2);
+      const halamanMulai = doc.getNumberOfPages();
+
+      if (isBatch && halamanMulai > 1) {
+        doc.addPage([pageW, pageH], 'portrait');
+      }
+
+      let y = margin;
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.setFillColor(248, 250, 252);
+      doc.rect(margin, y, width, 22, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text('LEMBAR KERJA PACKING - ' + String(info.petugas || '').toUpperCase(), margin + 4, y + 7);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(51, 65, 85);
+      const labelTgl = formatKanbanTicketDate_(info.tanggal);
+      doc.text('Sesi: ' + String(info.sesi || 'PAGI') + '   |   Tanggal: ' + labelTgl, margin + 4, y + 13);
+      doc.text('Beban: ' + info.totalResi + ' Lembar Resi   |   ' + info.totalPcs + ' Pcs Produk', margin + 4, y + 18);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(100, 116, 139);
+      doc.text('BEGOOD ERP', pageW - margin - 4, y + 9, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Divisi Packing & Ekspedisi', pageW - margin - 4, y + 15, { align: 'right' });
+
+      y += 26;
+
+      const colW = [10, 42, 16, 72, 14, 24, 12];
+      const startX = [];
+      let accX = margin;
+      for (let c = 0; c < colW.length; c++) {
+        startX.push(accX);
+        accX += colW[c];
+      }
+
+      const headerH = 7.5;
+      const rowH = 6.8;
+
+      function drawTableHeader(curY) {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.25);
+        doc.setFillColor(241, 245, 249);
+
+        for (let c = 0; c < colW.length; c++) {
+          doc.rect(startX[c], curY, colW[c], headerH, 'FD');
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(0, 0, 0);
+        doc.text('No', startX[0] + (colW[0] / 2), curY + 5.0, { align: 'center' });
+        doc.text('No. Pesanan', startX[1] + 2, curY + 5.0);
+        doc.text('Toko', startX[2] + (colW[2] / 2), curY + 5.0, { align: 'center' });
+        doc.text('SKU / Variasi', startX[3] + 2, curY + 5.0);
+        doc.text('Qty', startX[4] + (colW[4] / 2), curY + 5.0, { align: 'center' });
+        doc.text('Penjahit', startX[5] + 2, curY + 5.0);
+        doc.text('Cek', startX[6] + (colW[6] / 2), curY + 5.0, { align: 'center' });
+
+        return curY + headerH;
+      }
+
+      y = drawTableHeader(y);
+
+      const rows = info.rows || [];
+      if (rows.length === 0) {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(margin, y, width, 12, 'FD');
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Belum ada pesanan yang dialokasikan untuk petugas ini.', pageW / 2, y + 7.5, { align: 'center' });
+        y += 12;
+      } else {
+        const maxBottom = pageH - 16;
+        for (let i = 0; i < rows.length; i++) {
+          if (y + rowH > maxBottom) {
+            doc.addPage([pageW, pageH], 'portrait');
+            y = margin + 4;
+            y = drawTableHeader(y);
+          }
+
+          const r = rows[i];
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.18);
+          doc.setFillColor(255, 255, 255);
+
+          for (let c = 0; c < colW.length; c++) {
+            doc.rect(startX[c], y, colW[c], rowH, 'FD');
+          }
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+
+          doc.text(String(r.no), startX[0] + (colW[0] / 2), y + 4.8, { align: 'center' });
+
+          pdfKit.fitText(doc, String(r.noPesanan || '-'), colW[1] - 3, 8, 6);
+          doc.text(String(r.noPesanan || '-'), startX[1] + 2, y + 4.8);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.text(String(r.toko || '-'), startX[2] + (colW[2] / 2), y + 4.8, { align: 'center' });
+
+          pdfKit.fitText(doc, String(r.skuVariasi || '-'), colW[3] - 3, 8, 6);
+          doc.text(String(r.skuVariasi || '-'), startX[3] + 2, y + 4.8);
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.text(String(r.qty || 1), startX[4] + (colW[4] / 2), y + 4.8, { align: 'center' });
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          pdfKit.fitText(doc, String(r.penjahit || '-'), colW[5] - 3, 8, 6);
+          doc.text(String(r.penjahit || '-'), startX[5] + 2, y + 4.8);
+
+          const cbSize = 4.2;
+          const cbX = startX[6] + (colW[6] - cbSize) / 2;
+          const cbY = y + (rowH - cbSize) / 2;
+          doc.rect(cbX, cbY, cbSize, cbSize, 'S');
+
+          y += rowH;
+        }
+      }
+
+      const halamanAkhir = doc.getNumberOfPages();
+      const jmlHal = halamanAkhir - halamanMulai + 1;
+      for (let p = halamanMulai; p <= halamanAkhir; p++) {
+        doc.setPage(p);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text('Halaman ' + (p - halamanMulai + 1) + ' / ' + jmlHal + '  |  ' + info.petugas + ' (' + info.sesi + ')', pageW / 2, pageH - 7, { align: 'center' });
+      }
+    }
+
+    function buildLembarKerjaPackingPdf(JsPDF, info) {
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [210, 297] });
+      renderLembarKerjaPackingKeDoc_(doc, info, false);
+      return doc;
+    }
+
+    function buildBatchLembarKerjaPackingPdf(JsPDF, daftarInfo) {
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [210, 297] });
+      daftarInfo.forEach((info, idx) => {
+        renderLembarKerjaPackingKeDoc_(doc, info, idx > 0);
+      });
+      return doc;
+    }
+
+    function isiSetelanKelengkapan_(setelan) {
+      const rawKel = (setelan && setelan.kelengkapanSku) || [];
+      if (Array.isArray(rawKel) && rawKel.length > 0) {
+        dataSetelanKelengkapan_ = rawKel.map((item) => ({
+          sku: String((item && item.sku) || '').trim().toUpperCase(),
+          kelengkapan: String((item && item.kelengkapan) || '').trim()
+        })).filter((x) => x.sku && x.kelengkapan);
+      } else if (!dataSetelanKelengkapan_ || dataSetelanKelengkapan_.length === 0) {
+        dataSetelanKelengkapan_ = [
+          { sku: 'SPREI*90*SET', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SPREI*100*SET', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SPREI*120*SET', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SPREI*140*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' },
+          { sku: 'SPREI*160*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' },
+          { sku: 'SPREI*180*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' },
+          { sku: 'SPREI*200*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' }
+        ];
+      }
+      renderTabelKelengkapanSetelan_();
+      setKelengkapanDirty_(false);
+    }
+
+    function setKelengkapanDirty_(dirty) {
+      kelengkapanDirty_ = Boolean(dirty);
+      const ind = document.getElementById('kelengkapan-dirty-indicator');
+      if (ind) ind.style.display = kelengkapanDirty_ ? 'inline-flex' : 'none';
+    }
+
+    function renderTabelKelengkapanSetelan_() {
+      const tbody = document.getElementById('tbody-kelengkapan-setelan');
+      if (!tbody) return;
+
+      const elCari = document.getElementById('cari-setelan-kelengkapan');
+      const q = String((elCari && elCari.value) || '').trim().toLowerCase();
+      const sumber = dataSetelanKelengkapan_ || [];
+      const list = sumber.filter((item) => {
+        if (!q) return true;
+        return (item.sku && item.sku.toLowerCase().indexOf(q) !== -1) ||
+               (item.kelengkapan && item.kelengkapan.toLowerCase().indexOf(q) !== -1);
+      });
+
+      const countEl = document.getElementById('setelan-kelengkapan-count');
+      if (countEl) countEl.textContent = String(sumber.length);
+      const ringkasEl = document.getElementById('setelan-kelengkapan-ringkasan');
+      if (ringkasEl) ringkasEl.textContent = sumber.length + ' SKU/pola';
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px; color:#64748b;">' +
+          (q ? 'Tidak ada SKU/kelengkapan yang cocok dengan pencarian.' : 'Belum ada daftar kelengkapan SKU Kanban.') +
+          '</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => {
+        const realIdx = sumber.indexOf(item);
+        return '<tr>' +
+          '<td style="text-align:center; color:#64748b; font-size:12px;">' + (idx + 1) + '</td>' +
+          '<td>' +
+            '<input type="text" class="field field-sm num" value="' + esc(item.sku || '') + '" onchange="ubahKelengkapanSku_(' + realIdx + ', this.value)" style="width:100%; text-transform:uppercase; font-weight:600;">' +
+          '</td>' +
+          '<td>' +
+            '<input type="text" class="field field-sm" value="' + esc(item.kelengkapan || '') + '" onchange="ubahKelengkapanTeks_(' + realIdx + ', this.value)" style="width:100%;">' +
+          '</td>' +
+          '<td style="text-align:center;">' +
+            '<button type="button" class="btn btn-sm btn-quiet" onclick="hapusKelengkapanSetelan_(' + realIdx + ')" title="Hapus baris kelengkapan" style="color:#dc2626;">' +
+              '<i class="fa-solid fa-trash" aria-hidden="true"></i>' +
+            '</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function filterTabelKelengkapanSetelan_() {
+      renderTabelKelengkapanSetelan_();
+    }
+
+    function ubahKelengkapanSku_(idx, val) {
+      if (dataSetelanKelengkapan_[idx]) {
+        dataSetelanKelengkapan_[idx].sku = String(val || '').trim().toUpperCase();
+        setKelengkapanDirty_(true);
+      }
+    }
+
+    function ubahKelengkapanTeks_(idx, val) {
+      if (dataSetelanKelengkapan_[idx]) {
+        dataSetelanKelengkapan_[idx].kelengkapan = String(val || '').trim();
+        setKelengkapanDirty_(true);
+      }
+    }
+
+    function isiCepatTeksKelengkapan_(teks) {
+      const el = document.getElementById('input-kelengkapan-teks');
+      if (el) {
+        el.value = String(teks || '');
+        el.focus();
+      }
+    }
+
+    function tambahKelengkapanBaruAction() {
+      const elSku = document.getElementById('input-kelengkapan-sku');
+      const elTeks = document.getElementById('input-kelengkapan-teks');
+      const sku = elSku ? String(elSku.value || '').trim().toUpperCase() : '';
+      const kelengkapan = elTeks ? String(elTeks.value || '').trim() : '';
+
+      if (!sku) {
+        showToast('SKU atau Pola SKU tidak boleh kosong.', 'error');
+        if (elSku) elSku.focus();
+        return;
+      }
+      if (!kelengkapan) {
+        showToast('Teks kelengkapan tidak boleh kosong.', 'error');
+        if (elTeks) elTeks.focus();
+        return;
+      }
+
+      const idxAda = (dataSetelanKelengkapan_ || []).findIndex((x) => x.sku.toUpperCase() === sku);
+      if (idxAda !== -1) {
+        dataSetelanKelengkapan_[idxAda].kelengkapan = kelengkapan;
+        showToast('Kelengkapan untuk ' + sku + ' diperbarui di tabel.', 'info');
+      } else {
+        dataSetelanKelengkapan_.unshift({ sku: sku, kelengkapan: kelengkapan });
+        showToast('Kelengkapan ' + sku + ' ditambahkan ke tabel.', 'info');
+      }
+
+      if (elSku) elSku.value = '';
+      if (elTeks) elTeks.value = '';
+      setKelengkapanDirty_(true);
+      renderTabelKelengkapanSetelan_();
+    }
+
+    function hapusKelengkapanSetelan_(idx) {
+      if (idx >= 0 && idx < dataSetelanKelengkapan_.length) {
+        const item = dataSetelanKelengkapan_[idx];
+        dataSetelanKelengkapan_.splice(idx, 1);
+        setKelengkapanDirty_(true);
+        renderTabelKelengkapanSetelan_();
+        showToast('Kelengkapan ' + item.sku + ' dihapus dari tabel.', 'info');
+      }
+    }
+
+    function simpanKelengkapanDariTabelAction() {
+      const tombol = document.getElementById('btn-simpan-kelengkapan-tabel');
+      const statusEl = document.getElementById('pembagian-kelengkapan-status');
+      if (tombol) tombol.disabled = true;
+      if (statusEl) statusEl.textContent = 'Menyimpan...';
+
+      const daftar = (dataSetelanKelengkapan_ || []).filter((x) => x.sku && x.kelengkapan);
+      if (pembagianTerakhir && pembagianTerakhir.setelan) {
+        pembagianTerakhir.setelan.kelengkapanSku = daftar.slice();
+      }
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (tombol) tombol.disabled = false;
+          if (statusEl) statusEl.textContent = '';
+          setKelengkapanDirty_(false);
+          showToast((res && res.pesan) || 'Kelengkapan SKU Kanban berhasil disimpan.', 'success');
+        })
+        .withFailureHandler((err) => {
+          if (tombol) tombol.disabled = false;
+          if (statusEl) statusEl.textContent = '';
+          showToast('Gagal menyimpan kelengkapan SKU: ' + ((err && err.message) || err), 'error');
+        })
+        .simpanKelengkapanSkuDashboard(sesiToken, daftar);
+    }
+
+    function cocokPolaKelengkapan_(skuBaku, polaBaku) {
+      if (!skuBaku || !polaBaku) return false;
+      if (skuBaku === polaBaku) return true;
+      if (polaBaku.indexOf('*') !== -1) {
+        const bagian = polaBaku.split('*').map((p) => p.trim()).filter(Boolean);
+        if (!bagian.length) return false;
+        let pos = 0;
+        for (let i = 0; i < bagian.length; i++) {
+          const idx = skuBaku.indexOf(bagian[i], pos);
+          if (idx === -1) return false;
+          pos = idx + bagian[i].length;
+        }
+        return true;
+      }
+      return skuBaku.indexOf(polaBaku) !== -1;
+    }
+
+    function formatKanbanTicketDate_(tglStr) {
+      if (!tglStr) return '-';
+      const hariArr = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const bulanArr = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      let d;
+      if (typeof tglStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(tglStr)) {
+        const parts = tglStr.split(' ')[0].split('-');
+        d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      } else {
+        d = new Date(tglStr);
+      }
+      if (isNaN(d.getTime())) return String(tglStr);
+      return hariArr[d.getDay()] + ', ' + d.getDate() + ' ' + bulanArr[d.getMonth()];
+    }
+
+    function formatTanggalKanban_(tglStr) {
+      return formatKanbanTicketDate_(tglStr);
+    }
+
+    function deteksiKelengkapanSpreiSet_(sku, bawaanProses) {
+      const s = String(sku || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      if (!s) return String(bawaanProses || '').trim();
+
+      const sumberSetelan = (dataSetelanKelengkapan_ && dataSetelanKelengkapan_.length)
+        ? dataSetelanKelengkapan_
+        : ((pembagianTerakhir && pembagianTerakhir.setelan && Array.isArray(pembagianTerakhir.setelan.kelengkapanSku))
+          ? pembagianTerakhir.setelan.kelengkapanSku
+          : []);
+
+      /* 1. Cek kecocokan persis lebih dulu */
+      for (let i = 0; i < sumberSetelan.length; i++) {
+        const item = sumberSetelan[i];
+        if (!item || !item.sku) continue;
+        const pola = String(item.sku).trim().toUpperCase().replace(/\s+/g, ' ');
+        if (pola === s) return String(item.kelengkapan || '').trim();
+      }
+
+      /* 2. Cek kecocokan pola wildcard (*) atau substring */
+      for (let j = 0; j < sumberSetelan.length; j++) {
+        const item = sumberSetelan[j];
+        if (!item || !item.sku) continue;
+        const pola = String(item.sku).trim().toUpperCase().replace(/\s+/g, ' ');
+        if (cocokPolaKelengkapan_(s, pola)) {
+          return String(item.kelengkapan || '').trim();
+        }
+      }
+
+      /* 2b. Fallback dari kolom Kelengkapan pada sheet DATA PROSES bila terisi */
+      if (bawaanProses !== undefined && bawaanProses !== null && String(bawaanProses).trim() !== '') {
+        return String(bawaanProses).trim();
+      }
+
+      /* 3. Fallback otomatis untuk produk SPREI ... SET */
+      if (s.indexOf('SPREI') === -1 || s.indexOf('SET') === -1) return '';
+      const mUkuran = s.match(/\b(70|80|90|100|120|140|150|160|180|200)(?:\s*[\/xX*]|\b)/);
+      if (mUkuran) {
+        const lebar = parseInt(mUkuran[1], 10);
+        if (lebar >= 140) return '2 Bantal + 2 Guling + 2 Tali';
+        return '1 Bantal + 1 Guling + 2 Tali';
+      }
+      if (/\b(KING|QUEEN|DOUBLE)\b/.test(s)) {
+        return '2 Bantal + 2 Guling + 2 Tali';
+      }
+      return '1 Bantal + 1 Guling + 2 Tali';
+    }
+
+    function fitLines(doc, text, maxWidth, maxLines) {
+      const batas = Math.max(1, Number(maxLines) || 2);
+      const raw = String(text === null || text === undefined ? '' : text).trim();
+      if (!raw) return [''];
+      const lines = doc.splitTextToSize(raw, maxWidth);
+      if (lines.length <= batas) return lines;
+
+      const terpotong = lines.slice(0, batas);
+      let terakhir = String(terpotong[batas - 1] || '').trim();
+      while (terakhir.length > 1 && doc.getTextWidth(terakhir + '...') > maxWidth) {
+        terakhir = terakhir.slice(0, -1).trim();
+      }
+      terpotong[batas - 1] = terakhir + '...';
+      return terpotong;
+    }
+
+    function cariDaftarNoPesananItem_(it, penjahit, info, payload) {
+      const jml = Math.max(1, Number(it && (it.jumlah !== undefined ? it.jumlah : it.qty)) || 1);
+      if (it && Array.isArray(it.daftarPesanan) && it.daftarPesanan.some((x) => String(x || '').trim())) {
+        const hasil = it.daftarPesanan.map((x) => String(x || '').trim());
+        const fallback = hasil.find(Boolean) || String(it.noPesanan || it.pesanan || it.orderSn || (info && info.noPesanan) || '').trim();
+        while (hasil.length < jml) hasil.push(fallback);
+        return hasil;
+      }
+      const langsung = String((it && (it.noPesanan || it.pesanan || it.orderSn)) || (info && info.noPesanan) || '').trim();
+      if (langsung) {
+        return Array.from({ length: jml }, () => langsung);
+      }
+      const sumberPayload = payload || (typeof pembagianTerakhir !== 'undefined' ? pembagianTerakhir : null);
+      const unit = (sumberPayload && sumberPayload.rekap && Array.isArray(sumberPayload.rekap.unit))
+        ? sumberPayload.rekap.unit
+        : ((sumberPayload && Array.isArray(sumberPayload.unit)) ? sumberPayload.unit : []);
+      const skuIt = String((it && it.sku) || '').trim().toUpperCase();
+      const varIt = String((it && it.variasi) || '').trim().toUpperCase();
+      const namaP = String(penjahit || '').trim().toUpperCase();
+      const ditemukan = [];
+      if (skuIt && unit.length) {
+        unit.forEach((u) => {
+          if (!u || !u.noPesanan) return;
+          const uSku = String(u.sku || '').trim().toUpperCase();
+          if (uSku !== skuIt) return;
+          const uNama = String(u.penjahit || '').trim().toUpperCase();
+          const uVar = String(u.variasi || '').trim().toUpperCase();
+          if ((!namaP || namaP === '-' || uNama === namaP) && (!varIt || varIt === '-' || uVar === varIt)) {
+            const q = Math.max(1, Number(u.qty) || 1);
+            for (let k = 0; k < q; k++) ditemukan.push(String(u.noPesanan).trim());
+          }
+        });
+        if (!ditemukan.length) {
+          unit.forEach((u) => {
+            if (!u || !u.noPesanan) return;
+            if (String(u.sku || '').trim().toUpperCase() === skuIt) {
+              ditemukan.push(String(u.noPesanan).trim());
+            }
+          });
+        }
+      }
+      if (!ditemukan.length && skuIt && typeof semuaBarisPesanan_ === 'function') {
+        try {
+          const pesanan = semuaBarisPesanan_() || [];
+          for (let s = 0; s < pesanan.length; s++) {
+            const p = pesanan[s];
+            if (p && p.orderSn && String(p.sku || '').trim().toUpperCase() === skuIt) {
+              ditemukan.push(String(p.orderSn).trim());
+              if (ditemukan.length >= jml) break;
+            }
+          }
+        } catch (e) {}
+      }
+      if (ditemukan.length) {
+        const fb = ditemukan[0] || '';
+        while (ditemukan.length < jml) ditemukan.push(fb);
+        return ditemukan.slice(0, jml);
+      }
+      return Array.from({ length: jml }, () => '');
+    }
+
+    function cariPackingItem_(noPesanan, dataBagi) {
+      if (!noPesanan || !dataBagi) return '';
+      const npClean = String(noPesanan).trim();
+      const units = (dataBagi.rekap && dataBagi.rekap.unit) || dataBagi.unit || [];
+      for (let i = 0; i < units.length; i++) {
+        if (String(units[i].noPesanan || '').trim() === npClean && units[i].petugasPacking) {
+          return String(units[i].petugasPacking).trim();
+        }
+      }
+      const perPetugas = (dataBagi.rekap && dataBagi.rekap.rekapPacking && dataBagi.rekap.rekapPacking.perPetugas) || [];
+      for (let i = 0; i < perPetugas.length; i++) {
+        const dp = perPetugas[i].daftarPesanan || [];
+        for (let j = 0; j < dp.length; j++) {
+          if (String(dp[j].noPesanan || dp[j] || '').trim() === npClean) {
+            return String(perPetugas[i].nama || '').trim();
+          }
+        }
+      }
+      return '';
+    }
+
+    function expandKanbanTickets_(rows) {
+      const tiket = [];
+      (rows || []).forEach((r) => {
+        const jmlAwal = Math.max(1, Number(r.jumlah !== undefined ? r.jumlah : r.qty) || 1);
+        const tanggal = String(r.tanggal || '');
+        const tanggalLabel = r.tanggalLabel || formatKanbanTicketDate_(tanggal);
+        const penjahit = String(r.penjahit || r.nama || '-').trim().toUpperCase();
+        const sesi = String(r.sesi || 'PAGI').trim().toUpperCase();
+        const sku = String(r.sku || '-').trim();
+        const variasi = String(r.variasi || '-').trim();
+        const kainPerUnit = Number(r.kainPerUnit) || 0;
+        const kelengkapan = deteksiKelengkapanSpreiSet_(sku, r.kelengkapan);
+        const dp = cariDaftarNoPesananItem_(r, penjahit, r);
+        const kodeTokoMap = r.kodeTokoMap || (typeof bangunPetaKodeToko_ === 'function' ? bangunPetaKodeToko_() : {});
+        const tokoRow = r.toko || (typeof cariTokoItem_ === 'function' ? cariTokoItem_(r, (typeof pembagianTerakhir !== 'undefined' ? pembagianTerakhir : null)) : '');
+
+        for (let k = 0; k < jmlAwal; k++) {
+          const noPesananUnit = String((dp[k] !== undefined && dp[k] !== '') ? dp[k] : (r.noPesanan || r.pesanan || r.orderSn || (dp[0] || '') || '')).trim();
+          let tokoUnit = tokoRow;
+          if (!tokoUnit && noPesananUnit && typeof cariTokoItem_ === 'function') {
+            tokoUnit = cariTokoItem_({ noPesanan: noPesananUnit, sku: sku, variasi: variasi }, (typeof pembagianTerakhir !== 'undefined' ? pembagianTerakhir : null));
+          }
+          const kodeTokoUnit = r.kodeToko || r.kodeLabel || resolveKodeToko_(tokoUnit, kodeTokoMap) || '';
+          let packingUnit = r.petugasPacking || r.packing || '';
+          if (!packingUnit && noPesananUnit && typeof cariPackingItem_ === 'function') {
+            packingUnit = cariPackingItem_(noPesananUnit, (typeof pembagianTerakhir !== 'undefined' ? pembagianTerakhir : null));
+          }
+          tiket.push({
+            tanggal: tanggal,
+            tanggalLabel: tanggalLabel,
+            penjahit: penjahit,
+            nama: penjahit,
+            sesi: sesi,
+            noPesanan: noPesananUnit,
+            toko: tokoUnit,
+            kodeToko: kodeTokoUnit,
+            kodeTokoMap: kodeTokoMap,
+            sku: sku,
+            variasi: variasi,
+            jumlah: 1,
+            qty: 1,
+            kainPerUnit: kainPerUnit,
+            kelengkapan: kelengkapan,
+            petugasPacking: packingUnit,
+            kodePotong: jmlAwal > 1 ? ('#' + (k + 1)) : null
+          });
+        }
+      });
+      return tiket;
+    }
+
+    function buildKanbanTicketsFromRows_(daftarInfo) {
+      const rows = [];
+      (daftarInfo || []).forEach((info) => {
+        const penjahit = String((info && (info.penjahit || info.nama)) || '-').trim().toUpperCase();
+        const sesi = String((info && info.sesi) || 'PAGI').trim().toUpperCase();
+        const tanggal = (info && info.tanggal) || '';
+        const items = (info && info.items) || [];
+        const kodeTokoMap = (info && info.kodeTokoMap) || (typeof bangunPetaKodeToko_ === 'function' ? bangunPetaKodeToko_() : {});
+        items.forEach((it) => {
+          const daftarPesanan = cariDaftarNoPesananItem_(it, penjahit, info);
+          const tokoItem = it.toko || (typeof cariTokoItem_ === 'function' ? cariTokoItem_(it, (typeof pembagianTerakhir !== 'undefined' ? pembagianTerakhir : info)) : '');
+          const kodeToko = it.kodeToko || it.kodeLabel || resolveKodeToko_(tokoItem, kodeTokoMap);
+          rows.push({
+            tanggal: tanggal,
+            tanggalLabel: formatKanbanTicketDate_(tanggal),
+            penjahit: penjahit,
+            sesi: sesi,
+            noPesanan: String(it.noPesanan || it.pesanan || it.orderSn || (daftarPesanan[0] || '') || (info && info.noPesanan) || '').trim(),
+            daftarPesanan: daftarPesanan,
+            toko: tokoItem,
+            kodeToko: kodeToko,
+            kodeTokoMap: kodeTokoMap,
+            sku: String(it.sku || '-').trim(),
+            variasi: String(it.variasi || '-').trim(),
+            jumlah: Math.max(1, Number(it.jumlah !== undefined ? it.jumlah : it.qty) || 1),
+            kainPerUnit: Number(it.kainPerUnit) || 0,
+            kelengkapan: deteksiKelengkapanSpreiSet_(it.sku, it.kelengkapan),
+            petugasPacking: it.petugasPacking || (info && info.petugasPacking) || ''
+          });
+        });
+      });
+      return expandKanbanTickets_(rows);
+    }
+
+    function pecahItemKeTiketKanban_(daftarInfo) {
+      return buildKanbanTicketsFromRows_(daftarInfo);
+    }
+
+    function drawCuttingKanbanTicket(doc, t, x0, y0, boxW, boxH) {
+      const pad = 2;
+      const innerW = boxW - (pad * 2);
+      const cx = x0 + (boxW / 2);
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.25);
+      doc.setFillColor(255, 255, 255);
+      doc.rect(x0, y0, boxW, boxH, 'FD');
+
+      // Header 1 & 2
+      const labelTanggal = t.tanggalLabel || formatKanbanTicketDate_(t.tanggal);
+      const namaPenjahit = String(t.penjahit || t.nama || '-');
+      const namaPacking = String(t.petugasPacking || t.packing || '').trim();
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+
+      if (namaPacking) {
+        // Format dengan Petugas Packing:
+        // Baris 1 : PAGI | Sabtu, 10 Oktober
+        // Baris 2 : ADUL | KELVIN
+        const sesi = String(t.sesi || 'PAGI').toUpperCase();
+        doc.text(sesi + ' | ' + labelTanggal, cx, y0 + 5.2, { align: 'center' });
+        doc.text(namaPenjahit + ' | ' + namaPacking, cx, y0 + 9.0, { align: 'center' });
+      } else {
+        // Fallback jika belum ada petugas packing (format lama):
+        // Baris 1 : Sabtu, 10 Oktober
+        // Baris 2 : ADUL  |  PAGI
+        doc.text(labelTanggal, cx, y0 + 5.2, { align: 'center' });
+        doc.text(namaPenjahit + '  |  ' + String(t.sesi || 'PAGI'), cx, y0 + 9.0, { align: 'center' });
+      }
+
+      // Baris 3: No. Pesanan & Kode Toko (9 pt, Bold)
+      const rawNoPesanan = String(t.noPesanan || t.pesanan || t.orderSn || '').trim();
+      const kodeToko = String(t.kodeToko || t.kodeLabel || resolveKodeToko_(t.toko, t.kodeTokoMap) || '').trim();
+      let teksNoPesanan = rawNoPesanan || '-';
+      if (rawNoPesanan && rawNoPesanan !== '-' && kodeToko && kodeToko !== '-') {
+        teksNoPesanan = rawNoPesanan + ' | ' + kodeToko;
+      }
+      const barisNoPesanan = fitLines(doc, teksNoPesanan, innerW, 1);
+      doc.text(barisNoPesanan[0], cx, y0 + 12.8, { align: 'center' });
+
+      // Body 1: Qty & SKU (10.2 pt, Bold, maks 2 baris)
+      const teksUtama = String(t.jumlah || t.qty || 1) + ' PCS | ' + String(t.sku || '-');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.2);
+      const barisSku = fitLines(doc, teksUtama, innerW, 2);
+      const stepSku = 4.2;
+
+      // Body 2: Variasi/Warna (9.2 pt, Bold, maks 2 baris)
+      const teksVariasi = String(t.variasi || '-');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.2);
+      const barisVariasi = fitLines(doc, teksVariasi, innerW, 2);
+      const stepVariasi = 3.8;
+
+      // Body 3: Kelengkapan (8.2 pt, Bold, maks 2 baris, opsional)
+      const teksKelengkapan = String(t.kelengkapan || '').trim();
+      const adaKelengkapan = Boolean(teksKelengkapan);
+      let barisKelengkapan = [];
+      const stepKelengkapan = 3.4;
+      if (adaKelengkapan) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.2);
+        barisKelengkapan = fitLines(doc, teksKelengkapan, innerW, 2);
+      }
+
+      const tinggiSku = barisSku.length * stepSku;
+      const tinggiVariasi = barisVariasi.length * stepVariasi;
+      const gapSkuVariasi = 1.6;
+      const gapVariasiKelengkapan = adaKelengkapan ? 1.6 : 0;
+      const tinggiKelengkapan = adaKelengkapan ? (barisKelengkapan.length * stepKelengkapan) : 0;
+
+      const totalTinggiBody = tinggiSku + gapSkuVariasi + tinggiVariasi + gapVariasiKelengkapan + tinggiKelengkapan;
+      const areaAtas = y0 + 15.0;
+      const areaBawah = y0 + boxH - pad;
+      const tinggiArea = Math.max(totalTinggiBody, areaBawah - areaAtas);
+
+      let curY = areaAtas + ((tinggiArea - totalTinggiBody) / 2) + (stepSku * 0.78);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.2);
+      for (let i = 0; i < barisSku.length; i++) {
+        doc.text(barisSku[i], cx, curY, { align: 'center' });
+        curY += stepSku;
+      }
+
+      curY += gapSkuVariasi - 0.2;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.2);
+      for (let j = 0; j < barisVariasi.length; j++) {
+        doc.text(barisVariasi[j], cx, curY, { align: 'center' });
+        curY += stepVariasi;
+      }
+
+      if (adaKelengkapan) {
+        curY += gapVariasiKelengkapan - 0.3;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.2);
+        for (let k = 0; k < barisKelengkapan.length; k++) {
+          doc.text(barisKelengkapan[k], cx, curY, { align: 'center' });
+          curY += stepKelengkapan;
+        }
+      }
+    }
+
+    function gambarSatuTiketKanban_(doc, t, x0, y0, boxW, boxH) {
+      drawCuttingKanbanTicket(doc, t, x0, y0, boxW, boxH);
+    }
+
+    function renderStickerKanbanKeDoc_(doc, daftarInfo) {
+      const pageW = 105;
+      const pageH = 148;
+      const marginX = 4;
+      const marginY = 4;
+      const gapX = 2;
+      const gapY = 2;
+      const kolom = 2;
+      const baris = 3;
+      const perHalaman = kolom * baris;
+      const boxW = (pageW - (marginX * 2) - gapX) / kolom;
+      const boxH = (pageH - (marginY * 2) - (gapY * (baris - 1))) / baris;
+
+      const daftarTiket = buildKanbanTicketsFromRows_(daftarInfo);
+      if (!daftarTiket.length) {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.25);
+        doc.rect(marginX, marginY, pageW - (marginX * 2), 18, 'S');
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7.5);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Belum ada item pekerjaan untuk dicetak ke Sticker Tiket Kanban.', pageW / 2, marginY + 10, { align: 'center' });
+        return doc;
+      }
+
+      daftarTiket.forEach((tiket, idx) => {
+        if (idx > 0 && idx % perHalaman === 0) {
+          doc.addPage([pageW, pageH], 'portrait');
+        }
+        const slot = idx % perHalaman;
+        const c = slot % kolom;
+        const r = Math.floor(slot / kolom);
+        const x0 = marginX + (c * (boxW + gapX));
+        const y0 = marginY + (r * (boxH + gapY));
+        drawCuttingKanbanTicket(doc, tiket, x0, y0, boxW, boxH);
+      });
+
+      return doc;
+    }
+
+    function buildStickerKanbanPdf(JsPDF, info) {
+      const pageW = 105;
+      const pageH = 148;
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] });
+      renderStickerKanbanKeDoc_(doc, [info]);
+      return doc;
+    }
+
+    function buildBatchStickerKanbanPdf(JsPDF, daftarInfo) {
+      const pageW = 105;
+      const pageH = 148;
+      const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: [pageW, pageH] });
+      renderStickerKanbanKeDoc_(doc, daftarInfo || []);
+      return doc;
+    }
+
+    function unduhStickerKanbanPenjahitPdf(namaPenjahit, sesi) {
+      const targetSesi = (sesi === 'SIANG') ? 'SIANG' : 'PAGI';
+      const data = kumpulkanDataKartu_(pembagianTerakhir, targetSesi);
+      const penjahitData = (data.penjahit || []).find((p) => p.nama === namaPenjahit);
+      const sesiData = (penjahitData && penjahitData.sesi && penjahitData.sesi[targetSesi]) || { items: [] };
+      const items = gabungItemSpk_(sesiData.items || []);
+      if (!items.length) {
+        showToast('Belum ada rincian pcs untuk ' + namaPenjahit + ' (' + targetSesi + ').', 'error');
+        return;
+      }
+
+      const tanggal = (pembagianTerakhir && pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal)
+        || tanggalHariIni_();
+
+      const kodeTokoMap = (typeof bangunPetaKodeToko_ === 'function') ? bangunPetaKodeToko_() : {};
+      const info = {
+        nama: namaPenjahit,
+        penjahit: namaPenjahit,
+        sesi: targetSesi,
+        tanggal: tanggal,
+        kodeTokoMap: kodeTokoMap,
+        items: items
+      };
+
+      const targetClean = String(namaPenjahit || 'Penjahit').trim().replace(/\s+/g, '_');
+      showToast('Menyiapkan Sticker Kanban ' + namaPenjahit + ' (' + targetSesi + ')...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildStickerKanbanPdf(JsPDF, info);
+        const filename = 'KanbanPotong_' + targetClean + '_' + targetSesi + '_' + pdfKit.yyyymmdd(new Date());
+        const savedName = pdfKit.simpan(doc, filename);
+        showToast('Sticker Kanban siap: ' + savedName, 'success');
+      });
+    }
+
+    function unduhSemuaStickerKanbanPdf(sesi) {
+      const targetSesi = (sesi === 'SIANG') ? 'SIANG' : 'PAGI';
+      const data = kumpulkanDataKartu_(pembagianTerakhir, targetSesi);
+      const semuaPenjahit = data.penjahit || [];
+      if (!semuaPenjahit.length) {
+        showToast('Belum ada data penjahit untuk dicetak.', 'error');
+        return;
+      }
+
+      const tanggal = (pembagianTerakhir && pembagianTerakhir.estimasiHariIni && pembagianTerakhir.estimasiHariIni.tanggal)
+        || tanggalHariIni_();
+
+      const aktifSesi = semuaPenjahit.filter((p) => p.sesi && p.sesi[targetSesi] && (p.sesi[targetSesi].items || []).length > 0);
+      if (!aktifSesi.length) {
+        showToast('Belum ada rincian pcs pada sesi ' + targetSesi + ' untuk dicetak.', 'error');
+        return;
+      }
+
+      const kodeTokoMap = (typeof bangunPetaKodeToko_ === 'function') ? bangunPetaKodeToko_() : {};
+      const daftarInfo = aktifSesi.map((p) => {
+        const sesiData = (p.sesi && p.sesi[targetSesi]) || { items: [] };
+        return {
+          nama: p.nama,
+          penjahit: p.nama,
+          sesi: targetSesi,
+          tanggal: tanggal,
+          kodeTokoMap: kodeTokoMap,
+          items: gabungItemSpk_(sesiData.items || [])
+        };
+      });
+
+      const totalTiket = buildKanbanTicketsFromRows_(daftarInfo).length;
+      showToast('Menyiapkan ' + totalTiket + ' Sticker Kanban (' + targetSesi + ')...', 'loading');
+      pdfKit.withLib((JsPDF) => {
+        const doc = buildBatchStickerKanbanPdf(JsPDF, daftarInfo);
+        const filename = 'KanbanPotong_Semua_' + targetSesi + '_' + pdfKit.yyyymmdd(new Date());
+        const savedName = pdfKit.simpan(doc, filename);
+        showToast(totalTiket + ' Sticker Kanban (' + targetSesi + ') siap: ' + savedName, 'success');
+      });
+    }
+
+    function downloadKanbanCuttingPdf(sesi, namaPenjahit) {
+      if (namaPenjahit) {
+        unduhStickerKanbanPenjahitPdf(namaPenjahit, sesi);
+      } else {
+        unduhSemuaStickerKanbanPdf(sesi);
+      }
+    }
+
     /* ======================= AKSI EXPORT PDF =======================
        Dipanggil tombol di panel kendali, bilah aksi massal, dan baris
        tabel pesanan. Rujukan: docs/panduan-export-pdf.md bagian 8, 9, 10.
@@ -11185,9 +13092,117 @@
         const daftar = tanpaHarga.map((b) =>
           esc(b.sku) + (b.variasi ? ' · ' + esc(b.variasi) : '')).join(', ');
         setText('est-tanpa-harga-note', Number(payload.barisTanpaHarga).toLocaleString('id-ID') +
-          ' baris belum dihargai: ' + daftar + '. Isi harganya di tab Antrian & tarif SKU.');
+          ' baris belum dihargai: ' + daftar + '. Isi harganya di tab Pembagian jahit.');
       } else {
         setText('est-tanpa-harga-note', 'Seluruh baris pada tanggal ini sudah punya harga.');
+      }
+    }
+
+    let versiDataTerkini_ = '';
+    let waktuMuatTerakhir_ = 0;
+    let timerHeartbeatRealtime_ = null;
+    let sedangCekVersi_ = false;
+    let tundaSegarkanRealtime_ = false;
+    let pendengarRealtimeTerpasang_ = false;
+    const INTERVAL_HEARTBEAT_REALTIME_MS_ = 15000;
+
+    function sedangMengeditDiLayar_() {
+      if (typeof penjahitDirty_ !== 'undefined' && penjahitDirty_) return true;
+      if (typeof aturanDirty_ !== 'undefined' && aturanDirty_) return true;
+      if (typeof kelengkapanDirty_ !== 'undefined' && kelengkapanDirty_) return true;
+      if (typeof pilihanVariasiUnit_ !== 'undefined' && Object.keys(pilihanVariasiUnit_ || {}).length > 0) return true;
+      if (typeof pilihanPenjahitUnit_ !== 'undefined' && Object.keys(pilihanPenjahitUnit_ || {}).length > 0) return true;
+
+      const idModal = ['pembagian-clear-modal', 'pengguna-modal', 'pengguna-konfirmasi-modal', 'scan-packing-modal', 'auth-modal'];
+      for (let i = 0; i < idModal.length; i++) {
+        const m = document.getElementById(idModal[i]);
+        if (m && m.hidden === false && m.style && m.style.display !== 'none') {
+          if (idModal[i] === 'pembagian-clear-modal' || idModal[i] === 'pengguna-modal' || idModal[i] === 'pengguna-konfirmasi-modal') {
+            if (m.className || m.innerHTML) return true;
+          }
+        }
+      }
+
+      const aktif = document.activeElement;
+      if (aktif && aktif.tagName) {
+        const tag = String(aktif.tagName).toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+          const idAktif = String(aktif.id || '');
+          if (idAktif !== 'search-orders' && idAktif !== 'filter-status' && idAktif !== 'sort-orders') {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function segarkanDataRealtime_() {
+      tundaSegarkanRealtime_ = false;
+      waktuMuatTerakhir_ = Date.now();
+      cacheBarisStatus = {};
+      try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(SNAPSHOT_KEY_); } catch (e) {}
+      loadDashboard(true);
+      if (tabAktifSekarang_ === 'pembagian') muatPembagianJahit();
+      else if (tabAktifSekarang_ === 'produksi') muatAntrianProduksi(true);
+      else if (tabAktifSekarang_ === 'estimasi') muatEstimasiProduksi();
+      else if (tabAktifSekarang_ === 'pengguna') muatDaftarPengguna();
+    }
+
+    function periksaPembaruanRealtime_(paksaCek) {
+      if (!sesiToken || sedangCekVersi_) return;
+      if (!paksaCek && typeof document !== 'undefined' && document.hidden) return;
+      if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+
+      sedangCekVersi_ = true;
+      google.script.run
+        .withSuccessHandler((res) => {
+          sedangCekVersi_ = false;
+          if (!res || !res.versi) return;
+          const versiServer = String(res.versi);
+          if (!versiDataTerkini_) {
+            versiDataTerkini_ = versiServer;
+            return;
+          }
+          if (versiServer !== versiDataTerkini_) {
+            versiDataTerkini_ = versiServer;
+            if (sedangMengeditDiLayar_()) {
+              tundaSegarkanRealtime_ = true;
+            } else {
+              segarkanDataRealtime_();
+            }
+          } else if (tundaSegarkanRealtime_ && !sedangMengeditDiLayar_()) {
+            segarkanDataRealtime_();
+          }
+        })
+        .withFailureHandler(() => {
+          sedangCekVersi_ = false;
+        })
+        .cekVersiData(sesiToken);
+    }
+
+    function mulaiSinkronRealtime_() {
+      if (timerHeartbeatRealtime_) clearInterval(timerHeartbeatRealtime_);
+      timerHeartbeatRealtime_ = setInterval(() => {
+        periksaPembaruanRealtime_(false);
+      }, INTERVAL_HEARTBEAT_REALTIME_MS_);
+
+      if (!pendengarRealtimeTerpasang_) {
+        pendengarRealtimeTerpasang_ = true;
+        if (typeof document !== 'undefined' && document.addEventListener) {
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) periksaPembaruanRealtime_(true);
+          });
+          document.addEventListener('focusout', () => {
+            if (tundaSegarkanRealtime_ && !sedangMengeditDiLayar_()) {
+              segarkanDataRealtime_();
+            }
+          });
+        }
+        if (typeof window !== 'undefined' && window.addEventListener) {
+          window.addEventListener('focus', () => {
+            periksaPembaruanRealtime_(true);
+          });
+        }
       }
     }
 

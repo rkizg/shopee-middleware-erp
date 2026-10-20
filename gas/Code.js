@@ -12,6 +12,8 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('ERP Begood')
     .addItem('Buka Web Dashboard (Tab Baru)', 'openDashboardNewTab')
+    .addItem('Buka Meja Pengiriman & Resi (Tab Baru)', 'bukaMejaPengirimanPrompt')
+    .addItem('Buka Portal Distribusi SPK (Tab Baru)', 'bukaPortalDistribusiPrompt')
     .addItem('Buka Web Dashboard (Layar Penuh)', 'openDashboardModal')
     .addItem('Buka Web Dashboard (Sidebar)', 'openDashboardSidebar')
     .addSeparator()
@@ -924,6 +926,10 @@ function checkMiddlewareHealth() {
  */
 function doGet(e) {
   var page = (e && e.parameter && e.parameter.page) ? String(e.parameter.page).toLowerCase().trim() : '';
+  if (page === 'pengiriman' || page === 'resi' || page === 'shipping') {
+    return renderPengirimanPage_();
+  }
+  if (page === 'distribusi' || page === 'spk') return renderDistribusiPage_();
   if (page === 'packing' || page === 'scan') {
     try {
       return HtmlService.createHtmlOutputFromFile('Packing')
@@ -1066,23 +1072,27 @@ function bacaCacheBesar_(cache, key) {
  */
 function getDashboardData(token, forceRefresh, kodeToko) {
   var sesi = wajibSesi_(token, 'PACKING');
-
+  if (forceRefresh) invalidateDashboardCache(false);
   var cakupan = String(kodeToko || '').trim().toUpperCase();
   var cache = CacheService.getScriptCache();
   var cacheKey = kunciCacheDashboard_(cakupan);
+  var versiSekarang = bacaVersiData_();
 
   if (!forceRefresh) {
     var cached = bacaCacheBesar_(cache, cacheKey);
     if (cached) {
       try {
         var dariCache = JSON.parse(cached);
-        return bolehLihatUang_(sesi) ? dariCache : tanpaUangDashboard_(dariCache);
+        if (dariCache && String(dariCache.versiData || '') === String(versiSekarang)) {
+          return bolehLihatUang_(sesi) ? dariCache : tanpaUangDashboard_(dariCache);
+        }
       } catch (e) {}
     }
   }
 
   var data = SheetManager.getDashboardSummary(cakupan);
   if (data) {
+    data.versiData = versiSekarang;
     try {
       var jsonStr = JSON.stringify(data);
       simpanCacheBesar_(cache, cacheKey, jsonStr, 180); // Cache 3 menit
@@ -1125,9 +1135,9 @@ function kunciCacheStatusInventory_(cakupan) {
 /**
  * Membersihkan cache dashboard agar panggilan berikutnya mendapatkan data terbaru
  */
-function invalidateDashboardCache() {
+function invalidateDashboardCache(hanyaBaca) {
   try {
-    CacheService.getScriptCache().put('ERP_DASHBOARD_GENERASI', String(Date.now()), 21600);
+    var gen = nomorGenerasiCache_(), c = CacheService.getScriptCache(); c.put('ERP_DASHBOARD_GENERASI', gen, 21600); c.put('ERP_PROSES_GENERASI', gen, 21600); c.put('ERP_ATURAN_GENERASI', gen, 21600); if (!hanyaBaca) naikkanVersiData_(gen);
   } catch (e) {}
 }
 
@@ -2673,18 +2683,18 @@ function kunciSkuProduksi_(nilai) {
  * upah sebuah SKU menjadi nol. Di sini nilai nol atau kosong tidak pernah
  * menimpa nilai yang sudah terisi.
  */
-function terapkanNilaiKamus_(kamus, kunci, sku, harga, jahit, potong) {
+function terapkanNilaiKamus_(kamus, kunci, sku, harga, jahit, potong, kelengkapan) {
   if (!kunci) return;
 
   var entri = kamus[kunci];
   if (!entri) {
-    entri = { sku: sku, harga: 0, waktuJahit: 0, waktuPotong: 0 };
+    entri = { sku: sku, harga: 0, waktuJahit: 0, waktuPotong: 0, kelengkapan: '' };
     kamus[kunci] = entri;
   }
 
   if (harga > 0) entri.harga = harga;
   if (jahit > 0) entri.waktuJahit = jahit;
-  if (potong > 0) entri.waktuPotong = potong;
+  if (potong > 0) entri.waktuPotong = potong; if (kelengkapan) entri.kelengkapan = String(kelengkapan).trim();
 }
 
 /**
@@ -2738,13 +2748,13 @@ function bangunKamusProses_(daftar) {
 
     /* Baris yang belum dihargai tidak berguna bagi kamus, dan baris lama tidak
        boleh kehilangan entrinya hanya karena ada baris baru yang masih kosong. */
-    if (harga <= 0 && jahit <= 0 && potong <= 0) continue;
+    if (harga <= 0 && jahit <= 0 && potong <= 0 && !it.kelengkapan) continue;
 
     /* Nama baris DATA PROSES dipangkas dengan aturan yang sama, sebab sebagian
        ditulis sebagai gabungan SKU dan variasinya. Tanpa itu, baris harga lama
        "SARKUR 100/10 LILAC,BC 90X220" tidak lagi cocok dengan variasi "Lilac". */
     terapkanNilaiKamus_(kamus.bySku, kunciSkuProduksi_(SheetManager.bersihkanVariasi(sku)),
-      sku, harga, jahit, potong);
+      sku, harga, jahit, potong, it.kelengkapan);
   }
 
   return kamus;
@@ -2816,9 +2826,9 @@ function bacaProsesCached_() {
  * milidetik yang sama, dan seluruh pembacaan sesudahnya akan memakai kamus lama
  * tanpa gejala apa pun di layar.
  */
-function hapusCacheProses_() {
+function hapusCacheProses_(hanyaBaca) {
   try {
-    CacheService.getScriptCache().put('ERP_PROSES_GENERASI', nomorGenerasiCache_(), 21600);
+    var gen = nomorGenerasiCache_(); CacheService.getScriptCache().put('ERP_PROSES_GENERASI', gen, 21600); if (!hanyaBaca) naikkanVersiData_(gen);
   } catch (e) {}
 }
 
@@ -3038,15 +3048,15 @@ function kumpulkanEstimasiProduksi_(produksi, kamus, tanggal) {
         sku: b.sku,
         variasi: b.variasi || '',
         toko: b.toko || '',
-        noPesanan: b.noPesanan || '',
+        noPesanan: b.noPesanan || '', daftarPesanan: [],
         jumlah: 0, waktuJahit: 0, waktuPotong: 0, waktu: 0, upah: 0,
-        hargaSatuan: hargaSatuan
+        hargaSatuan: hargaSatuan, kelengkapan: (entri && entri.kelengkapan) || ''
       };
     }
     orang.items[kunciItem].jumlah += jumlah;
     orang.items[kunciItem].waktuJahit += waktuJahit;
     orang.items[kunciItem].waktuPotong += waktuPotong;
-    orang.items[kunciItem].upah += upah;
+    orang.items[kunciItem].upah += upah; for (var dp = 0; dp < jumlah; dp++) { orang.items[kunciItem].daftarPesanan.push(b.noPesanan || ''); }
   }
 
   total.waktu = total.waktuJahit + total.waktuPotong;
@@ -3146,7 +3156,7 @@ function getAntrianProduksi(token, kodeToko) {
 
   var rows = SheetManager.getOrderRowsByStatus(STATUS_ANTRIAN_PRODUKSI, BATAS_ANTRIAN_PRODUKSI, cakupan);
   var barisPesanan = jadikanBarisAntrian_(rows);
-
+  hapusCacheProses_(true);
   var daftarProses = bacaProsesCached_();
   var kamus = bangunKamusProses_(daftarProses);
 
@@ -3285,7 +3295,7 @@ function simpanProduksiBatch(token, baris) {
     throw new Error('Baris berikut belum lengkap. ' + bermasalah.join(' '));
   }
 
-  var ditambah = SheetManager.tambahProduksiBatch(daftar);
+  var ditambah = SheetManager.tambahProduksiBatch(daftar); invalidateDashboardCache();
 
   var pesan = ditambah + ' baris hasil jahit disimpan.';
   if (dilewati > 0) pesan += ' ' + dilewati + ' baris dilewati karena sudah pernah disimpan.';
@@ -3401,7 +3411,7 @@ function saveHargaProses(token, daftar) {
 function getProduksiRingkasan(token, tanggal) {
   var sesi = wajibSesi_(token, 'PACKING');
   var hari = normalisasiTanggalProduksi_(tanggal) || tanggalWibHariIni_();
-
+  hapusCacheProses_(true);
   var kamus = bangunKamusProses_(bacaProsesCached_());
   var payload = kumpulkanEstimasiProduksi_(SheetManager.bacaProduksi(), kamus, hari);
 
@@ -3436,9 +3446,9 @@ function kunciCacheAturan_() {
 }
 
 /** Membuang cache aturan setelah isi sheet SKU RULES berubah. */
-function hapusCacheAturan_() {
+function hapusCacheAturan_(hanyaBaca) {
   try {
-    CacheService.getScriptCache().put('ERP_ATURAN_GENERASI', nomorGenerasiCache_(), SESI_TTL_DETIK);
+    var gen = nomorGenerasiCache_(); CacheService.getScriptCache().put('ERP_ATURAN_GENERASI', gen, SESI_TTL_DETIK); if (!hanyaBaca) naikkanVersiData_(gen);
   } catch (e) {}
 }
 
@@ -3527,20 +3537,20 @@ function penjahitAktif_(daftar) {
  * Yang dibandingkan adalah upah dibagi bobot, bukan jumlah pcs, karena satu
  * bedcover dan satu sarung bantal tidak sama beratnya.
  */
-function skorPenjahit_(beban, nama, bobot) {
+function skorPenjahit_(beban, nama, bobot, tambahanUpah) {
   var data = beban[nama] || { upah: 0, pcs: 0 };
-  var berat = Number(bobot) > 0 ? Number(bobot) : 1;
-  return (Number(data.upah) || 0) / berat + (Number(data.pcs) || 0) * 0.0001;
+  var berat = Number(bobot) > 0 ? Number(bobot) : 1; var extraUpah = Number(tambahanUpah) > 0 ? Number(tambahanUpah) * 0.5 : 0; var extraPcs = (tambahanUpah !== undefined && extraUpah <= 0) ? 0.5 : 0;
+  return ((Number(data.upah) || 0) + extraUpah) / berat + (((Number(data.pcs) || 0) + extraPcs) / berat) * 0.0001;
 }
 
 /** Memilih penjahit paling longgar di antara kandidat satu grup. */
-function pilihPenjahit_(kandidat, beban) {
+function pilihPenjahit_(kandidat, beban, hargaItem) {
   var terpilih = null;
   var skorTerbaik = 0;
 
   for (var i = 0; i < kandidat.length; i++) {
-    var skor = skorPenjahit_(beban, kandidat[i].nama, kandidat[i].bobot);
-    if (terpilih === null || skor < skorTerbaik) {
+    var skor = skorPenjahit_(beban, kandidat[i].nama, kandidat[i].bobot, hargaItem);
+    if (terpilih === null || skor < skorTerbaik - 1e-12 || (Math.abs(skor - skorTerbaik) <= 1e-12 && (Number(kandidat[i].bobot) || 1) > (Number(terpilih.bobot) || 1))) {
       terpilih = kandidat[i];
       skorTerbaik = skor;
     }
@@ -3561,6 +3571,87 @@ function peringatanBagi_(tipe, noPesanan, sku, variasi, pesan) {
 }
 
 /**
+ * Mengurai tanggal dan jam WIB dari string atau objek Date.
+ * Format yang didukung: ISO (yyyy-MM-dd HH:mm:ss) dan garis miring (DD/MM/YYYY HH:mm:ss).
+ *
+ * @param {string|Date} nilai teks atau objek tanggal
+ * @return {Object|null} { tgl: 'yyyy-MM-dd', jam: number } atau null bila tidak terbaca
+ */
+function parseTglJam_(nilai) {
+  if (!nilai) return null;
+  var teks = '';
+  if (nilai instanceof Date) {
+    if (isNaN(nilai.getTime())) return null;
+    if (typeof Utilities !== 'undefined' && Utilities.formatDate) {
+      try {
+        teks = Utilities.formatDate(nilai, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+      } catch (e) {}
+    }
+    if (!teks) {
+      var y = nilai.getFullYear();
+      var m = isiDuaDigit_(nilai.getMonth() + 1);
+      var d = isiDuaDigit_(nilai.getDate());
+      var h = isiDuaDigit_(nilai.getHours());
+      teks = y + '-' + m + '-' + d + ' ' + h + ':00:00';
+    }
+  } else {
+    teks = String(nilai).trim();
+  }
+  if (!teks) return null;
+
+  var mIso = teks.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s](\d{1,2})(?::(\d{1,2}))?)?/);
+  if (mIso) {
+    var b = isiDuaDigit_(mIso[2]);
+    var t = isiDuaDigit_(mIso[3]);
+    var j = mIso[4] !== undefined ? parseInt(mIso[4], 10) : 0;
+    return { tgl: mIso[1] + '-' + b + '-' + t, jam: j };
+  }
+
+  var mMiring = teks.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})(?:[T\s](\d{1,2})(?::(\d{1,2}))?)?/);
+  if (mMiring) {
+    var bM = isiDuaDigit_(mMiring[2]);
+    var tM = isiDuaDigit_(mMiring[1]);
+    var jM = mMiring[4] !== undefined ? parseInt(mMiring[4], 10) : 0;
+    return { tgl: mMiring[3] + '-' + bM + '-' + tM, jam: jM };
+  }
+
+  var parsedDate = new Date(teks);
+  if (!isNaN(parsedDate.getTime())) {
+    var yP = parsedDate.getFullYear();
+    var mP = isiDuaDigit_(parsedDate.getMonth() + 1);
+    var dP = isiDuaDigit_(parsedDate.getDate());
+    return { tgl: yP + '-' + mP + '-' + dP, jam: parsedDate.getHours() };
+  }
+
+  var norm = normalisasiTanggalProduksi_(teks);
+  if (norm) return { tgl: norm, jam: 0 };
+  return null;
+}
+
+/**
+ * Menentukan sesi kerja pesanan (PAGI atau SIANG):
+ * - Sesi PAGI: Pesanan siap packing setelah jam 12 siang hari sebelumnya (kemarin > 12:00 WIB s/d subuh/backlog).
+ * - Sesi SIANG: Resi siap packing sebelum jam 12 siang hari ini (tgl sama dengan acuan, jam < 12, dan memiliki resi valid).
+ */
+function tentukanSesiPesanan_(orderDate, resi, syncTime, tanggalAcuan, sesiCadangan) {
+  var acuan = normalisasiTanggalProduksi_(tanggalAcuan) || tanggalWibHariIni_();
+  var info = parseTglJam_(orderDate) || parseTglJam_(syncTime);
+  if (!info || !info.tgl) {
+    return sesiCadangan || 'PAGI';
+  }
+
+  var adaResi = Boolean(resi && String(resi).trim() !== '' && String(resi).trim() !== '-');
+
+  if (info.tgl === acuan) {
+    if (info.jam < 12 && adaResi) {
+      return 'SIANG';
+    }
+    return 'PAGI';
+  }
+  return 'PAGI';
+}
+
+/**
  * Menyusun daftar pcs dari pesanan menunggu pickup. Satu pcs menjadi satu baris,
  * karena tiap pcs dapat jatuh ke penjahit yang berbeda.
  *
@@ -3570,6 +3661,8 @@ function kumpulkanUnitPembagian_(rows, aturan, kamus, peringatan) {
   var units = [];
   var diabaikan = 0;
   var baris = rows || [];
+  var dilihatItem = {};
+  var tglHariIni = tanggalWibHariIni_();
 
   for (var i = 0; i < baris.length; i++) {
     var row = baris[i];
@@ -3582,6 +3675,12 @@ function kumpulkanUnitPembagian_(rows, aturan, kamus, peringatan) {
     var noPesanan = String(row.orderSn || '').trim();
     var toko = String(row.toko || '').trim();
     var qty = Math.floor(Number(row.qty) || 0);
+
+    var kunciItem = noPesanan + '|' + sku.toUpperCase() + '|' + variasi.toUpperCase();
+    if (dilihatItem[kunciItem]) {
+      continue;
+    }
+    dilihatItem[kunciItem] = true;
 
     var grup = tentukanGrupSku_(sku, aturan);
     if (grup === GRUP_ABAIKAN) {
@@ -3613,6 +3712,11 @@ function kumpulkanUnitPembagian_(rows, aturan, kamus, peringatan) {
         'SKU belum dihargai di DATA PROSES, jadi upah pcs ini nol. Isi harganya supaya pembagiannya adil.'));
     }
 
+    var datePesanan = String(row.date || '');
+    var resiPesanan = String(row.resi || '');
+    var syncTimePesanan = String(row.syncTime || '');
+    var sesiPcs = tentukanSesiPesanan_(datePesanan, resiPesanan, syncTimePesanan, tglHariIni);
+
     for (var pcs = 1; pcs <= qty; pcs++) {
       units.push({
         toko: toko,
@@ -3624,7 +3728,11 @@ function kumpulkanUnitPembagian_(rows, aturan, kamus, peringatan) {
         harga: harga,
         waktuJahit: waktuJahit,
         waktuPotong: waktuPotong,
-        penjahit: ''
+        penjahit: '',
+        date: datePesanan,
+        resi: resiPesanan,
+        syncTime: syncTimePesanan,
+        sesi: sesiPcs
       });
     }
   }
@@ -3668,7 +3776,11 @@ function kumpulkanPcsAntrian_(cakupan, peringatan) {
         variasi: u.variasi,
         qty: 0,
         grup: u.grup,
-        harga: Number(u.harga) || 0
+        harga: Number(u.harga) || 0,
+        sesi: u.sesi || 'PAGI',
+        date: u.date || '',
+        resi: u.resi || '',
+        syncTime: u.syncTime || ''
       };
       urutanBaris.push(kunciBaris);
     }
@@ -3754,7 +3866,7 @@ function hitungBebanKeDaftar_(beban, penjahit) {
 function bagiPembagianJahit_(kodeToko) {
   var cakupan = String(kodeToko || '').trim().toUpperCase();
   var peringatan = [];
-
+  hapusCacheProses_(); hapusCacheAturan_();
   var aturan = bacaAturanCached_();
   if (!aturan.length) {
     peringatan.push(peringatanBagi_('ATURAN_KOSONG', '', '', '',
@@ -3773,7 +3885,7 @@ function bagiPembagianJahit_(kodeToko) {
   var hargaTerbaru = hargaTerbaruPcs_(antrian);
 
   var sudahAda = SheetManager.bacaPembagian();
-  var beban = {};
+  var beban = {}, bebanParsial = {}, barisBuka = [], sisaTutup = hitungSisaTertutupSesi_();
   var perluHarga = [];
   var qtySudah = {};
   var penjahitDikenal = {};
@@ -3781,15 +3893,15 @@ function bagiPembagianJahit_(kodeToko) {
 
   for (var j = 0; j < sudahAda.length; j++) {
     var lama = sudahAda[j];
-    var kunciBarisLama = cariKunciAntrianCocok_(antrian, lama.sku, lama.variasi, lama.noPesanan, qtySudah);
+    var kunciBarisLama = cariKunciAntrianCocok_(antrian, lama.sku, lama.variasi, lama.noPesanan, qtySudah, sudahAda);
 
     /* Pekerjaan yang pesanannya sudah dikirim tidak lagi menjadi beban, tetapi
        barisnya tetap tersimpan sebagai riwayat. */
     if (!antrian.baris[kunciBarisLama]) continue;
 
-    var qtyLama = Number(lama.qty) > 0 ? Number(lama.qty) : 1;
+    var namaLama = String(lama.penjahit || '').trim().toUpperCase(); var qtyLama = Number(lama.qty) > 0 ? Number(lama.qty) : 1;
+    if ((!namaLama || namaLama === PENJAHIT_BELUM_DISET) && bisaDijahitSekarang_(antrian.baris[kunciBarisLama], penjahit)) { if (lama.variasi) { var vb = antrian.baris[kunciBarisLama].vb_ || (antrian.baris[kunciBarisLama].vb_ = []); for (var vbi = 0; vbi < qtyLama; vbi++) vb.push(lama.variasi); } continue; }
     qtySudah[kunciBarisLama] = (qtySudah[kunciBarisLama] || 0) + qtyLama;
-
     /* Baris ini sudah berpemilik, jadi tidak dibagi ulang. Harganya saja yang
        mungkin masih kosong, karena saat dibagi dulu SKU-nya belum masuk daftar
        harga. Upahnya dihitung dengan harga terbaru, dan selnya ikut diisi.
@@ -3806,19 +3918,18 @@ function bagiPembagianJahit_(kodeToko) {
       });
     }
 
-    var namaLama = String(lama.penjahit || '').trim().toUpperCase();
     if (!namaLama || namaLama === PENJAHIT_BELUM_DISET) continue;
-
-    if (!beban[namaLama]) beban[namaLama] = { upah: 0, pcs: 0 };
-    beban[namaLama].upah += upahLama;
-    beban[namaLama].pcs += qtyLama;
+    var kTutup = String(lama.noPesanan || '').trim().toUpperCase() + '|' + kunciSkuProduksi_(lama.sku), tutupLama = (kTutup && sisaTutup[kTutup] > 0) ? Math.min(qtyLama, sisaTutup[kTutup]) : 0; if (tutupLama > 0) sisaTutup[kTutup] -= tutupLama;
+    var qtyBuka = qtyLama - tutupLama, hSat = qtyLama > 0 ? (upahLama / qtyLama) : 0;
+    if (qtyBuka > 0) { if (!beban[namaLama]) beban[namaLama] = { upah: 0, pcs: 0 }; beban[namaLama].upah += hSat * qtyBuka; beban[namaLama].pcs += qtyBuka; }
+    if (qtyBuka > 0 && tutupLama === 0) barisBuka.push({ lama: lama, kunci: kunciBarisLama, nama: namaLama, qty: qtyBuka, hargaSatuan: hSat }); else if (qtyBuka > 0) { if (!bebanParsial[namaLama]) bebanParsial[namaLama] = { upah: 0, pcs: 0 }; bebanParsial[namaLama].upah += hSat * qtyBuka; bebanParsial[namaLama].pcs += qtyBuka; }
 
     if (!penjahitDikenal[namaLama]) {
       peringatan.push(peringatanBagi_('PENJAHIT_TIDAK_AKTIF', lama.noPesanan, lama.sku, lama.variasi,
         'Pcs ini sudah ditetapkan kepada ' + namaLama + ', tetapi namanya tidak ada di daftar penjahit aktif.'));
     }
   }
-
+  var hapusBaris = siapkanBagiUlangSesiBuka_(barisBuka, antrian, qtySudah, beban, bebanParsial, perluHarga, penjahit);
   /* Pcs yang belum pernah dibagi: sisanya setelah jumlah yang sudah tercatat pada
      baris pembagian mana pun untuk baris pesanan itu. Yang dihitung adalah
      jumlahnya, bukan pcs yang mana, karena itu yang disimpan sheetnya. */
@@ -3833,7 +3944,7 @@ function bagiPembagianJahit_(kodeToko) {
         toko: info.toko,
         noPesanan: info.noPesanan,
         sku: info.sku,
-        variasi: info.variasi,
+        variasi: (info.vb_ && info.vb_.length) ? info.vb_.shift() : info.variasi,
         part: info.qty > 1 ? (p + '/' + info.qty) : '',
         grup: info.grup,
         harga: info.harga,
@@ -3876,7 +3987,7 @@ function bagiPembagianJahit_(kodeToko) {
           '. Tambahkan penjahitnya di sheet SETTING PENJAHIT.'));
       }
     } else {
-      var dipilih = pilihPenjahit_(kandidat, beban);
+      var dipilih = pilihPenjahit_(kandidat, beban, unit.harga);
       unit.penjahit = dipilih.nama;
 
       if (!beban[dipilih.nama]) beban[dipilih.nama] = { upah: 0, pcs: 0 };
@@ -3910,7 +4021,7 @@ function bagiPembagianJahit_(kodeToko) {
 
     /* Satu stempel waktu untuk seluruh baris, supaya satu kali pembagian dapat
        dikenali sebagai satu peristiwa. */
-    ditulis = SheetManager.simpanQtyPembagian(daftarSimpan, stempelWib_());
+    ditulis = SheetManager.simpanQtyPembagian(daftarSimpan, stempelWib_(), hapusBaris); bukaUnitTertutupSesi_(daftarSimpan);
   }
 
   /* Penyelarasan dijalankan walau tidak ada pcs baru: kasus yang paling sering
@@ -4058,7 +4169,7 @@ function tutupSesiJahit_(tanggal, sesi, kodeToko, kodePengguna) {
 function rekapPembagian_(kodeToko) {
   var cakupan = String(kodeToko || '').trim().toUpperCase();
   var peringatan = [];
-
+  hapusCacheProses_(true); hapusCacheAturan_(true);
   var penjahit = penjahitAktif_(SheetManager.bacaPenjahit());
   var antrian = kumpulkanPcsAntrian_(cakupan, peringatan);
   var hargaTerbaru = hargaTerbaruPcs_(antrian);
@@ -4070,7 +4181,7 @@ function rekapPembagian_(kodeToko) {
 
   for (var j = 0; j < semua.length; j++) {
     var b = semua[j];
-    var kunciBaris = cariKunciAntrianCocok_(antrian, b.sku, b.variasi, b.noPesanan, qtyTerpakai);
+    var kunciBaris = cariKunciAntrianCocok_(antrian, b.sku, b.variasi, b.noPesanan, qtyTerpakai, semua);
     if (!antrian.baris[kunciBaris]) continue;
 
     /* Jumlah pcs pada pesanan dapat berkurang setelah dibagi. Sisa yang melebihi
@@ -4096,8 +4207,12 @@ function rekapPembagian_(kodeToko) {
 
     var entri = cariProsesSku_(kamus, b.sku, b.variasi);
     b.waktuJahit = entri ? (Number(entri.waktuJahit) || 0) : 0;
-    b.waktuPotong = entri ? (Number(entri.waktuPotong) || 0) : 0;
-
+    b.waktuPotong = entri ? (Number(entri.waktuPotong) || 0) : 0; if (entri && entri.kelengkapan && !b.kelengkapan) b.kelengkapan = entri.kelengkapan;
+    if ((!b.grup || b.grup === GRUP_BELUM_DISET) && antrian.baris[kunciBaris].grup) b.grup = antrian.baris[kunciBaris].grup;
+    b.sesi = antrian.baris[kunciBaris].sesi || b.sesi || 'PAGI';
+    b.date = antrian.baris[kunciBaris].date || b.date || '';
+    b.resi = antrian.baris[kunciBaris].resi || b.resi || '';
+    b.syncTime = antrian.baris[kunciBaris].syncTime || b.syncTime || '';
     b.qty = qtyBaris;
     b.harga = harga;
     b.hargaTotal = hargaTotal;
@@ -4173,6 +4288,7 @@ function rekapPembagian_(kodeToko) {
       selisih: adaUpah ? tertinggi - terendah : 0,
       rataUpah: bekerja > 0 ? Math.round(totalUpah / bekerja) : 0
     },
+    rekapPacking: rekapPembagianPacking_(terkini),
     peringatan: peringatan
   };
 }
@@ -4190,7 +4306,7 @@ function rekapPerPenjahit_(terkini, penjahit) {
     peta[daftar[i].nama] = {
       nama: daftar[i].nama,
       grup: daftar[i].grup,
-      bobot: daftar[i].bobot,
+      bobot: daftar[i].bobot, aktif: true,
       pcs: 0,
       upah: 0,
       waktuJahit: 0,
@@ -4207,7 +4323,7 @@ function rekapPerPenjahit_(terkini, penjahit) {
     if (!nama) continue;
 
     if (!peta[nama]) {
-      peta[nama] = { nama: nama, grup: b.grup || '', bobot: 1, pcs: 0, upah: 0, waktuJahit: 0, waktuPotong: 0, items: [], order: {}, sku: {} };
+      peta[nama] = { nama: nama, grup: b.grup || '', bobot: 1, aktif: false, pcs: 0, upah: 0, waktuJahit: 0, waktuPotong: 0, items: [], order: {}, sku: {} };
     }
 
     var qtyBaris = Number(b.qty) > 0 ? Number(b.qty) : 1;
@@ -4226,19 +4342,19 @@ function rekapPerPenjahit_(terkini, penjahit) {
   var bobotGrup = {};
 
   for (var k in peta) {
-    if (!Object.prototype.hasOwnProperty.call(peta, k)) continue;
+    if (!Object.prototype.hasOwnProperty.call(peta, k) || k === PENJAHIT_BELUM_DISET || peta[k].aktif === false) continue;
     var grup = String(peta[k].grup || '').toUpperCase();
     totalGrup[grup] = (totalGrup[grup] || 0) + peta[k].upah;
-    bobotGrup[grup] = (bobotGrup[grup] || 0) + peta[k].bobot;
+    bobotGrup[grup] = (bobotGrup[grup] || 0) + (Number(peta[k].bobot) > 0 ? Number(peta[k].bobot) : 1);
   }
 
   for (var m in peta) {
     if (!Object.prototype.hasOwnProperty.call(peta, m)) continue;
     var orang = peta[m];
-    var grupOrang = String(orang.grup || '').toUpperCase();
+    var belumDiset = String(orang.nama || '').toUpperCase() === PENJAHIT_BELUM_DISET;
     var berat = Number(orang.bobot) > 0 ? Number(orang.bobot) : 1;
-    var totalBerat = bobotGrup[grupOrang] || 1;
-    var target = Math.round((totalGrup[grupOrang] || 0) * berat / totalBerat);
+    var target = belumDiset ? 0 : (orang.aktif === false ? orang.upah : hitungTargetPenjahit_(orang, peta, totalGrup, bobotGrup));
+    var selisihOrang = belumDiset ? 0 : (orang.upah - target);
 
     hasil.push({
       nama: orang.nama,
@@ -4252,7 +4368,7 @@ function rekapPerPenjahit_(terkini, penjahit) {
       jumlahOrder: Object.keys(orang.order).length,
       jumlahSku: Object.keys(orang.sku).length,
       target: target,
-      selisih: orang.upah - target
+      selisih: selisihOrang
     });
   }
 
@@ -4275,7 +4391,7 @@ function rekapPerGrup_(terkini, penjahit) {
 
     peta[grup].pcs += Number(b.qty) > 0 ? Number(b.qty) : 1;
     peta[grup].upah += upahBarisBagi_(b);
-    if (b.penjahit) peta[grup].penjahit[String(b.penjahit).toUpperCase()] = true;
+    if (b.penjahit && String(b.penjahit).toUpperCase() !== PENJAHIT_BELUM_DISET) peta[grup].penjahit[String(b.penjahit).toUpperCase()] = true;
     if (b.noPesanan) peta[grup].order[b.noPesanan] = true;
   }
 
@@ -4378,17 +4494,18 @@ function getPembagianJahit(token, kodeToko) {
   var cakupan = String(kodeToko || '').trim().toUpperCase();
 
   SheetManager.pastikanSettingProduksi();
-
+  hapusCacheProses_(true); hapusCacheAturan_(true);
   var hariIni = tanggalWibHariIni_();
   var kamus = bangunKamusProses_(bacaProsesCached_());
-  var estimasiHariIni = kumpulkanEstimasiProduksi_(selaraskanProduksiDenganPembagian_(SheetManager.bacaProduksi()), kamus, hariIni);
+  var estimasiHariIni = kumpulkanEstimasiProduksi_(selaraskanProduksiDenganPembagian_(SheetManager.bacaProduksi(), cakupan), kamus, hariIni);
 
   var payload = {
     cakupan: cakupan,
     setelan: {
       penjahit: SheetManager.bacaPenjahit(),
+      petugasPacking: SheetManager.bacaPetugasPacking(),
       aturan: SheetManager.bacaAturanSku(),
-      kodeToko: SheetManager.bacaKodeTokoCetak(), variasiWarna: SheetManager.bacaVariasiWarna()
+      kodeToko: SheetManager.bacaKodeTokoCetak(), variasiWarna: SheetManager.bacaVariasiWarna(), kelengkapanSku: SheetManager.bacaKelengkapanSku()
     },
     rekap: saringUnitBelumDitutup_(rekapPembagian_(cakupan), SheetManager.bacaProduksi()),
     estimasiHariIni: estimasiHariIni
@@ -4405,6 +4522,7 @@ function bagiPembagianDashboard(token, kodeToko) {
 
   SheetManager.pastikanSettingProduksi();
   var hasil = bagiPembagianJahit_(cakupan);
+  var hasilPacking = bagiPembagianPacking_(cakupan);
 
   SheetManager.logActivity('PRODUKSI_BAGI_JAHIT', hasil.qtyDitambah, 'SUKSES',
     'Membagi ' + hasil.qtyDitambah + ' pcs kepada penjahit' +
@@ -4423,6 +4541,9 @@ function bagiPembagianDashboard(token, kodeToko) {
     pesan += hasil.hargaDiselaraskan +
       ' baris yang harganya masih kosong diisi dari daftar harga terbaru. ';
   }
+  if (hasilPacking && hasilPacking.totalResi > 0) {
+    pesan += 'Sebanyak ' + hasilPacking.totalResi + ' lembar resi dibagi ke ' + hasilPacking.petugasAktif + ' petugas packing.';
+  }
 
   return {
     berhasil: true,
@@ -4434,6 +4555,7 @@ function bagiPembagianDashboard(token, kodeToko) {
     unitAntrian: hasil.unitAntrian,
     hargaDiselaraskan: hasil.hargaDiselaraskan,
     peringatan: hasil.peringatan,
+    hasilPacking: hasilPacking,
     perPenjahit: bolehLihatUang_(sesi) ? hasil.perPenjahit : tanpaUangBagi_({ perPenjahit: hasil.perPenjahit }).perPenjahit,
     pesan: pesan
   };
@@ -4491,7 +4613,7 @@ function simpanPenjahitDashboard(token, daftar) {
     }
   }
 
-  var jumlah = SheetManager.simpanPenjahit(baris);
+  var jumlah = SheetManager.simpanPenjahit(baris); invalidateDashboardCache();
 
   SheetManager.logActivity('PRODUKSI_SIMPAN_PENJAHIT', jumlah, 'SUKSES',
     'Daftar penjahit diperbarui: ' + jumlah + ' baris.', '', sesi.kode);
@@ -4506,6 +4628,7 @@ function simpanAturanDashboard(token, daftar) {
 
   var jumlah = SheetManager.simpanAturanSku(daftar);
   hapusCacheAturan_();
+  invalidateDashboardCache();
 
   SheetManager.logActivity('PRODUKSI_SIMPAN_ATURAN', jumlah, 'SUKSES',
     'Aturan SKU diperbarui: ' + jumlah + ' baris.', '', sesi.kode);
@@ -4540,7 +4663,7 @@ function simpanKodeTokoDashboard(token, daftar) {
     }
   }
 
-  var jumlah = SheetManager.simpanKodeTokoCetak(peta);
+  var jumlah = SheetManager.simpanKodeTokoCetak(peta); invalidateDashboardCache();
 
   SheetManager.logActivity('PRODUKSI_SIMPAN_KODE_TOKO', jumlah, 'SUKSES',
     'Pemetaan kode toko cetak diperbarui: ' + jumlah + ' toko.', '', sesi.kode);
@@ -4851,7 +4974,7 @@ function bersihkanPembagianDashboard(token, opsi) {
     tanggal: tanggal,
     sesi: sesiKerja
   });
-  resetUnitTertutupSesi_();
+  resetUnitTertutupSesi_(); invalidateDashboardCache();
 
   var totalDihapus = Number(hasil.barisBagiDihapus || 0) + Number(hasil.barisProduksiDihapus || 0);
   var ketToko = cakupan ? ('toko ' + cakupan) : 'semua toko';
@@ -4889,17 +5012,34 @@ function bersihkanPembagianDashboard(token, opsi) {
  * pencocokan jatuh ke No. Pesanan + SKU yang sama agar baris tetap terhubung
  * dan tidak dibagi ulang.
  */
-function cariKunciAntrianCocok_(antrian, sku, variasi, noPesanan, petaTerpakai) {
+function cariKunciAntrianCocok_(antrian, sku, variasi, noPesanan, petaTerpakai, daftarBagi) {
   if (!antrian || !antrian.baris) return '';
   var kunciTepat = SheetManager.kunciAntrian(sku, variasi, noPesanan);
-  if (antrian.baris[kunciTepat]) return kunciTepat;
+  if (antrian.baris[kunciTepat]) {
+    var pakaiTepat = (petaTerpakai && petaTerpakai[kunciTepat]) ? petaTerpakai[kunciTepat] : 0;
+    if (antrian.baris[kunciTepat].qty - pakaiTepat > 0) return kunciTepat;
+  }
 
   var skuCari = String(sku || '').trim().toUpperCase();
   var pesananCari = String(noPesanan || '').trim().toUpperCase();
-  if (!skuCari || !pesananCari) return '';
+  if (!skuCari || !pesananCari) return antrian.baris[kunciTepat] ? kunciTepat : '';
+
+  var permintaanTepat = {};
+  if (Array.isArray(daftarBagi)) {
+    for (var d = 0; d < daftarBagi.length; d++) {
+      var db = daftarBagi[d];
+      if (!db) continue;
+      var kDb = SheetManager.kunciAntrian(db.sku, db.variasi, db.noPesanan);
+      if (antrian.baris[kDb]) {
+        var qDb = Number(db.qty) > 0 ? Number(db.qty) : 1;
+        permintaanTepat[kDb] = (permintaanTepat[kDb] || 0) + qDb;
+      }
+    }
+  }
 
   var urutan = antrian.urutanBaris || [];
-  var kandidatPertama = '';
+  var kandidatPertama = antrian.baris[kunciTepat] ? kunciTepat : '';
+  var kandidatSisa = '';
   for (var i = 0; i < urutan.length; i++) {
     var k = urutan[i];
     var b = antrian.baris[k];
@@ -4908,10 +5048,67 @@ function cariKunciAntrianCocok_(antrian, sku, variasi, noPesanan, petaTerpakai) 
         String(b.sku || '').trim().toUpperCase() === skuCari) {
       if (!kandidatPertama) kandidatPertama = k;
       var terpakai = (petaTerpakai && petaTerpakai[k]) ? petaTerpakai[k] : 0;
-      if (b.qty - terpakai > 0) return k;
+      if (b.qty - terpakai > 0) {
+        if (!kandidatSisa) kandidatSisa = k;
+        var dicadangkan = Math.max(terpakai, permintaanTepat[k] || 0);
+        if (b.qty - dicadangkan > 0) return k;
+      }
     }
   }
-  return kandidatPertama;
+  return kandidatSisa || kandidatPertama;
+}
+
+function bisaDijahitSekarang_(infoBaris, daftarPenjahit) {
+  if (!infoBaris) return false;
+  var grupKey = String(infoBaris.grup || '').trim().toUpperCase();
+  if (!grupKey || grupKey === GRUP_BELUM_DISET) return false;
+  var daftar = daftarPenjahit || [];
+  for (var i = 0; i < daftar.length; i++) {
+    if (penjahitBisaGrup_(daftar[i].grup, grupKey)) return true;
+  }
+  return false;
+}
+
+function hitungTargetPenjahit_(orang, peta, totalGrup, bobotGrup) {
+  var grupOrang = String(orang.grup || '').toUpperCase();
+  var berat = Number(orang.bobot) > 0 ? Number(orang.bobot) : 1;
+  var adaMultiGrup = /[,;/]/.test(grupOrang);
+  if (!adaMultiGrup) {
+    for (var cek in peta) {
+      if (Object.prototype.hasOwnProperty.call(peta, cek) && cek !== PENJAHIT_BELUM_DISET && peta[cek].aktif !== false) {
+        if (/[,;/]/.test(String(peta[cek].grup || ''))) {
+          adaMultiGrup = true;
+          break;
+        }
+      }
+    }
+  }
+  if (!adaMultiGrup) {
+    var totalBerat = bobotGrup[grupOrang] || 1;
+    return Math.round((totalGrup[grupOrang] || 0) * berat / totalBerat);
+  }
+  var grupTerkait = {}; var tokenAwal = grupOrang.split(/[,;/]+/);
+  for (var t0 = 0; t0 < tokenAwal.length; t0++) { var tk0 = tokenAwal[t0].trim(); if (tk0) grupTerkait[tk0] = true; }
+  for (var ubah = true; ubah;) {
+    ubah = false;
+    for (var nm in peta) {
+      if (!Object.prototype.hasOwnProperty.call(peta, nm) || nm === PENJAHIT_BELUM_DISET || peta[nm].aktif === false) continue;
+      var tp = String(peta[nm].grup || '').toUpperCase().split(/[,;/]+/);
+      if (tp.some(function(x) { return Boolean(grupTerkait[x.trim()]); })) {
+        for (var i = 0; i < tp.length; i++) { var gB = tp[i].trim(); if (gB && !grupTerkait[gB]) { grupTerkait[gB] = true; ubah = true; } }
+      }
+    }
+  }
+  var daftarGrupOrang = Object.keys(grupTerkait); var totalPoolUpah = 0; var totalPoolBobot = 0;
+  for (var nama in peta) {
+    if (!Object.prototype.hasOwnProperty.call(peta, nama) || nama === PENJAHIT_BELUM_DISET || peta[nama].aktif === false) continue;
+    var p = peta[nama];
+    if (daftarGrupOrang.some(function(tk) { return penjahitBisaGrup_(p.grup, tk); })) {
+      totalPoolUpah += Number(p.upah) || 0;
+      totalPoolBobot += Number(p.bobot) > 0 ? Number(p.bobot) : 1;
+    }
+  }
+  return Math.round(totalPoolUpah * berat / (totalPoolBobot || 1));
 }
 
 /**
@@ -4932,7 +5129,12 @@ function ubahPenjahitPembagianDashboard(token, data) {
     : '';
 
   var grupBaru = String(info.grupBaru || '').trim().toUpperCase();
-  if (!grupBaru && penjahitBaru) {
+  if ((!grupBaru || grupBaru === GRUP_BELUM_DISET) && info.sku) {
+    var aturanSku = SheetManager.bacaAturanSku() || [];
+    var grupAturan = tentukanGrupSku_(info.sku, aturanSku);
+    if (grupAturan) grupBaru = String(grupAturan).trim().toUpperCase();
+  }
+  if ((!grupBaru || grupBaru === GRUP_BELUM_DISET) && penjahitBaru) {
     var daftarPenjahit = SheetManager.bacaPenjahit() || [];
     for (var i = 0; i < daftarPenjahit.length; i++) {
       if (String(daftarPenjahit[i].nama || '').trim().toUpperCase() === penjahitBaru) {
@@ -4957,7 +5159,11 @@ function ubahPenjahitPembagianDashboard(token, data) {
   var ubahVar = String(hasil.variasiLama || '').toUpperCase() !== String(hasil.variasiBaru || '').toUpperCase();
   var ubahPenj = String(hasil.penjahitLama || '').toUpperCase() !== String(hasil.penjahitBaru || '').toUpperCase();
 
-  if (hasil.berubah) {
+  if (hasil.berubah) { invalidateDashboardCache();
+    if (ubahPenj && String(hasil.penjahitLama || '').toUpperCase() === PENJAHIT_BELUM_DISET &&
+        hasil.penjahitBaru && String(hasil.penjahitBaru).toUpperCase() !== PENJAHIT_BELUM_DISET) {
+      bukaUnitTertutupSesi_([{ noPesanan: hasil.noPesanan, sku: hasil.sku, penjahit: hasil.penjahitBaru, qty: hasil.qty || 1 }]);
+    }
     var detailLog = [];
     if (ubahVar) {
       detailLog.push('variasi dari "' + (hasil.variasiLama || '-') + '" ke "' + (hasil.variasiBaru || '-') + '"');
@@ -5007,46 +5213,134 @@ function ubahVariasiPembagianDashboard(token, data) {
  * isi terkini sheet PEMBAGIAN JAHIT berdasarkan nomor pesanan dan SKU, sehingga
  * cetakan SPK PDF selalu menampilkan variasi yang sudah diedit di tabel.
  */
-function selaraskanProduksiDenganPembagian_(produksi) {
-  var daftarProd = produksi || [];
-  if (!daftarProd.length) return daftarProd;
+function selaraskanProduksiDenganPembagian_(produksi, cakupan) {
+  var filterToko = String(cakupan || '').trim().toUpperCase();
+  var sumberProd = produksi || [];
+  if (!sumberProd.length) return [];
 
-  var bagi = SheetManager.bacaPembagian() || [];
-  if (!bagi.length) return daftarProd;
-
-  var perPesananSkuPenjahit = {};
-  var perPesananSku = {};
-  for (var i = 0; i < bagi.length; i++) {
-    var b = bagi[i];
-    var pes = String(b.noPesanan || '').trim().toUpperCase();
-    var sku = kunciSkuProduksi_(b.sku);
-    var penj = String(b.penjahit || '').trim().toUpperCase();
-    if (!pes || !sku) continue;
-    var k2 = pes + '|' + sku;
-    var k3 = k2 + '|' + penj;
-    if (!perPesananSku[k2]) perPesananSku[k2] = [];
-    perPesananSku[k2].push(b);
-    if (!perPesananSkuPenjahit[k3]) perPesananSkuPenjahit[k3] = [];
-    perPesananSkuPenjahit[k3].push(b);
+  var daftarProd = [];
+  for (var d = 0; d < sumberProd.length; d++) {
+    var asal = sumberProd[d];
+    if (!asal) continue;
+    var salin = {};
+    for (var kAsal in asal) {
+      if (Object.prototype.hasOwnProperty.call(asal, kAsal)) salin[kAsal] = asal[kAsal];
+    }
+    daftarProd.push(salin);
   }
 
-  for (var j = 0; j < daftarProd.length; j++) {
-    var p = daftarProd[j];
-    var pesP = String(p.noPesanan || '').trim().toUpperCase();
-    var skuP = kunciSkuProduksi_(p.sku);
-    var penjP = String(p.penjahit || '').trim().toUpperCase();
-    if (!pesP || !skuP) continue;
-    var kunci3 = pesP + '|' + skuP + '|' + penjP;
-    var kunci2 = pesP + '|' + skuP;
-    var kandidat = perPesananSkuPenjahit[kunci3] || perPesananSku[kunci2] || [];
-    if (kandidat.length === 1) {
-      if (kandidat[0].variasi) p.variasi = kandidat[0].variasi;
-      if (kandidat[0].penjahit && kandidat[0].penjahit !== PENJAHIT_BELUM_DISET) {
-        p.penjahit = kandidat[0].penjahit;
+  var bagi = SheetManager.bacaPembagian() || [];
+  if (bagi.length) {
+    var perPesananSkuPenjahit = {};
+    var perPesananSku = {};
+    for (var i = 0; i < bagi.length; i++) {
+      var b = bagi[i];
+      if (!b) continue;
+      var pes = String(b.noPesanan || '').trim().toUpperCase();
+      var sku = kunciSkuProduksi_(b.sku);
+      var penj = String(b.penjahit || '').trim().toUpperCase();
+      if (!pes || !sku) continue;
+      var slot = {
+        baris: b,
+        sisaQty: Number(b.qty) > 0 ? Number(b.qty) : 1
+      };
+      var k2 = pes + '|' + sku;
+      var k3 = k2 + '|' + penj;
+      if (!perPesananSku[k2]) perPesananSku[k2] = [];
+      perPesananSku[k2].push(slot);
+      if (!perPesananSkuPenjahit[k3]) perPesananSkuPenjahit[k3] = [];
+      perPesananSkuPenjahit[k3].push(slot);
+    }
+
+    var sudahCocok = {};
+    /* Tahap 1: Cocokkan baris DATA JAHIT yang penjahitnya masih sama di PEMBAGIAN JAHIT */
+    for (var j = 0; j < daftarProd.length; j++) {
+      var p = daftarProd[j];
+      var pesP = String(p.noPesanan || '').trim().toUpperCase();
+      var skuP = kunciSkuProduksi_(p.sku);
+      var penjP = String(p.penjahit || '').trim().toUpperCase();
+      var varP = String(p.variasi || '').trim().toUpperCase();
+      var jmlP = Number(p.jumlah) > 0 ? Number(p.jumlah) : 1;
+      if (!pesP || !skuP) continue;
+      var kandidat3 = perPesananSkuPenjahit[pesP + '|' + skuP + '|' + penjP] || [];
+      if (!kandidat3.length) continue;
+
+      var pilihSlot = null;
+      for (var c1 = 0; c1 < kandidat3.length; c1++) {
+        if (kandidat3[c1].sisaQty > 0 && String(kandidat3[c1].baris.variasi || '').trim().toUpperCase() === varP) {
+          pilihSlot = kandidat3[c1];
+          break;
+        }
+      }
+      if (!pilihSlot) {
+        for (var c2 = 0; c2 < kandidat3.length; c2++) {
+          if (kandidat3[c2].sisaQty > 0) {
+            pilihSlot = kandidat3[c2];
+            break;
+          }
+        }
+      }
+      if (!pilihSlot && kandidat3.length === 1) {
+        pilihSlot = kandidat3[0];
+      }
+      if (pilihSlot) {
+        pilihSlot.sisaQty = Math.max(0, pilihSlot.sisaQty - jmlP);
+        if (pilihSlot.baris.variasi) p.variasi = pilihSlot.baris.variasi;
+        if (!p.toko && pilihSlot.baris.toko) p.toko = pilihSlot.baris.toko;
+        sudahCocok[j] = true;
+      }
+    }
+
+    /* Tahap 2: Untuk baris DATA JAHIT yang penjahitnya sudah dialihkan di PEMBAGIAN JAHIT,
+       ambil dari slot (noPesanan + SKU) yang belum terpakai oleh penjahit lain. */
+    for (var j2 = 0; j2 < daftarProd.length; j2++) {
+      if (sudahCocok[j2]) continue;
+      var p2 = daftarProd[j2];
+      var pesP2 = String(p2.noPesanan || '').trim().toUpperCase();
+      var skuP2 = kunciSkuProduksi_(p2.sku);
+      var varP2 = String(p2.variasi || '').trim().toUpperCase();
+      var jmlP2 = Number(p2.jumlah) > 0 ? Number(p2.jumlah) : 1;
+      if (!pesP2 || !skuP2) continue;
+      var kandidat2 = perPesananSku[pesP2 + '|' + skuP2] || [];
+      if (!kandidat2.length) continue;
+
+      var pilihFallback = null;
+      for (var f1 = 0; f1 < kandidat2.length; f1++) {
+        if (kandidat2[f1].sisaQty > 0 && String(kandidat2[f1].baris.variasi || '').trim().toUpperCase() === varP2) {
+          pilihFallback = kandidat2[f1];
+          break;
+        }
+      }
+      if (!pilihFallback) {
+        for (var f2 = 0; f2 < kandidat2.length; f2++) {
+          if (kandidat2[f2].sisaQty > 0) {
+            pilihFallback = kandidat2[f2];
+            break;
+          }
+        }
+      }
+      if (!pilihFallback && kandidat2.length === 1) {
+        pilihFallback = kandidat2[0];
+      }
+      if (pilihFallback) {
+        pilihFallback.sisaQty = Math.max(0, pilihFallback.sisaQty - jmlP2);
+        if (pilihFallback.baris.variasi) p2.variasi = pilihFallback.baris.variasi;
+        if (pilihFallback.baris.penjahit && pilihFallback.baris.penjahit !== PENJAHIT_BELUM_DISET) {
+          p2.penjahit = pilihFallback.baris.penjahit;
+        }
+        if (!p2.toko && pilihFallback.baris.toko) p2.toko = pilihFallback.baris.toko;
       }
     }
   }
-  return daftarProd;
+
+  if (!filterToko) return daftarProd;
+  var tersaring = [];
+  for (var s = 0; s < daftarProd.length; s++) {
+    if (String(daftarProd[s].toko || '').trim().toUpperCase() === filterToko) {
+      tersaring.push(daftarProd[s]);
+    }
+  }
+  return tersaring;
 }
 
 var KUNCI_PROP_UNIT_TERTUTUP_ = 'PEMBAGIAN_UNIT_TERTUTUP_JSON';
@@ -5108,6 +5402,31 @@ function catatUnitTertutupSesi_(daftarUnit) {
   simpanStatusUnitTertutup_({ resetOlehClear: false, peta: peta });
 }
 
+function bukaUnitTertutupSesi_(daftarSimpan) {
+  var status = bacaStatusUnitTertutup_();
+  if (!status || !status.peta) return;
+  var peta = status.peta;
+  var berubah = false;
+  var daftar = daftarSimpan || [];
+  for (var i = 0; i < daftar.length; i++) {
+    var it = daftar[i];
+    if (!it) continue;
+    var penj = String(it.penjahit || '').trim().toUpperCase();
+    if (!penj || penj === PENJAHIT_BELUM_DISET) continue;
+    var pes = String(it.noPesanan || '').trim().toUpperCase();
+    var sku = kunciSkuProduksi_(it.sku);
+    if (!pes || !sku) continue;
+    var k2 = pes + '|' + sku;
+    if (peta[k2] > 0) {
+      var qty = Number(it.qty) > 0 ? Number(it.qty) : 1;
+      peta[k2] = Math.max(0, peta[k2] - qty);
+      if (peta[k2] <= 0) delete peta[k2];
+      berubah = true;
+    }
+  }
+  if (berubah) simpanStatusUnitTertutup_({ resetOlehClear: Boolean(status.resetOlehClear), peta: peta });
+}
+
 function resetUnitTertutupSesi_() {
   simpanStatusUnitTertutup_({ resetOlehClear: true, peta: {} });
 }
@@ -5117,80 +5436,419 @@ function resetUnitTertutupSesi_() {
  * ke DATA JAHIT pada sesi sebelumnya tidak lagi tampil di tabel dan siap
  * mengolah pesanan baru.
  */
+function hitungSisaTertutupSesi_(daftarProduksi) {
+  var status = bacaStatusUnitTertutup_(), petaTutup = (status && status.peta) ? status.peta : {}, resetOlehClear = Boolean(status && status.resetOlehClear);
+  var prod = !resetOlehClear ? (Array.isArray(daftarProduksi) ? daftarProduksi : SheetManager.bacaProduksi()) : [], petaProduksi = {};
+  for (var i = 0; i < prod.length; i++) {
+    var p = prod[i]; if (!p) continue;
+    var pesP = String(p.noPesanan || '').trim().toUpperCase(), skuP = kunciSkuProduksi_(p.sku), jmlP = Number(p.jumlah) > 0 ? Number(p.jumlah) : 0;
+    if (pesP && skuP && jmlP > 0) petaProduksi[pesP + '|' + skuP] = (petaProduksi[pesP + '|' + skuP] || 0) + jmlP;
+  }
+  var sisaTertutup = {}, semuaKunci = {};
+  for (var kp in petaProduksi) if (Object.prototype.hasOwnProperty.call(petaProduksi, kp)) semuaKunci[kp] = true;
+  for (var kt in petaTutup) if (Object.prototype.hasOwnProperty.call(petaTutup, kt)) semuaKunci[kt] = true;
+  for (var k in semuaKunci) if (Object.prototype.hasOwnProperty.call(semuaKunci, k)) sisaTertutup[k] = Math.max(Number(petaProduksi[k]) || 0, Number(petaTutup[k]) || 0);
+  return sisaTertutup;
+}
+
+function siapkanBagiUlangSesiBuka_(barisBuka, antrian, qtySudah, beban, bebanParsial, perluHarga, penjahit) {
+  if (!barisBuka || !barisBuka.length) return [];
+  var petaP = {}, grupAktif = {}, simBaru = [], simSemua = [];
+  for (var i = 0; i < penjahit.length; i++) petaP[penjahit[i].nama] = penjahit[i];
+  for (var j = 0; j < barisBuka.length; j++) {
+    var bb = barisBuka[j], infoB = antrian.baris[bb.kunci], grupB = String((infoB && infoB.grup) || bb.lama.grup || '').trim().toUpperCase();
+    if (!petaP[bb.nama] || !penjahitBisaGrup_(petaP[bb.nama].grup, grupB)) return [];
+    grupAktif[grupB] = true;
+    for (var q = 1; q <= bb.qty; q++) simSemua.push({ grup: grupB, harga: bb.hargaSatuan, noPesanan: bb.lama.noPesanan, part: q + '/' + bb.qty });
+  }
+  for (var b = 0; b < antrian.urutanBaris.length; b++) {
+    var kb = antrian.urutanBaris[b], info = antrian.baris[kb], mulai = qtySudah[kb] || 0;
+    for (var p = mulai + 1; p <= info.qty; p++) {
+      var gU = String(info.grup || '').trim().toUpperCase(); if (gU) grupAktif[gU] = true;
+      var uSim = { grup: gU, harga: info.harga, noPesanan: info.noPesanan, part: info.qty > 1 ? (p + '/' + info.qty) : '' };
+      simBaru.push(uSim); simSemua.push(uSim);
+    }
+  }
+  var urutSim = function(a, b2) { return b2.harga !== a.harga ? b2.harga - a.harga : (a.grup !== b2.grup ? String(a.grup).localeCompare(String(b2.grup)) : (a.noPesanan !== b2.noPesanan ? String(a.noPesanan).localeCompare(String(b2.noPesanan)) : String(a.part).localeCompare(String(b2.part)))); };
+  simBaru.sort(urutSim); simSemua.sort(urutSim);
+  var bebanT = {}, bebanU = {};
+  for (var kt in beban) if (Object.prototype.hasOwnProperty.call(beban, kt)) bebanT[kt] = { upah: beban[kt].upah, pcs: beban[kt].pcs };
+  for (var ku in bebanParsial) if (Object.prototype.hasOwnProperty.call(bebanParsial, ku)) bebanU[ku] = { upah: bebanParsial[ku].upah, pcs: bebanParsial[ku].pcs };
+  var bagiSim = function(daftarU, petaB) {
+    for (var n = 0; n < daftarU.length; n++) {
+      var u = daftarU[n], kand = [];
+      for (var c = 0; c < penjahit.length; c++) if (penjahitBisaGrup_(penjahit[c].grup, u.grup)) kand.push(penjahit[c]);
+      if (kand.length) { var dp = pilihPenjahit_(kand, petaB, u.harga); if (!petaB[dp.nama]) petaB[dp.nama] = { upah: 0, pcs: 0 }; petaB[dp.nama].upah += Number(u.harga) || 0; petaB[dp.nama].pcs += 1; }
+    }
+  };
+  bagiSim(simBaru, bebanT); bagiSim(simSemua, bebanU);
+  var pAktif = [];
+  for (var k = 0; k < penjahit.length; k++) { for (var ga in grupAktif) { if (penjahitBisaGrup_(penjahit[k].grup, ga)) { pAktif.push(penjahit[k]); break; } } }
+  if (pAktif.length < 2) return [];
+  var minT = Infinity, maxT = -Infinity, minU = Infinity, maxU = -Infinity;
+  for (var m = 0; m < pAktif.length; m++) {
+    var sT = skorPenjahit_(bebanT, pAktif[m].nama, pAktif[m].bobot), sU = skorPenjahit_(bebanU, pAktif[m].nama, pAktif[m].bobot);
+    if (sT < minT) minT = sT; if (sT > maxT) maxT = sT; if (sU < minU) minU = sU; if (sU > maxU) maxU = sU;
+  }
+  if (!((maxU - minU) + 1 < (maxT - minT))) return [];
+  var hapus = [];
+  for (var r = 0; r < barisBuka.length; r++) {
+    var br = barisBuka[r]; if (br.lama.barisSheet) hapus.push(br.lama.barisSheet);
+    qtySudah[br.kunci] = Math.max(0, (qtySudah[br.kunci] || 0) - br.qty);
+    if (br.lama.variasi) { var vb = antrian.baris[br.kunci].vb_ || (antrian.baris[br.kunci].vb_ = []); for (var vi = 0; vi < br.qty; vi++) vb.push(br.lama.variasi); }
+  }
+  for (var kb2 in beban) if (Object.prototype.hasOwnProperty.call(beban, kb2)) delete beban[kb2];
+  for (var kp2 in bebanParsial) if (Object.prototype.hasOwnProperty.call(bebanParsial, kp2)) beban[kp2] = { upah: bebanParsial[kp2].upah, pcs: bebanParsial[kp2].pcs };
+  perluHarga.length = 0; return hapus;
+}
+
 function saringUnitBelumDitutup_(rekap, daftarProduksi) {
   if (!rekap || !Array.isArray(rekap.unit) || !rekap.unit.length) return rekap;
-
-  var status = bacaStatusUnitTertutup_();
-  var petaTutup = (status && status.peta) ? status.peta : {};
-  var resetOlehClear = Boolean(status && status.resetOlehClear);
-
-  var petaProduksi = {};
-  if (!resetOlehClear && Array.isArray(daftarProduksi)) {
-    for (var i = 0; i < daftarProduksi.length; i++) {
-      var p = daftarProduksi[i];
-      if (!p) continue;
-      var pesP = String(p.noPesanan || '').trim().toUpperCase();
-      var skuP = kunciSkuProduksi_(p.sku);
-      if (!pesP || !skuP) continue;
-      var kProd = pesP + '|' + skuP;
-      var jmlP = Number(p.jumlah) > 0 ? Number(p.jumlah) : 0;
-      if (jmlP > 0) petaProduksi[kProd] = (petaProduksi[kProd] || 0) + jmlP;
-    }
-  }
-
-  var sisaTertutup = {};
-  var semuaKunci = {};
-  for (var kp in petaProduksi) {
-    if (Object.prototype.hasOwnProperty.call(petaProduksi, kp)) semuaKunci[kp] = true;
-  }
-  for (var kt in petaTutup) {
-    if (Object.prototype.hasOwnProperty.call(petaTutup, kt)) semuaKunci[kt] = true;
-  }
-  for (var k in semuaKunci) {
-    if (Object.prototype.hasOwnProperty.call(semuaKunci, k)) {
-      sisaTertutup[k] = Math.max(Number(petaProduksi[k]) || 0, Number(petaTutup[k]) || 0);
-    }
-  }
-
-  var unitBaru = [];
+  var totalAwal = rekap.unit.length, sisaTertutup = hitungSisaTertutupSesi_(daftarProduksi), unitBaru = [];
   for (var j = 0; j < rekap.unit.length; j++) {
-    var u = rekap.unit[j];
-    if (!u) continue;
-    var pesU = String(u.noPesanan || '').trim().toUpperCase();
-    var skuU = kunciSkuProduksi_(u.sku);
-    var kUnit = (pesU && skuU) ? (pesU + '|' + skuU) : '';
-    var qtyU = Number(u.qty) > 0 ? Number(u.qty) : 1;
-
-    if (kUnit && sisaTertutup[kUnit] > 0) {
-      var potong = Math.min(qtyU, sisaTertutup[kUnit]);
-      sisaTertutup[kUnit] -= potong;
-      var sisaQty = qtyU - potong;
-      if (sisaQty <= 0) continue;
-      u.qty = sisaQty;
-      if (u.harga !== undefined && u.harga !== null && Number(u.harga) > 0) {
-        u.hargaTotal = Number(u.harga) * sisaQty;
-      }
-    }
+    var u = rekap.unit[j]; if (!u) continue;
+    var pesU = String(u.noPesanan || '').trim().toUpperCase(), skuU = kunciSkuProduksi_(u.sku), kUnit = (pesU && skuU) ? (pesU + '|' + skuU) : '', qtyU = Number(u.qty) > 0 ? Number(u.qty) : 1;
+    if (kUnit && sisaTertutup[kUnit] > 0) { var potong = Math.min(qtyU, sisaTertutup[kUnit]); sisaTertutup[kUnit] -= potong; var sisaQty = qtyU - potong; if (sisaQty <= 0) continue; u.qty = sisaQty; if (u.harga !== undefined && u.harga !== null && Number(u.harga) > 0) u.hargaTotal = Number(u.harga) * sisaQty; }
     unitBaru.push(u);
   }
+  rekap.unit = unitBaru; if (unitBaru.length > 0 && unitBaru.length < totalAwal) { var pAktif = penjahitAktif_(SheetManager.bacaPenjahit()); rekap.perPenjahit = rekapPerPenjahit_(unitBaru, pAktif); rekap.perGrup = rekapPerGrup_(unitBaru, pAktif); rekap.perToko = rekapPerToko_(unitBaru); var totUpah = 0, totJahit = 0, totPotong = 0, pcsTerbagi = 0, maksU = 0, minU = 0, adaU = false, kerja = 0; for (var p = 0; p < rekap.perPenjahit.length; p++) { var org = rekap.perPenjahit[p]; if (org.pcs <= 0 || String(org.nama || '').toUpperCase() === PENJAHIT_BELUM_DISET) continue; kerja++; pcsTerbagi += org.pcs; totUpah += org.upah; totJahit += org.waktuJahit || 0; totPotong += org.waktuPotong || 0; if (!adaU || org.upah > maksU) maksU = org.upah; if (!adaU || org.upah < minU) minU = org.upah; adaU = true; } rekap.pcsTerbagi = pcsTerbagi; rekap.penjahitBekerja = kerja; rekap.total = { upah: totUpah, waktuJahit: totJahit, waktuPotong: totPotong, selisih: adaU ? maksU - minU : 0, rataUpah: kerja > 0 ? Math.round(totUpah / kerja) : 0 }; } else if (Array.isArray(rekap.perPenjahit)) { var perNama = {}; for (var m = 0; m < unitBaru.length; m++) { var ub = unitBaru[m], namaP = String(ub.penjahit || '').trim().toUpperCase(); if (namaP) { if (!perNama[namaP]) perNama[namaP] = []; perNama[namaP].push(ub); } } for (var n = 0; n < rekap.perPenjahit.length; n++) { var pj = rekap.perPenjahit[n]; if (pj) { var kn = String(pj.nama || '').trim().toUpperCase(); pj.items = perNama[kn] ? perNama[kn] : []; } } }
+  return rekap; }
 
-  rekap.unit = unitBaru;
-  if (Array.isArray(rekap.perPenjahit)) {
-    var perNama = {};
-    for (var m = 0; m < unitBaru.length; m++) {
-      var ub = unitBaru[m];
-      var namaP = String(ub.penjahit || '').trim().toUpperCase();
-      if (!namaP) continue;
-      if (!perNama[namaP]) perNama[namaP] = [];
-      perNama[namaP].push(ub);
+/**
+ * RPC: menyimpan daftar pemetaan SKU / Pola SKU ke teks Kelengkapan Sticker Kanban.
+ * Disimpan ke Konfigurasi (KELENGKAPAN_SKU_KANBAN) dan diselaraskan ke Kolom E
+ * ("Kelengkapan") pada sheet DATA PROSES tanpa perlu menambah tab sheet baru.
+ */
+function simpanKelengkapanSkuDashboard(token, daftar) {
+  var sesi = wajibSesi_(token, 'ADMIN');
+
+  var jumlah = SheetManager.simpanKelengkapanSku(daftar);
+  hapusCacheProses_();
+  invalidateDashboardCache();
+
+  SheetManager.logActivity('PRODUKSI_SIMPAN_KELENGKAPAN_KANBAN', jumlah, 'SUKSES',
+    'Kelengkapan Sticker Kanban diperbarui: ' + jumlah + ' baris.', '', sesi.kode);
+
+  return {
+    berhasil: true,
+    jumlah: jumlah,
+    pesan: jumlah + ' kelengkapan SKU Kanban disimpan (diselaraskan ke DATA PROSES).'
+  };
+}
+
+function naikkanVersiData_(genBaru) {
+  var v = genBaru || nomorGenerasiCache_();
+  try { CacheService.getScriptCache().put('ERP_DATA_VERSI', v, 21600); } catch (e) {}
+  try {
+    if (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties) {
+      PropertiesService.getScriptProperties().setProperty('ERP_DATA_VERSI', v);
     }
-    for (var n = 0; n < rekap.perPenjahit.length; n++) {
-      var pj = rekap.perPenjahit[n];
-      if (!pj) continue;
-      var kunciNama = String(pj.nama || '').trim().toUpperCase();
-      pj.items = perNama[kunciNama] ? perNama[kunciNama] : [];
+  } catch (e2) {}
+  return v;
+}
+
+function bacaVersiData_() {
+  try {
+    var dariCache = CacheService.getScriptCache().get('ERP_DATA_VERSI');
+    if (dariCache) return String(dariCache);
+  } catch (e) {}
+  try {
+    if (typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties) {
+      var dariProp = PropertiesService.getScriptProperties().getProperty('ERP_DATA_VERSI');
+      if (dariProp) {
+        try { CacheService.getScriptCache().put('ERP_DATA_VERSI', String(dariProp), 21600); } catch (e3) {}
+        return String(dariProp);
+      }
+    }
+  } catch (e2) {}
+  return '1';
+}
+
+/**
+ * RPC: Pemeriksaan versi data berkecepatan tinggi tanpa menyentuh SpreadsheetApp,
+ * dipakai oleh heartbeat peramban dan saat tab kembali aktif.
+ */
+function cekVersiData(token) {
+  wajibSesi_(token, 'PACKING');
+  return {
+    versi: bacaVersiData_(),
+    waktu: tanggalWibHariIni_()
+  };
+}
+
+/**
+ * Trigger bawaan Google Sheets: terpanggil otomatis setiap kali pengguna
+ * mengubah sel secara langsung di lembar kerja mana pun.
+ */
+function onEdit(e) {
+  invalidateDashboardCache();
+}
+
+/**
+ * Endpoint HTTP POST untuk menerima push real-time dari Middleware Vercel
+ * atau webhook Shopee (diteruskan melalui Vercel).
+ */
+function doPost(e) {
+  var keluaran = function(obj) {
+    if (typeof ContentService !== 'undefined' && ContentService.createTextOutput) {
+      return ContentService.createTextOutput(JSON.stringify(obj))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return obj;
+  };
+
+  try {
+    var raw = (e && e.postData && e.postData.contents) ? String(e.postData.contents) : '{}';
+    var body = JSON.parse(raw || '{}') || {};
+    var cfg = SheetManager.getConfig();
+    var rahasiaServer = String(cfg.BEGOOD_API_SECRET || '').trim();
+    var rahasiaKirim = String(
+      body.secret ||
+      (e && e.parameter && e.parameter.secret) ||
+      ''
+    ).trim();
+
+    if (rahasiaServer && rahasiaKirim !== rahasiaServer) {
+      return keluaran({ success: false, error: 'UNAUTHORIZED', message: 'Secret tidak cocok.' });
+    }
+
+    var aksi = String(body.action || (e && e.parameter && e.parameter.action) || 'invalidate').toLowerCase().trim();
+    var orderSn = String(
+      body.order_sn ||
+      (body.data && (body.data.ordersn || body.data.order_sn)) ||
+      (e && e.parameter && e.parameter.order_sn) ||
+      ''
+    ).trim();
+
+    if (orderSn && (aksi === 'sync_sn' || aksi === 'webhook' || body.code === 3)) {
+      var hasilSn = syncOrdersBySnCore(orderSn, true);
+      invalidateDashboardCache();
+      return keluaran({
+        success: true,
+        action: 'sync_sn',
+        order_sn: orderSn,
+        versi: bacaVersiData_(),
+        message: hasilSn.message || ('Order ' + orderSn + ' disinkronkan secara real-time.')
+      });
+    }
+
+    if (aksi === 'sync' || aksi === 'sync_daily') {
+      var hari = Number(body.days) || 1;
+      var hasilSync = syncOrdersCore(hari, true, String(body.kode_toko || ''));
+      invalidateDashboardCache();
+      return keluaran({
+        success: true,
+        action: 'sync',
+        versi: bacaVersiData_(),
+        message: hasilSync.message
+      });
+    }
+
+    invalidateDashboardCache();
+    return keluaran({
+      success: true,
+      action: 'invalidate',
+      versi: bacaVersiData_(),
+      message: 'Cache dibersihkan dan versi data diperbarui.'
+    });
+  } catch (err) {
+    return keluaran({
+      success: false,
+      error: err.message || String(err)
+    });
+  }
+}
+
+/**
+ * Membagi lembar pesanan/resi secara rata (round-robin) ke seluruh petugas packing yang aktif.
+ *
+ * @param {string} cakupan filter toko
+ * @return {Object} hasil pembagian packing
+ */
+function bagiPembagianPacking_(cakupan) {
+  var petugasDaftar = SheetManager.bacaPetugasPacking();
+  var petugasAktif = [];
+  for (var p = 0; p < petugasDaftar.length; p++) {
+    if (String(petugasDaftar[p].aktif || '').toUpperCase() === 'YA') {
+      petugasAktif.push(petugasDaftar[p]);
+    }
+  }
+  if (!petugasAktif.length) petugasAktif = petugasDaftar.slice();
+  if (!petugasAktif.length) {
+    return { totalResi: 0, dibagiBaru: 0, petugasAktif: 0, pesan: 'Tidak ada petugas packing.' };
+  }
+
+  var peringatan = [];
+  var antrian = kumpulkanPcsAntrian_(cakupan, peringatan);
+  var riwayatPacking = SheetManager.bacaPembagianPacking();
+  var petaSudahAda = {};
+  for (var r = 0; r < riwayatPacking.length; r++) {
+    var item = riwayatPacking[r];
+    if (item.noPesanan) petaSudahAda[item.noPesanan] = item.petugasPacking;
+  }
+
+  // Kumpulkan nomor pesanan unik dari antrian yang belum dikirim
+  var daftarUnik = [];
+  var dilihat = {};
+  for (var k in antrian.baris) {
+    var b = antrian.baris[k];
+    if (!b || !b.noPesanan) continue;
+    if (dilihat[b.noPesanan]) {
+      dilihat[b.noPesanan].qty += (Number(b.qty) || 1);
+      continue;
+    }
+    dilihat[b.noPesanan] = {
+      noPesanan: b.noPesanan,
+      toko: b.toko || '',
+      resi: b.resi || '',
+      kurir: b.kurir || '',
+      sesi: b.sesi || 'PAGI',
+      date: b.date || '',
+      qty: Number(b.qty) || 1
+    };
+    daftarUnik.push(dilihat[b.noPesanan]);
+  }
+
+  var sekarang = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  var tanggalHari = tanggalWibHariIni_();
+  var baruBagi = [];
+  var jumlahBaru = 0;
+
+  for (var i = 0; i < daftarUnik.length; i++) {
+    var pes = daftarUnik[i];
+    var petugas = petaSudahAda[pes.noPesanan];
+    if (!petugas) {
+      // Pembagian seimbang round-robin
+      var giliran = petugasAktif[i % petugasAktif.length];
+      petugas = giliran.nama;
+      jumlahBaru++;
+    }
+    baruBagi.push({
+      tanggal: pes.date || tanggalHari,
+      sesi: pes.sesi || 'PAGI',
+      toko: pes.toko || '',
+      noPesanan: pes.noPesanan,
+      noResi: pes.resi || '',
+      kurir: pes.kurir || '',
+      qty: pes.qty || 1,
+      petugasPacking: petugas,
+      status: 'MENUNGGU',
+      dibagi: sekarang
+    });
+  }
+
+  SheetManager.simpanPembagianPacking(baruBagi);
+  return {
+    totalResi: daftarUnik.length,
+    dibagiBaru: jumlahBaru,
+    petugasAktif: petugasAktif.length
+  };
+}
+
+/**
+ * Menghitung rekap pembagian packing dari data antrian dan penugasan yang tersimpan.
+ */
+function rekapPembagianPacking_(terkini, petugasDaftar, riwayatPacking) {
+  var petugas = petugasDaftar || SheetManager.bacaPetugasPacking();
+  var riwayat = riwayatPacking || SheetManager.bacaPembagianPacking();
+  var petaPacking = {};
+  for (var r = 0; r < riwayat.length; r++) {
+    if (riwayat[r].noPesanan) petaPacking[riwayat[r].noPesanan] = riwayat[r].petugasPacking;
+  }
+
+  // Buat wadah per petugas packing
+  var perPetugas = {};
+  for (var p = 0; p < petugas.length; p++) {
+    var nama = String(petugas[p].nama || '').toUpperCase();
+    if (!nama) continue;
+    perPetugas[nama] = {
+      nama: nama,
+      aktif: String(petugas[p].aktif || 'YA').toUpperCase(),
+      bobot: Number(petugas[p].bobot) || 1,
+      resiCount: 0,
+      pcsCount: 0,
+      daftarPesanan: []
+    };
+  }
+
+  // Kumpulkan pesanan unik dari unit terkini
+  var petaPesanan = {};
+  for (var i = 0; i < (terkini || []).length; i++) {
+    var u = terkini[i];
+    var sn = u.noPesanan;
+    if (!sn) continue;
+    var pet = petaPacking[sn] || u.petugasPacking || '';
+    u.petugasPacking = pet;
+
+    if (!petaPesanan[sn]) {
+      petaPesanan[sn] = {
+        noPesanan: sn,
+        toko: u.toko || '',
+        resi: u.resi || '',
+        kurir: u.kurir || '',
+        sesi: u.sesi || 'PAGI',
+        petugasPacking: pet,
+        totalQty: 0,
+        items: []
+      };
+    }
+    petaPesanan[sn].totalQty += (Number(u.qty) || 1);
+    petaPesanan[sn].items.push({
+      sku: u.sku,
+      variasi: u.variasi,
+      qty: Number(u.qty) || 1,
+      penjahit: u.penjahit || '-'
+    });
+  }
+
+  var totalResi = 0;
+  var totalPcs = 0;
+  var belumDitetapkan = 0;
+
+  for (var noPes in petaPesanan) {
+    var order = petaPesanan[noPes];
+    totalResi++;
+    totalPcs += order.totalQty;
+    var namaPet = order.petugasPacking;
+    if (namaPet && perPetugas[namaPet]) {
+      perPetugas[namaPet].resiCount++;
+      perPetugas[namaPet].pcsCount += order.totalQty;
+      perPetugas[namaPet].daftarPesanan.push(order);
+    } else {
+      belumDitetapkan++;
     }
   }
 
-  return rekap;
+  var daftarPerPetugas = [];
+  var aktifCount = 0;
+  for (var k in perPetugas) {
+    daftarPerPetugas.push(perPetugas[k]);
+    if (perPetugas[k].aktif === 'YA') aktifCount++;
+  }
+
+  return {
+    totalResi: totalResi,
+    totalPcs: totalPcs,
+    belumDitetapkan: belumDitetapkan,
+    petugasAktif: aktifCount,
+    rataResi: aktifCount > 0 ? Math.round(totalResi / aktifCount) : 0,
+    perPetugas: daftarPerPetugas
+  };
 }
+
+/**
+ * RPC: Menyimpan daftar master petugas packing dari dashboard.
+ */
+function simpanPackingDashboard(token, daftar) {
+  var sesi = wajibSesi_(token, 'ADMIN');
+  SheetManager.pastikanSettingProduksi();
+  var count = SheetManager.simpanPetugasPacking(daftar);
+  SheetManager.logActivity('PRODUKSI_SIMPAN_PACKING', count, 'SUKSES',
+    'Menyimpan ' + count + ' petugas packing dari dashboard', 'SEMUA', sesi.kode);
+  return {
+    sukses: true,
+    total: count,
+    pesan: 'Daftar ' + count + ' petugas packing berhasil disimpan.'
+  };
+}
+

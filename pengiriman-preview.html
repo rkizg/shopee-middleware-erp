@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#090d16">
+  <title>Pratinjau Meja Pengiriman & Resi Thermal - ERP Begood</title>
+
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       PENGIRIMAN & RESI THERMAL A6: DESIGN SYSTEM & TOKENS
+       Tema Demure SaaS (sesuai gas/Distribusi.html)
+       ========================================================================== */
+    :root {
+      --bg-page: #f6f8fa;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-subtle: #f8fafc;
+      --bg-input: #ffffff;
+      --border-subtle: #e2e8f0;
+      --border-focus: #0f172a;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --primary-active: #020617;
+      --ok: #16a34a;
+      --ok-bg: #dcfce7;
+      --ok-border: #86efac;
+      --warn: #d97706;
+      --warn-bg: #fef3c7;
+      --warn-border: #fcd34d;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --danger-border: #fca5a5;
+      --radius-xs: 4px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 12px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      --sidebar-bg: #141518;
+      --sidebar-surface: #1a1b1f;
+      --sidebar-border: #26272c;
+      --sidebar-text: #f3f4f6;
+      --sidebar-muted: #9ca3af;
+      --sidebar-hover: #222328;
+      --sidebar-active: #2b2c33;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.45;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Demo Ribbon */
+    .demo-ribbon {
+      background: #0f172a;
+      color: #94a3b8;
+      font-size: 11.5px;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #26272c;
+    }
+
+    .demo-ribbon strong {
+      color: #ffffff;
+    }
+
+    /* Layout */
+    .app-layout {
+      display: flex;
+      min-height: calc(100vh - 31px);
+      width: 100%;
+    }
+
+    /* Sidebar */
+    .app-sidebar {
+      width: 270px;
+      min-width: 270px;
+      max-width: 270px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 50;
+      color: var(--sidebar-text);
+      padding: 20px 16px;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .app-sidebar::-webkit-scrollbar {
+      width: 5px;
+    }
+    .app-sidebar::-webkit-scrollbar-thumb {
+      background: #2a2b30;
+      border-radius: 4px;
+    }
+
+    .sidebar-brand-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--sidebar-border);
+      margin-bottom: 16px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: #222328;
+      border: 1px solid #36373e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--sidebar-muted);
+      margin-top: 2px;
+    }
+
+    .sidebar-store-box {
+      background: var(--sidebar-surface);
+      border: 1px solid var(--sidebar-border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #e5e7eb;
+    }
+
+    .store-badge-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .store-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+
+    .sidebar-section {
+      margin-bottom: 22px;
+    }
+
+    .sidebar-section-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--sidebar-muted);
+      margin-bottom: 10px;
+      padding-left: 4px;
+    }
+
+    /* Sidebar Navigation Links */
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-nav-item,
+    .tab-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--sidebar-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .sidebar-nav-item i,
+    .tab-btn i {
+      font-size: 14px;
+      width: 18px;
+      text-align: center;
+      color: #9ca3af;
+      transition: color 0.15s;
+    }
+
+    .sidebar-nav-item:hover,
+    .tab-btn:hover {
+      background: var(--sidebar-hover);
+      color: #ffffff;
+    }
+    .sidebar-nav-item:hover i,
+    .tab-btn:hover i {
+      color: #ffffff;
+    }
+
+    .sidebar-nav-item.active,
+    .tab-btn.active {
+      background: var(--sidebar-active);
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: inset 3px 0 0 #ffffff;
+    }
+    .sidebar-nav-item.active i,
+    .tab-btn.active i {
+      color: #ffffff;
+    }
+
+    .badge-count {
+      margin-left: auto;
+      padding: 2px 7px;
+      border-radius: var(--radius-xs, 4px);
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      background: #1e1f24;
+      border: 1px solid #2d2f36;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .sidebar-nav-item.active .badge-count,
+    .tab-btn.active .badge-count {
+      background: #36373e;
+      color: #ffffff;
+      border-color: #484a54;
+    }
+
+    /* Action Buttons in Sidebar */
+    .sidebar-action-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .btn-sidebar-primary {
+      width: 100%;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #ffffff;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .btn-sidebar-primary:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+    }
+
+    .btn-sidebar-secondary {
+      width: 100%;
+      background: var(--sidebar-surface);
+      color: #e5e7eb;
+      border: 1px solid var(--sidebar-border);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-sidebar-secondary:hover {
+      background: var(--sidebar-hover);
+      color: #ffffff;
+      border-color: #3b3d45;
+    }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 18px;
+      border-top: 1px solid var(--sidebar-border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-sync-card {
+      background: var(--sidebar-surface);
+      border: 1px solid var(--sidebar-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+    }
+
+    .sync-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .status-indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+    }
+
+    /* Canvas Area (Right Side) */
+    .app-canvas {
+      flex: 1 1 0%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-page);
+    }
+
+    .canvas-topbar {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+
+    .canvas-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .btn-sidebar-toggle {
+      display: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      color: #0f172a;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .canvas-page-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .canvas-page-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .canvas-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 14px;
+      min-height: 38px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s, transform 0.05s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: #0f172a;
+      border-color: #0f172a;
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #1e293b;
+    }
+
+    .btn-success {
+      background: #15803d;
+      border-color: #15803d;
+      color: #ffffff;
+    }
+    .btn-success:hover {
+      background: #166534;
+    }
+
+    .btn-warn {
+      background: #d97706;
+      border-color: #d97706;
+      color: #ffffff;
+    }
+    .btn-warn:hover {
+      background: #b45309;
+    }
+
+    .btn-sm {
+      min-height: 30px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    /* Top Progress Bar */
+    .top-progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: transparent;
+      z-index: 99999;
+      overflow: hidden;
+      display: none;
+      pointer-events: none;
+    }
+
+    .top-progress-bar.active {
+      display: block;
+    }
+
+    .top-progress-bar-indicator {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, #0f172a, #2563eb, #0f172a, transparent);
+      background-size: 200% 100%;
+      animation: topProgressSlide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes topProgressSlide {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Main Container */
+    .main-content {
+      flex: 1;
+      padding: 24px 28px 48px;
+      max-width: 1540px;
+      margin: 0;
+      width: 100%;
+    }
+
+    /* KPI Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+
+    .kpi-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transform: translateY(-1px);
+    }
+
+    .kpi-card.active-kpi {
+      border-color: #0f172a;
+      box-shadow: 0 0 0 1px #0f172a;
+    }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-val {
+      font-size: 26px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: #0f172a;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-sub {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    .val-amber { color: #b45309; }
+    .val-green { color: #15803d; }
+    .val-blue { color: #0f172a; }
+
+    /* Filter Toolbar */
+    .filter-bar {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-select, .form-input {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-select:focus, .form-input:focus {
+      border-color: #0f172a;
+      box-shadow: 0 0 0 1px #0f172a;
+    }
+
+    .search-input-wrap {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+    }
+
+    .search-input-wrap i {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+
+    .search-input-wrap input {
+      width: 100%;
+      padding-left: 36px;
+    }
+
+    /* Mass Action Floating Bar */
+    .mass-action-bar {
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 10px;
+      padding: 12px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+    }
+
+    .mass-action-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .mass-count-pill {
+      background: #ffffff;
+      color: #0f172a;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+
+    .mass-action-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Data Table Card */
+    .table-card {
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: #f8fafc;
+      padding: 12px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    table.data-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      color: #1e293b;
+    }
+
+    table.data-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .mono-cell {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Courier Tag Styles */
+    .tag-courier {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .courier-spx { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+    .courier-jnt { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
+    .courier-jne { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+    .courier-sicepat { background: #fff1f2; color: #be123c; border: 1px solid #ffe4e6; }
+    .courier-anteraja { background: #fdf2f8; color: #be185d; border: 1px solid #fce7f3; }
+    .courier-other { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    /* Stage Badge */
+    .badge-stage {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .stage-need-arrange { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+    .stage-ready-print { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .stage-printed { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+
+    /* SKU chips */
+    .sku-chip {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      margin-right: 4px;
+      margin-bottom: 2px;
+    }
+
+    .qty-chip {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      margin-left: 3px;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-box-lg {
+      max-width: 680px;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .btn-close-modal {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .btn-close-modal:hover { color: #0f172a; }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 75vh;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-subtle);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Thermal Label Preview Card (100x150 mm emulation) */
+    .thermal-preview-wrap {
+      background: #f1f5f9;
+      border: 1px dashed #cbd5e1;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .thermal-label {
+      width: 380px;
+      background: #ffffff;
+      border: 1px solid #94a3b8;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 14px;
+      font-family: var(--font-sans);
+      color: #000000;
+      line-height: 1.3;
+    }
+
+    .thermal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .thermal-brand { font-size: 16px; font-weight: 900; letter-spacing: -0.02em; }
+    .thermal-courier { font-size: 18px; font-weight: 900; text-transform: uppercase; border: 2px solid #000; padding: 2px 8px; }
+
+    .thermal-barcode-box {
+      text-align: center;
+      margin: 10px 0;
+      padding: 6px 0;
+      border-bottom: 1px solid #000;
+    }
+
+    .thermal-barcode-box svg { max-width: 100%; height: 60px; }
+    .thermal-resi-text { font-family: var(--font-mono); font-size: 15px; font-weight: 800; letter-spacing: 0.08em; margin-top: 4px; }
+
+    .thermal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .thermal-items {
+      font-size: 10.5px;
+      border-top: 1px solid #000;
+      padding-top: 6px;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+      max-width: 380px;
+    }
+
+    .toast.toast-success { background: #15803d; }
+    .toast.toast-warn { background: #b45309; }
+    .toast.toast-danger { background: #b91c1c; }
+
+    @media print {
+      body * { visibility: hidden; }
+      #thermal-print-target, #thermal-print-target * { visibility: visible; }
+      #thermal-print-target {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100mm;
+        margin: 0;
+        padding: 0;
+      }
+      @page {
+        size: 100mm 150mm;
+        margin: 0;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .app-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+      }
+      .app-sidebar.open { transform: translateX(0); }
+      .btn-sidebar-toggle { display: inline-flex; }
+      .main-content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Demo Ribbon -->
+  <div class="demo-ribbon">
+    <div>
+      <i class="fa-solid fa-flask" style="color: #38bdf8; margin-right: 6px;"></i>
+      <strong>Mode Pratinjau Lokal</strong> — Uji coba interaktif Atur Pengiriman & Cetak Resi Thermal A6 (Data simulasi Begood).
+    </div>
+    <div>
+      <span style="font-family: var(--font-mono); font-size: 11px;">A6 Thermal: 100 &times; 150 mm</span>
+    </div>
+  </div>
+
+  <!-- Indeterminate Top Progress Bar -->
+  <div id="top-progress" class="top-progress-bar">
+    <div class="top-progress-bar-indicator"></div>
+  </div>
+
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="app-sidebar" id="sidebar">
+      <div class="sidebar-brand-box">
+        <div class="brand-icon">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div>
+          <div class="brand-title">ERP Begood</div>
+          <div class="brand-sub">Meja Pengiriman & Resi</div>
+        </div>
+      </div>
+
+      <div class="sidebar-store-box">
+        <div class="store-badge-left">
+          <div class="store-dot"></div>
+          <span id="sidebar-store-name">b e g o o d . b d g</span>
+        </div>
+        <span class="badge-count">1564950615</span>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Status Dokumen</div>
+        <div class="sidebar-nav">
+          <button class="tab-btn active" onclick="switchStageFilter('all')">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Semua Pesanan</span>
+            <span class="badge-count" id="badge-all">8</span>
+          </button>
+          <button class="tab-btn" onclick="switchStageFilter('need_arrange')">
+            <i class="fa-solid fa-clock" style="color: #f59e0b;"></i>
+            <span>Perlu Diatur</span>
+            <span class="badge-count" id="badge-need-arrange">3</span>
+          </button>
+          <button class="tab-btn" onclick="switchStageFilter('ready_to_print')">
+            <i class="fa-solid fa-print" style="color: #38bdf8;"></i>
+            <span>Siap Cetak (A6)</span>
+            <span class="badge-count" id="badge-ready-print">3</span>
+          </button>
+          <button class="tab-btn" onclick="switchStageFilter('already_printed')">
+            <i class="fa-solid fa-circle-check" style="color: #22c55e;"></i>
+            <span>Sudah Dicetak</span>
+            <span class="badge-count" id="badge-printed">2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Aksi Cepat</div>
+        <div class="sidebar-action-stack">
+          <button class="btn-sidebar-primary" onclick="triggerBatchPrintSelected()">
+            <i class="fa-solid fa-print"></i>
+            <span>Cetak Resi Terpilih (A6)</span>
+          </button>
+          <button class="btn-sidebar-secondary" onclick="triggerBatchShipSelected('dropoff')">
+            <i class="fa-solid fa-box"></i>
+            <span>Atur Drop-off Massal</span>
+          </button>
+          <button class="btn-sidebar-secondary" onclick="triggerBatchShipSelected('pickup')">
+            <i class="fa-solid fa-truck-pickup"></i>
+            <span>Atur Pickup Massal</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Navigasi Sistem</div>
+        <div class="sidebar-nav">
+          <a class="sidebar-nav-item" href="distribusi-preview.html">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>SPK Distribusi Jahit</span>
+          </a>
+          <a class="sidebar-nav-item" href="packing-preview.html">
+            <i class="fa-solid fa-barcode"></i>
+            <span>Meja Packing Mobile</span>
+          </a>
+          <a class="sidebar-nav-item" href="dashboard-preview.html">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dashboard Kontrol</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-sync-card">
+          <div class="sync-row">
+            <div class="status-indicator-dot"></div>
+            <span style="font-size: 11px; color: #9ca3af;">Mode Demo Lokal Siap</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CANVAS -->
+    <main class="app-canvas">
+      <!-- Topbar -->
+      <header class="canvas-topbar">
+        <div class="canvas-topbar-left">
+          <button class="btn-sidebar-toggle" onclick="toggleSidebar()">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div>
+            <h1 class="canvas-page-title">Meja Pengiriman & Resi Thermal</h1>
+            <div class="canvas-page-sub">Kelola atur pickup/drop-off & cetak label thermal A6 resmi Shopee</div>
+          </div>
+        </div>
+
+        <div class="canvas-topbar-right">
+          <span class="topbar-badge" title="Target Spreadsheet Operasional">
+            <i class="fa-solid fa-table" style="color: #16a34a;"></i>
+            <span>Spreadsheet Distribusi Begood</span>
+          </span>
+          <button class="btn btn-sm btn-primary" onclick="simulateSyncShopee()">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>Tarik dari Shopee</span>
+          </button>
+          <button class="btn btn-sm" onclick="resetDemoData()">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>Reset Demo Data</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Body Content -->
+      <div class="main-content">
+        <!-- KPI Cards Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card" onclick="switchStageFilter('need_arrange')" id="kpi-card-need">
+            <div class="kpi-label">
+              <span>Perlu Diatur Pengiriman</span>
+              <i class="fa-solid fa-clock" style="color: #d97706;"></i>
+            </div>
+            <div class="kpi-val val-amber" id="kpi-need-arrange">3</div>
+            <div class="kpi-sub">Belum ada nomor resi Shopee</div>
+          </div>
+
+          <div class="kpi-card" onclick="switchStageFilter('ready_to_print')" id="kpi-card-ready">
+            <div class="kpi-label">
+              <span>Siap Cetak Resi (A6)</span>
+              <i class="fa-solid fa-print" style="color: #0f172a;"></i>
+            </div>
+            <div class="kpi-val val-blue" id="kpi-ready-print">3</div>
+            <div class="kpi-sub">Resi terbit, siap thermal roll</div>
+          </div>
+
+          <div class="kpi-card" onclick="switchStageFilter('already_printed')" id="kpi-card-printed">
+            <div class="kpi-label">
+              <span>Resi Sudah Dicetak</span>
+              <i class="fa-solid fa-circle-check" style="color: #16a34a;"></i>
+            </div>
+            <div class="kpi-val val-green" id="kpi-already-printed">2</div>
+            <div class="kpi-sub">Siap verifikasi di Meja Packing</div>
+          </div>
+
+          <div class="kpi-card" onclick="switchStageFilter('all')" id="kpi-card-total">
+            <div class="kpi-label">
+              <span>Total Paket Aktif</span>
+              <i class="fa-solid fa-boxes-packing" style="color: #64748b;"></i>
+            </div>
+            <div class="kpi-val" id="kpi-total-packages">8</div>
+            <div class="kpi-sub">Daftar pesanan gudang</div>
+          </div>
+        </div>
+
+        <!-- Filter Toolbar -->
+        <div class="filter-bar">
+          <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="form-input" id="search-input" placeholder="Cari No. Pesanan, Resi, Nama Pembeli, SKU..." oninput="handleSearch(this.value)">
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Kurir:</span>
+            <select class="form-select" id="filter-courier" onchange="handleCourierFilter(this.value)">
+              <option value="all">Semua Kurir</option>
+              <option value="SPX Express">SPX Express</option>
+              <option value="J&T Express">J&T Express</option>
+              <option value="JNE">JNE</option>
+              <option value="SiCepat">SiCepat</option>
+              <option value="Anteraja">Anteraja</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Urutkan:</span>
+            <select class="form-select" id="filter-sort" onchange="handleSort(this.value)">
+              <option value="newest">Waktu Terbaru</option>
+              <option value="oldest">Waktu Terlama</option>
+              <option value="qty-desc">Qty Terbanyak</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Mass Action Bar -->
+        <div class="mass-action-bar" id="mass-action-bar" style="display: none;">
+          <div class="mass-action-info">
+            <span class="mass-count-pill" id="selected-count-pill">0</span>
+            <span>Pesanan Terpilih untuk Aksi Massal</span>
+          </div>
+          <div class="mass-action-buttons">
+            <button class="btn btn-sm btn-warn" onclick="triggerBatchShipSelected('dropoff')">
+              <i class="fa-solid fa-box"></i>
+              <span>Drop-off Sekaligus</span>
+            </button>
+            <button class="btn btn-sm btn-success" onclick="triggerBatchShipSelected('pickup')">
+              <i class="fa-solid fa-truck-pickup"></i>
+              <span>Pickup Sekaligus</span>
+            </button>
+            <button class="btn btn-sm" style="background:#fff; color:#0f172a; font-weight:700;" onclick="triggerBatchPrintSelected()">
+              <i class="fa-solid fa-print"></i>
+              <span>Cetak Resi A6 Massal</span>
+            </button>
+            <button class="btn btn-sm" style="background:transparent; color:#94a3b8; border-color:#334155;" onclick="clearAllSelections()">
+              <span>Batal</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Data Table Card -->
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table" id="orders-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px; text-align: center;">
+                    <input type="checkbox" id="check-all" onchange="toggleCheckAll(this.checked)">
+                  </th>
+                  <th style="width: 170px;">No. Pesanan / Tanggal</th>
+                  <th style="width: 150px;">Pembeli & Kota</th>
+                  <th style="width: 140px;">Ekspedisi Kurir</th>
+                  <th>Rincian Produk & SKU</th>
+                  <th style="width: 180px;">No. Resi Pengiriman</th>
+                  <th style="width: 130px;">Status</th>
+                  <th style="width: 160px; text-align: right;">Aksi Cepat</th>
+                </tr>
+              </thead>
+              <tbody id="orders-tbody">
+                <!-- Diisi JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: Jadwal Pickup Kurir -->
+  <div class="modal-backdrop" id="modal-pickup">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-truck-pickup" style="margin-right: 8px; color: #d97706;"></i>
+          Atur Pickup Kurir Shopee
+        </div>
+        <button class="btn-close-modal" onclick="closeModal('modal-pickup')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 14px;">
+          Pesanan: <strong id="modal-pickup-sn" class="mono-cell" style="color: #0f172a;"></strong>
+        </p>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Alamat Pickup Gudang:</label>
+          <select class="form-select" id="pickup-address-select" style="width: 100%;">
+            <option value="1">Gudang Utama Begood (Jl. Terusan Pasirkoja No. 88, Bandung)</option>
+            <option value="2">Workshop Produksi Jahit Begood (Kopo Elok, Bandung)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Slot Waktu Penjemputan:</label>
+          <select class="form-select" id="pickup-timeslot-select" style="width: 100%;">
+            <option value="T1">Hari Ini, Pagi (09:00 - 12:00 WIB)</option>
+            <option value="T2">Hari Ini, Siang (13:00 - 16:00 WIB)</option>
+            <option value="T3">Hari Ini, Sore (16:00 - 19:00 WIB)</option>
+            <option value="T4">Besok, Pagi (09:00 - 12:00 WIB)</option>
+          </select>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #475569;">
+          <i class="fa-solid fa-circle-info" style="color: #0284c7; margin-right: 4px;"></i>
+          Kurir akan datang menjemput paket sesuai jadwal yang dipilih. Pastikan paket sudah siap di meja pickup.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" onclick="closeModal('modal-pickup')">Batal</button>
+        <button class="btn btn-sm btn-primary" id="btn-confirm-pickup" onclick="submitPickupShipment()">
+          <i class="fa-solid fa-check"></i>
+          <span>Konfirmasi Pickup</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Pratinjau Thermal Label A6 (100x150 mm) -->
+  <div class="modal-backdrop" id="modal-thermal-preview">
+    <div class="modal-box modal-box-lg">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-print" style="margin-right: 8px;"></i>
+          Pratinjau Resi Thermal Roll A6 (100 &times; 150 mm)
+        </div>
+        <button class="btn-close-modal" onclick="closeModal('modal-thermal-preview')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="thermal-preview-wrap">
+          <div class="thermal-label" id="thermal-print-target">
+            <div class="thermal-header">
+              <div class="thermal-brand">b e g o o d . b d g</div>
+              <div class="thermal-courier" id="prev-courier">SPX</div>
+            </div>
+
+            <div class="thermal-barcode-box">
+              <svg id="prev-barcode"></svg>
+              <div class="thermal-resi-text" id="prev-resi">SPXID04829103910B</div>
+            </div>
+
+            <div class="thermal-grid">
+              <div>
+                <div style="font-size: 9.5px; color: #64748b; text-transform: uppercase;">Penerima:</div>
+                <div style="font-weight: 700; font-size: 12px;" id="prev-buyer">Nama Pembeli</div>
+                <div style="font-size: 10.5px; color: #334155; margin-top: 2px;" id="prev-city">Kota Bandung, Jawa Barat</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 9.5px; color: #64748b; text-transform: uppercase;">No. Pesanan:</div>
+                <div class="mono-cell" style="font-size: 10.5px; font-weight: 700;" id="prev-sn">241020XYZ9910</div>
+                <div style="font-size: 9.5px; color: #64748b; margin-top: 4px;">Berat: ~500 gr</div>
+              </div>
+            </div>
+
+            <div class="thermal-items">
+              <div style="font-weight: 700; margin-bottom: 4px;">Daftar Produk:</div>
+              <div id="prev-items-list" style="line-height: 1.4;"></div>
+            </div>
+
+            <div style="margin-top: 12px; padding-top: 6px; border-top: 1px dashed #000; font-size: 9px; display: flex; justify-content: space-between;">
+              <span>Shopee Airway Bill Thermal</span>
+              <span>ERP Begood System</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" onclick="closeModal('modal-thermal-preview')">Tutup</button>
+        <button class="btn btn-sm btn-primary" onclick="printThermalDirect()">
+          <i class="fa-solid fa-print"></i>
+          <span>Cetak Sekarang (A6 Thermal)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JavaScript Logic dengan Mock Data Realistis -->
+  <script>
+    // Data Dummy Realistis untuk Simulasi Begood
+    var DEFAULT_DEMO_ORDERS = [
+      {
+        order_sn: '241020N37D9102',
+        order_date: '2026-10-20 08:14:22',
+        shopee_status: 'READY_TO_SHIP',
+        internal_status: '[1] Siap Packing',
+        buyer_name: 'Dinda Rahmawati',
+        courier: 'SPX Express',
+        tracking_number: '',
+        notes: 'Mohon dicek jahitan jangan ada yang cacat ya kak',
+        city: 'Kota Bandung, Jawa Barat',
+        toko: 'BEGOOD',
+        stage: 'need_arrange',
+        is_printed: false,
+        total_qty: 2,
+        total_amount: 145000,
+        items: [
+          { sku: 'SARKUR 120/5', name: 'Sarung Kursi Begood', variation: 'Hitam', qty: 2 }
+        ]
+      },
+      {
+        order_sn: '241020847F1934',
+        order_date: '2026-10-20 08:35:10',
+        shopee_status: 'READY_TO_SHIP',
+        internal_status: '[1] Siap Packing',
+        buyer_name: 'Budi Santoso',
+        courier: 'J&T Express',
+        tracking_number: '',
+        notes: '',
+        city: 'Kota Surabaya, Jawa Timur',
+        toko: 'BEGOOD',
+        stage: 'need_arrange',
+        is_printed: false,
+        total_qty: 1,
+        total_amount: 89000,
+        items: [
+          { sku: 'BGD-TSHIRT-OVR', name: 'Kaos Begood Oversize', variation: 'Sage Green - XL', qty: 1 }
+        ]
+      },
+      {
+        order_sn: '241020712K8821',
+        order_date: '2026-10-20 08:42:00',
+        shopee_status: 'READY_TO_SHIP',
+        internal_status: '[1] Siap Packing',
+        buyer_name: 'Muhammad Fadli',
+        courier: 'SiCepat',
+        tracking_number: '',
+        notes: 'Packing rapi ya',
+        city: 'Kota Medan, Sumatera Utara',
+        toko: 'BEGOOD',
+        stage: 'need_arrange',
+        is_printed: false,
+        total_qty: 3,
+        total_amount: 235000,
+        items: [
+          { sku: 'SARKUR 100/10', name: 'Sarung Kursi Begood', variation: 'Navy', qty: 2 },
+          { sku: 'BGD-CAP', name: 'Topi Polocap Begood', variation: 'Hitam', qty: 1 }
+        ]
+      },
+      {
+        order_sn: '241019551P0192',
+        order_date: '2026-10-19 21:10:45',
+        shopee_status: 'PROCESSED',
+        internal_status: '[1] Siap Packing',
+        buyer_name: 'Anita Kusuma',
+        courier: 'SPX Express',
+        tracking_number: 'SPXID04829103910B',
+        notes: '',
+        city: 'Jakarta Selatan, DKI Jakarta',
+        toko: 'BEGOOD',
+        stage: 'ready_to_print',
+        is_printed: false,
+        total_qty: 1,
+        total_amount: 110000,
+        items: [
+          { sku: 'BGD-PANTS-CHINO', name: 'Celana Chino Begood', variation: 'Krem - 32', qty: 1 }
+        ]
+      },
+      {
+        order_sn: '241019662Q8811',
+        order_date: '2026-10-19 22:04:12',
+        shopee_status: 'PROCESSED',
+        internal_status: '[1] Siap Packing',
+        buyer_name: 'Rian Hidayat',
+        courier: 'J&T Express',
+        tracking_number: 'JT88492019342',
+        notes: 'Kirim pagi ini ya',
+        city: 'Kota Semarang, Jawa Tengah',
+        toko: 'BEGOOD',
+        stage: 'ready_to_print',
+        is_printed: false,
+        total_qty: 2,
+        total_amount: 178000,
+        items: [
+          { sku: 'BGD-TSHIRT-OVR', name: 'Kaos Begood Oversize', variation: 'Hitam - L', qty: 2 }
+        ]
+      },
+      {
+        order_sn: '241019992M3144',
+        order_date: '2026-10-19 22:50:30',
+        shopee_status: 'PROCESSED',
+        internal_status: '[1] Siap Packing',
+        buyer_name: 'Siti Aisyah',
+        courier: 'Anteraja',
+        tracking_number: '10009214810231',
+        notes: '',
+        city: 'Kota Depok, Jawa Barat',
+        toko: 'BEGOOD',
+        stage: 'ready_to_print',
+        is_printed: false,
+        total_qty: 1,
+        total_amount: 95000,
+        items: [
+          { sku: 'SARKUR 120/5', name: 'Sarung Kursi Begood', variation: 'Maroon', qty: 1 }
+        ]
+      },
+      {
+        order_sn: '241019330X9918',
+        order_date: '2026-10-19 18:22:15',
+        shopee_status: 'PROCESSED',
+        internal_status: '[2] Menunggu Pickup',
+        buyer_name: 'Hendra Gunawan',
+        courier: 'JNE Reguler',
+        tracking_number: 'JNE8820192401',
+        notes: '',
+        city: 'Kota Yogyakarta, DIY',
+        toko: 'BEGOOD',
+        stage: 'already_printed',
+        is_printed: true,
+        total_qty: 4,
+        total_amount: 290000,
+        items: [
+          { sku: 'SARKUR 120/5', name: 'Sarung Kursi Begood', variation: 'Coklat Susu', qty: 4 }
+        ]
+      },
+      {
+        order_sn: '241019210B4450',
+        order_date: '2026-10-19 19:05:40',
+        shopee_status: 'PROCESSED',
+        internal_status: '[2] Menunggu Pickup',
+        buyer_name: 'Lestari Putri',
+        courier: 'SPX Express',
+        tracking_number: 'SPXID04899210451A',
+        notes: '',
+        city: 'Kota Tangerang, Banten',
+        toko: 'BEGOOD',
+        stage: 'already_printed',
+        is_printed: true,
+        total_qty: 1,
+        total_amount: 135000,
+        items: [
+          { sku: 'BGD-HOODIE', name: 'Hoodie Fleece Begood', variation: 'Abu Misty - L', qty: 1 }
+        ]
+      }
+    ];
+
+    var rawOrders = JSON.parse(JSON.stringify(DEFAULT_DEMO_ORDERS));
+    var filteredOrders = [];
+    var selectedOrderSns = {};
+    var currentStage = 'all';
+    var currentCourier = 'all';
+    var searchQuery = '';
+    var activeSort = 'newest';
+    var activePickupOrderSn = '';
+
+    window.addEventListener('DOMContentLoaded', function() {
+      recalculateKPIs();
+      applyFilterAndRender();
+    });
+
+    function setProgress(active) {
+      var bar = document.getElementById('top-progress');
+      if (bar) {
+        if (active) bar.classList.add('active');
+        else bar.classList.remove('active');
+      }
+    }
+
+    function showToast(message, type) {
+      var container = document.getElementById('toast-container');
+      if (!container) return;
+      var toast = document.createElement('div');
+      toast.className = 'toast toast-' + (type || 'success');
+      var icon = 'fa-check';
+      if (type === 'warn') icon = 'fa-triangle-exclamation';
+      if (type === 'danger') icon = 'fa-circle-xmark';
+      toast.innerHTML = '<i class="fa-solid ' + icon + '"></i><span>' + message + '</span>';
+      container.appendChild(toast);
+      setTimeout(function() {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.2s ease';
+        setTimeout(function() { toast.remove(); }, 200);
+      }, 3200);
+    }
+
+    function simulateSyncShopee() {
+      setProgress(true);
+      showToast('Menghubungi Vercel Middleware & Shopee Open API...', 'warn');
+      setTimeout(function() {
+        setProgress(false);
+        showToast('Sinkronisasi sukses: 8 pesanan siap kirim termuat ke Spreadsheet Distribusi Begood!', 'success');
+        recalculateKPIs();
+        applyFilterAndRender();
+      }, 700);
+    }
+
+    function recalculateKPIs() {
+      var need = 0, ready = 0, printed = 0, total = rawOrders.length;
+      rawOrders.forEach(function(o) {
+        if (o.stage === 'need_arrange') need++;
+        else if (o.stage === 'ready_to_print') ready++;
+        else if (o.stage === 'already_printed') printed++;
+      });
+
+      document.getElementById('kpi-need-arrange').textContent = need;
+      document.getElementById('kpi-ready-print').textContent = ready;
+      document.getElementById('kpi-already-printed').textContent = printed;
+      document.getElementById('kpi-total-packages').textContent = total;
+
+      document.getElementById('badge-need-arrange').textContent = need;
+      document.getElementById('badge-ready-print').textContent = ready;
+      document.getElementById('badge-printed').textContent = printed;
+      document.getElementById('badge-all').textContent = total;
+    }
+
+    function resetDemoData() {
+      rawOrders = JSON.parse(JSON.stringify(DEFAULT_DEMO_ORDERS));
+      selectedOrderSns = {};
+      clearAllSelections();
+      recalculateKPIs();
+      applyFilterAndRender();
+      showToast('Data demo berhasil di-reset', 'success');
+    }
+
+    function switchStageFilter(stage) {
+      currentStage = stage;
+      var btns = document.querySelectorAll('.tab-btn');
+      btns.forEach(function(b) { b.classList.remove('active'); });
+      var activeBtn = Array.from(btns).find(function(b) {
+        return b.getAttribute('onclick').includes("'" + stage + "'");
+      });
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.querySelectorAll('.kpi-card').forEach(function(c) { c.classList.remove('active-kpi'); });
+      if (stage === 'need_arrange') document.getElementById('kpi-card-need').classList.add('active-kpi');
+      if (stage === 'ready_to_print') document.getElementById('kpi-card-ready').classList.add('active-kpi');
+      if (stage === 'already_printed') document.getElementById('kpi-card-printed').classList.add('active-kpi');
+      if (stage === 'all') document.getElementById('kpi-card-total').classList.add('active-kpi');
+
+      applyFilterAndRender();
+    }
+
+    function handleCourierFilter(courier) {
+      currentCourier = courier;
+      applyFilterAndRender();
+    }
+
+    function handleSearch(query) {
+      searchQuery = String(query || '').toLowerCase().trim();
+      applyFilterAndRender();
+    }
+
+    function handleSort(sort) {
+      activeSort = sort;
+      applyFilterAndRender();
+    }
+
+    function applyFilterAndRender() {
+      filteredOrders = rawOrders.filter(function(order) {
+        if (currentStage !== 'all' && order.stage !== currentStage) return false;
+        if (currentCourier !== 'all') {
+          var courierName = String(order.courier || '').toLowerCase();
+          var filterVal = currentCourier.toLowerCase();
+          if (!courierName.includes(filterVal)) return false;
+        }
+        if (searchQuery) {
+          var q = searchQuery;
+          var inSn = String(order.order_sn || '').toLowerCase().includes(q);
+          var inBuyer = String(order.buyer_name || '').toLowerCase().includes(q);
+          var inResi = String(order.tracking_number || '').toLowerCase().includes(q);
+          var inCity = String(order.city || '').toLowerCase().includes(q);
+          var inItems = (order.items || []).some(function(it) {
+            return String(it.sku || '').toLowerCase().includes(q) ||
+                   String(it.name || '').toLowerCase().includes(q);
+          });
+          if (!inSn && !inBuyer && !inResi && !inCity && !inItems) return false;
+        }
+        return true;
+      });
+
+      if (activeSort === 'newest') {
+        filteredOrders.sort(function(a, b) { return (b.order_date || '').localeCompare(a.order_date || ''); });
+      } else if (activeSort === 'oldest') {
+        filteredOrders.sort(function(a, b) { return (a.order_date || '').localeCompare(b.order_date || ''); });
+      } else if (activeSort === 'qty-desc') {
+        filteredOrders.sort(function(a, b) { return (b.total_qty || 0) - (a.total_qty || 0); });
+      }
+
+      renderTable();
+      updateMassActionBar();
+    }
+
+    function renderTable() {
+      var tbody = document.getElementById('orders-tbody');
+      if (!tbody) return;
+
+      if (filteredOrders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 48px; color: #94a3b8;">' +
+          '<i class="fa-solid fa-box-open" style="font-size: 24px; margin-bottom: 8px;"></i>' +
+          '<div>Tidak ada pesanan yang sesuai dengan filter ini.</div>' +
+          '</td></tr>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < filteredOrders.length; i++) {
+        var o = filteredOrders[i];
+        var isChecked = Boolean(selectedOrderSns[o.order_sn]);
+
+        var courierCls = 'courier-other';
+        var cName = (o.courier || '').toLowerCase();
+        if (cName.includes('spx') || cName.includes('shopee')) courierCls = 'courier-spx';
+        else if (cName.includes('j&t') || cName.includes('jnt')) courierCls = 'courier-jnt';
+        else if (cName.includes('jne')) courierCls = 'courier-jne';
+        else if (cName.includes('sicepat')) courierCls = 'courier-sicepat';
+        else if (cName.includes('anteraja')) courierCls = 'courier-anteraja';
+
+        var stageBadge = '';
+        if (o.stage === 'need_arrange') {
+          stageBadge = '<span class="badge-stage stage-need-arrange"><i class="fa-solid fa-clock"></i>Perlu Diatur</span>';
+        } else if (o.stage === 'ready_to_print') {
+          stageBadge = '<span class="badge-stage stage-ready-print"><i class="fa-solid fa-print"></i>Siap Cetak</span>';
+        } else {
+          stageBadge = '<span class="badge-stage stage-printed"><i class="fa-solid fa-check"></i>Resi Dicetak</span>';
+        }
+
+        var skuHtml = '';
+        var items = o.items || [];
+        for (var j = 0; j < items.length; j++) {
+          var it = items[j];
+          var varText = it.variation ? ' (' + it.variation + ')' : '';
+          skuHtml += '<span class="sku-chip">' + (it.sku !== '-' ? it.sku : it.name) + varText + '<span class="qty-chip">x' + it.qty + '</span></span>';
+        }
+
+        var actionBtns = '';
+        if (o.stage === 'need_arrange') {
+          actionBtns =
+            '<div style="display: flex; gap: 6px; justify-content: flex-end;">' +
+              '<button class="btn btn-sm btn-warn" title="Atur Pengiriman Drop-off ke Gerai" onclick="mockShipSingle(\'' + o.order_sn + '\', \'dropoff\')">' +
+                '<i class="fa-solid fa-box"></i><span>Drop-off</span>' +
+              '</button>' +
+              '<button class="btn btn-sm btn-primary" title="Atur Penjemputan Kurir" onclick="actionOpenPickupModal(\'' + o.order_sn + '\')">' +
+                '<i class="fa-solid fa-truck-pickup"></i><span>Pickup</span>' +
+              '</button>' +
+            '</div>';
+        } else {
+          actionBtns =
+            '<div style="display: flex; gap: 6px; justify-content: flex-end;">' +
+              '<button class="btn btn-sm btn-primary" title="Cetak Resi Thermal A6 Resmi" onclick="actionPreviewAndPrint(\'' + o.order_sn + '\')">' +
+                '<i class="fa-solid fa-print"></i><span>Cetak A6</span>' +
+              '</button>' +
+            '</div>';
+        }
+
+        var resiHtml = '';
+        if (o.tracking_number) {
+          resiHtml =
+            '<div style="display: flex; align-items: center; gap: 6px;">' +
+              '<span class="mono-cell" style="font-weight: 700; color: #0f172a;">' + o.tracking_number + '</span>' +
+              '<button class="btn btn-sm" style="padding: 2px 6px; min-height: 22px; font-size: 11px;" title="Salin Resi" onclick="copyText(\'' + o.tracking_number + '\')">' +
+                '<i class="fa-regular fa-copy"></i>' +
+              '</button>' +
+            '</div>';
+        } else {
+          resiHtml = '<span style="font-size: 12px; color: #94a3b8; font-style: italic;">Belum terbit</span>';
+        }
+
+        html +=
+          '<tr>' +
+            '<td style="text-align: center;">' +
+              '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleSelectOrder(\'' + o.order_sn + '\', this.checked)">' +
+            '</td>' +
+            '<td>' +
+              '<div class="mono-cell" style="font-weight: 700; color: #0f172a;">' + o.order_sn + '</div>' +
+              '<div style="font-size: 11px; color: #64748b; margin-top: 2px;">' + (o.order_date || '-') + '</div>' +
+            '</td>' +
+            '<td>' +
+              '<div style="font-weight: 600; color: #0f172a;">' + o.buyer_name + '</div>' +
+              '<div style="font-size: 11px; color: #64748b; margin-top: 2px;"><i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i>' + o.city + '</div>' +
+            '</td>' +
+            '<td>' +
+              '<span class="tag-courier ' + courierCls + '">' + o.courier + '</span>' +
+            '</td>' +
+            '<td>' +
+              '<div>' + skuHtml + '</div>' +
+              (o.notes ? '<div style="font-size: 11px; color: #b45309; margin-top: 3px;"><i class="fa-regular fa-comment-dots" style="margin-right: 4px;"></i>' + o.notes + '</div>' : '') +
+            '</td>' +
+            '<td>' + resiHtml + '</td>' +
+            '<td>' + stageBadge + '</td>' +
+            '<td style="text-align: right;">' + actionBtns + '</td>' +
+          '</tr>';
+      }
+
+      tbody.innerHTML = html;
+    }
+
+    function toggleSelectOrder(sn, checked) {
+      if (checked) selectedOrderSns[sn] = true;
+      else delete selectedOrderSns[sn];
+      updateMassActionBar();
+    }
+
+    function toggleCheckAll(checked) {
+      filteredOrders.forEach(function(o) {
+        if (checked) selectedOrderSns[o.order_sn] = true;
+        else delete selectedOrderSns[o.order_sn];
+      });
+      renderTable();
+      updateMassActionBar();
+    }
+
+    function clearAllSelections() {
+      selectedOrderSns = {};
+      var checkAll = document.getElementById('check-all');
+      if (checkAll) checkAll.checked = false;
+      renderTable();
+      updateMassActionBar();
+    }
+
+    function updateMassActionBar() {
+      var count = Object.keys(selectedOrderSns).length;
+      var bar = document.getElementById('mass-action-bar');
+      var pill = document.getElementById('selected-count-pill');
+      if (count > 0) {
+        bar.style.display = 'flex';
+        pill.textContent = count;
+      } else {
+        bar.style.display = 'none';
+      }
+    }
+
+    // Mock Atur Pengiriman Drop-off
+    function mockShipSingle(orderSn, method) {
+      var order = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+      if (!order) return;
+
+      setProgress(true);
+      setTimeout(function() {
+        setProgress(false);
+        var mockResi = 'SPXID' + Math.floor(1000000000 + Math.random() * 9000000000);
+        if (order.courier.includes('J&T')) mockResi = 'JT' + Math.floor(1000000000 + Math.random() * 9000000000);
+        else if (order.courier.includes('SiCepat')) mockResi = '00' + Math.floor(1000000000 + Math.random() * 9000000000);
+
+        order.tracking_number = mockResi;
+        order.shopee_status = 'PROCESSED';
+        order.stage = 'ready_to_print';
+
+        recalculateKPIs();
+        applyFilterAndRender();
+        showToast('Pesanan ' + orderSn + ' berhasil di-dropoff! Resi: ' + mockResi, 'success');
+      }, 600);
+    }
+
+    function actionOpenPickupModal(orderSn) {
+      activePickupOrderSn = orderSn;
+      document.getElementById('modal-pickup-sn').textContent = orderSn;
+      document.getElementById('modal-pickup').classList.add('active');
+    }
+
+    function submitPickupShipment() {
+      if (!activePickupOrderSn) return;
+      var sn = activePickupOrderSn;
+      closeModal('modal-pickup');
+
+      var order = rawOrders.find(function(o) { return o.order_sn === sn; });
+      if (!order) return;
+
+      setProgress(true);
+      setTimeout(function() {
+        setProgress(false);
+        var mockResi = 'SPXID' + Math.floor(1000000000 + Math.random() * 9000000000);
+        if (order.courier.includes('J&T')) mockResi = 'JT' + Math.floor(1000000000 + Math.random() * 9000000000);
+
+        order.tracking_number = mockResi;
+        order.shopee_status = 'PROCESSED';
+        order.stage = 'ready_to_print';
+
+        recalculateKPIs();
+        applyFilterAndRender();
+        showToast('Pickup kurir berhasil dijadwalkan untuk pesanan ' + sn + '! Resi: ' + mockResi, 'success');
+      }, 700);
+    }
+
+    function actionPreviewAndPrint(orderSn) {
+      var order = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+      if (!order) return;
+
+      document.getElementById('prev-sn').textContent = order.order_sn;
+      document.getElementById('prev-buyer').textContent = order.buyer_name;
+      document.getElementById('prev-city').textContent = order.city || 'Indonesia';
+      document.getElementById('prev-courier').textContent = order.courier || 'KURIR';
+      document.getElementById('prev-resi').textContent = order.tracking_number || order.order_sn;
+
+      try {
+        JsBarcode('#prev-barcode', order.tracking_number || order.order_sn, {
+          format: 'CODE128',
+          lineColor: '#000',
+          width: 2,
+          height: 50,
+          displayValue: false
+        });
+      } catch (eBarcode) {
+        console.warn('JsBarcode error:', eBarcode);
+      }
+
+      var itemsHtml = '';
+      (order.items || []).forEach(function(it) {
+        itemsHtml += '<div style="display:flex; justify-content:space-between; margin-bottom:2px;">' +
+          '<span>' + (it.sku !== '-' ? it.sku : it.name) + (it.variation ? ' - ' + it.variation : '') + '</span>' +
+          '<strong>x' + it.qty + '</strong>' +
+        '</div>';
+      });
+      document.getElementById('prev-items-list').innerHTML = itemsHtml;
+      document.getElementById('modal-thermal-preview').classList.add('active');
+    }
+
+    function printThermalDirect() {
+      var sn = document.getElementById('prev-sn').textContent;
+      window.print();
+      var order = rawOrders.find(function(o) { return o.order_sn === sn; });
+      if (order) {
+        order.is_printed = true;
+        order.stage = 'already_printed';
+        recalculateKPIs();
+        applyFilterAndRender();
+        showToast('Resi dicetak untuk pesanan ' + sn, 'success');
+      }
+    }
+
+    function triggerBatchShipSelected(method) {
+      var sns = Object.keys(selectedOrderSns);
+      if (sns.length === 0) {
+        showToast('Pilih setidaknya 1 pesanan terlebih dahulu.', 'warn');
+        return;
+      }
+
+      setProgress(true);
+      setTimeout(function() {
+        setProgress(false);
+        sns.forEach(function(sn) {
+          var o = rawOrders.find(function(item) { return item.order_sn === sn; });
+          if (o && o.stage === 'need_arrange') {
+            o.tracking_number = 'SPXID' + Math.floor(1000000000 + Math.random() * 9000000000);
+            o.shopee_status = 'PROCESSED';
+            o.stage = 'ready_to_print';
+          }
+        });
+        clearAllSelections();
+        recalculateKPIs();
+        applyFilterAndRender();
+        showToast('Berhasil atur pengiriman ' + sns.length + ' pesanan terpilih!', 'success');
+      }, 800);
+    }
+
+    function triggerBatchPrintSelected() {
+      var sns = Object.keys(selectedOrderSns);
+      if (sns.length === 0) {
+        showToast('Pilih pesanan yang ingin dicetak resinya.', 'warn');
+        return;
+      }
+
+      setProgress(true);
+      setTimeout(function() {
+        setProgress(false);
+        sns.forEach(function(sn) {
+          var o = rawOrders.find(function(item) { return item.order_sn === sn; });
+          if (o) {
+            o.is_printed = true;
+            o.stage = 'already_printed';
+          }
+        });
+        clearAllSelections();
+        recalculateKPIs();
+        applyFilterAndRender();
+        showToast('Menyiapkan ' + sns.length + ' resi untuk dicetak ke Printer Thermal A6...', 'success');
+        actionPreviewAndPrint(sns[0]);
+      }, 900);
+    }
+
+    function closeModal(id) {
+      var m = document.getElementById(id);
+      if (m) m.classList.remove('active');
+    }
+
+    function toggleSidebar() {
+      var s = document.getElementById('sidebar');
+      if (s) s.classList.toggle('open');
+    }
+
+    function copyText(txt) {
+      if (!txt) return;
+      navigator.clipboard.writeText(txt).then(function() {
+        showToast('Nomor resi ' + txt + ' disalin!', 'success');
+      });
+    }
+  </script>
+</body>
+</html>

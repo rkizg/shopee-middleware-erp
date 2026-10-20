@@ -4,13 +4,45 @@ import { validateAuth } from '../../src/lib/auth-guard.js';
 
 async function parseBody(req: VercelRequest): Promise<any> {
   if (req.method !== 'POST' && req.method !== 'PUT') return req.query || {};
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+
+  // 1. Plain JS Object
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    return req.body;
+  }
+
+  // 2. Buffer
   if (req.body && Buffer.isBuffer(req.body)) {
-    try { return JSON.parse(req.body.toString('utf-8')); } catch (e) { return {}; }
+    try {
+      return JSON.parse(req.body.toString('utf-8'));
+    } catch (e) {
+      return {};
+    }
   }
+
+  // 3. String
   if (req.body && typeof req.body === 'string') {
-    try { return JSON.parse(req.body); } catch (e) { return {}; }
+    try {
+      return JSON.parse(req.body);
+    } catch (e) {
+      return {};
+    }
   }
+
+  // 4. Raw stream fallback (khusus saat dipanggil dari Google Apps Script UrlFetchApp)
+  if (req.readable) {
+    try {
+      const raw = await new Promise<string>((resolve, reject) => {
+        let buffer = '';
+        req.on('data', (chunk) => { buffer += chunk; });
+        req.on('end', () => resolve(buffer));
+        req.on('error', (err) => reject(err));
+      });
+      if (raw && raw.trim()) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {}
+  }
+
   return req.query || {};
 }
 
@@ -28,15 +60,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Dapatkan list order_sn
     let orderSnList: string[] = [];
-    if (payload?.order_sn_list) {
-      if (Array.isArray(payload.order_sn_list)) {
-        orderSnList = payload.order_sn_list.map(String).map((s: string) => s.trim()).filter(Boolean);
-      } else if (typeof payload.order_sn_list === 'string') {
-        orderSnList = payload.order_sn_list.split(',').map((s: string) => s.trim()).filter(Boolean);
+    const rawList = payload?.order_sn_list || req.query?.order_sn_list || req.headers['x-shopee-order-sn-list'];
+    if (rawList) {
+      if (Array.isArray(rawList)) {
+        orderSnList = rawList.map(String).map((s: string) => s.trim()).filter(Boolean);
+      } else if (typeof rawList === 'string') {
+        orderSnList = rawList.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
-    } else if (payload?.order_sn || req.query?.order_sn) {
-      const single = String(payload?.order_sn || req.query?.order_sn).trim();
-      if (single) orderSnList.push(single);
+    }
+
+    const singleSn = String(
+      payload?.order_sn ||
+      req.query?.order_sn ||
+      req.headers['x-shopee-order-sn'] ||
+      ''
+    ).trim();
+
+    if (singleSn && !orderSnList.includes(singleSn)) {
+      orderSnList.push(singleSn);
     }
 
     if (orderSnList.length === 0) {

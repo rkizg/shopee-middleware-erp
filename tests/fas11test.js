@@ -538,6 +538,280 @@ cek('setelah Tutup sesi berikutnya (SIANG), tabel Pcs yang sudah dibagi kembali 
   payloadSetelahTutupSiang.rekap.unit.length === 0,
   JSON.stringify(payloadSetelahTutupSiang.rekap.unit));
 
+console.log('=== 23: regresi perbaikan bug pembagian jahit (BELUM DISET, multi-variasi, target multi-grup) ===');
+const aturanSekarang = SM.bacaAturanSku();
+aturanSekarang.push({ pola: 'KAOS', grup: 'SPREI', catatan: 'Kaos masuk grup SPREI' });
+sb.simpanAturanDashboard(tAdmin, aturanSekarang);
+const bagiUpgradeBelumDiset = sb.bagiPembagianDashboard(tAdmin, '');
+const barisSn4SetelahAturan = barisPesan('SN-S4');
+cek('baris BELUM DISET otomatis diperbarui ke penjahit aktif setelah aturan SKU ditambahkan',
+  bagiUpgradeBelumDiset.qtyDitambah === 1 &&
+  barisSn4SetelahAturan.length === 1 &&
+  String(barisSn4SetelahAturan[0][5]) !== 'BELUM DISET' &&
+  String(barisSn4SetelahAturan[0][6]) === 'SPREI',
+  JSON.stringify(barisSn4SetelahAturan));
+const rekapSetelahUpgradeSn4 = sb.getPembagianJahit(tSuper, '');
+cek('baris yang baru di-upgrade dari BELUM DISET muncul kembali di rekap.unit agar bisa ditutup sesi',
+  rekapSetelahUpgradeSn4.rekap.unit.some(u => u.noPesanan === 'SN-S4' && u.penjahit !== 'BELUM DISET'),
+  JSON.stringify(rekapSetelahUpgradeSn4.rekap.unit));
+
+ord.appendRow(pesanRow('SN-MULTIVAR', 'BEDCOVER SET LUXURY', 'Hitam', 1, '[2] Menunggu Pickup', 50000));
+ord.appendRow(pesanRow('SN-MULTIVAR', 'BEDCOVER SET LUXURY', 'Putih', 1, '[2] Menunggu Pickup', 50000));
+sb.bagiPembagianDashboard(tAdmin, '');
+const barisMultiVarAwal = barisPesan('SN-MULTIVAR');
+const barisPutih = barisMultiVarAwal.filter(r => String(r[3]) === 'Putih')[0];
+sb.ubahPenjahitPembagianDashboard(tAdmin, {
+  noPesanan: 'SN-MULTIVAR',
+  sku: 'BEDCOVER SET LUXURY',
+  variasi: 'Putih',
+  variasiBaru: 'Lilac',
+  penjahitLama: String(barisPutih[5])
+});
+const bagiMultiVarUlang = sb.bagiPembagianDashboard(tAdmin, '');
+const barisMultiVarAkhir = barisPesan('SN-MULTIVAR');
+cek('edit variasi pada pesanan multi-variasi tidak menggandakan variasi lain saat dibagi ulang',
+  bagiMultiVarUlang.qtyDitambah === 0 &&
+  barisMultiVarAkhir.length === 2 &&
+  barisMultiVarAkhir.some(r => String(r[3]) === 'Hitam') &&
+  barisMultiVarAkhir.some(r => String(r[3]) === 'Lilac'),
+  JSON.stringify(barisMultiVarAkhir));
+
+console.log('=== 24: regresi 8 bug akurasi data pembagian jahit sampai PDF ===');
+/* Bug #6: Baris BELUM DISET yang variasinya sudah diedit manual tetap diklaim dengan variasi baru saat dibagi ulang */
+ord.appendRow(pesanRow('SN-BELUM-VAR', 'ROMPI RAJUT', 'Biru', 1, '[2] Menunggu Pickup', 35000, 'BGD'));
+sb.bagiPembagianDashboard(tAdmin, '');
+const barisBelumVarAwal = barisPesan('SN-BELUM-VAR');
+cek('pesanan ROMPI RAJUT tanpa aturan masuk BELUM DISET dengan variasi Biru',
+  barisBelumVarAwal.length === 1 && String(barisBelumVarAwal[0][5]) === 'BELUM DISET' && String(barisBelumVarAwal[0][3]) === 'Biru',
+  JSON.stringify(barisBelumVarAwal));
+sb.ubahPenjahitPembagianDashboard(tAdmin, {
+  noPesanan: 'SN-BELUM-VAR',
+  sku: 'ROMPI RAJUT',
+  variasi: 'Biru',
+  variasiBaru: 'Sage Green',
+  penjahitLama: 'BELUM DISET',
+  penjahitBaru: 'BELUM DISET'
+});
+const aturanRompi = SM.bacaAturanSku();
+aturanRompi.push({ pola: 'ROMPI', grup: 'SPREI', catatan: 'Rompi ke grup SPREI' });
+sb.simpanAturanDashboard(tAdmin, aturanRompi);
+const bagiRompiSetelahAturan = sb.bagiPembagianDashboard(tAdmin, '');
+const barisBelumVarAkhir = barisPesan('SN-BELUM-VAR');
+cek('saat aturan ditambahkan & dibagi ulang, baris BELUM DISET diklaim penjahit aktif tanpa kehilangan variasi Sage Green',
+  bagiRompiSetelahAturan.qtyDitambah === 1 &&
+  barisBelumVarAkhir.length === 1 &&
+  String(barisBelumVarAkhir[0][3]) === 'Sage Green' &&
+  String(barisBelumVarAkhir[0][5]) !== 'BELUM DISET',
+  JSON.stringify(barisBelumVarAkhir));
+
+/* Bug #4: selaraskanProduksiDenganPembagian_ pada pesanan multi-pcs yang dibagi ke >1 penjahit tidak menggandakan penjahit lain */
+ord.appendRow(pesanRow('SN-SPLIT-2P', 'BEDCOVER SET LUXURY', 'Hitam', 2, '[2] Menunggu Pickup', 90000, 'BGD'));
+SM.simpanQtyPembagian([
+  { toko: 'BGD', noPesanan: 'SN-SPLIT-2P', sku: 'BEDCOVER SET LUXURY', variasi: 'Hitam', penjahit: 'ADUL', grup: 'BC', harga: 45000, qty: 1 },
+  { toko: 'BGD', noPesanan: 'SN-SPLIT-2P', sku: 'BEDCOVER SET LUXURY', variasi: 'Hitam', penjahit: 'OPIK', grup: 'BC', harga: 45000, qty: 1 }
+], '2026-10-09 10:00:00');
+sb.tutupSesiJahit(tAdmin, '', 'PAGI', '');
+/* Alihkan jatah ADUL ke ELSI setelah sesi ditutup */
+sb.ubahPenjahitPembagianDashboard(tAdmin, {
+  noPesanan: 'SN-SPLIT-2P',
+  sku: 'BEDCOVER SET LUXURY',
+  variasi: 'Hitam',
+  variasiBaru: 'Hitam',
+  penjahitLama: 'ADUL',
+  penjahitBaru: 'ELSI'
+});
+const prodSelarasSplit = sb.selaraskanProduksiDenganPembagian_(SM.bacaProduksi(), '').filter(p => p.noPesanan === 'SN-SPLIT-2P');
+const jmlOpikSplit = prodSelarasSplit.filter(p => p.penjahit === 'OPIK').reduce((s, p) => s + Number(p.jumlah || 1), 0);
+const jmlElsiSplit = prodSelarasSplit.filter(p => p.penjahit === 'ELSI').reduce((s, p) => s + Number(p.jumlah || 1), 0);
+cek('pengalihan 1 dari 2 penjahit pada pesanan sama tidak menggandakan jatah penjahit kedua (OPIK=1, ELSI=1)',
+  jmlOpikSplit === 1 && jmlElsiSplit === 1,
+  JSON.stringify(prodSelarasSplit));
+
+/* Bug #3: Filter cakupan toko (scopedToko) menyaring estimasiHariIni agar toko lain tidak bocor ke PDF */
+ord.appendRow(pesanRow('SN-TOKO-TM', 'BEDCOVER SET LUXURY', 'Navy', 1, '[2] Menunggu Pickup', 45000, 'TM'));
+sb.tutupSesiJahit(tAdmin, '', 'PAGI', 'TM');
+const payloadHanyaTm = sb.getPembagianJahit(tSuper, 'TM');
+const semuaItemEstimasiTm = [];
+(payloadHanyaTm.estimasiHariIni.penjahit || []).forEach(p => (p.items || []).forEach(it => semuaItemEstimasiTm.push(it)));
+cek('getPembagianJahit dengan cakupan toko TM hanya memuat estimasiHariIni dari toko TM',
+  semuaItemEstimasiTm.length > 0 && semuaItemEstimasiTm.every(it => String(it.toko).toUpperCase() === 'TM'),
+  JSON.stringify(semuaItemEstimasiTm));
+
+/* Bug #7: Kolom E (Kelengkapan) dari sheet DATA PROSES diteruskan ke kamus, rekap, dan estimasiHariIni */
+pros().getRange(1, 5, 1, 1).setValues([['Kelengkapan']]);
+pros().appendRow(['BEDCOVER SET LUXURY', 45000, 35, 12, '1 Bedcover + 1 Tas Mika']);
+sb.hapusCacheProses_();
+ord.appendRow(pesanRow('SN-KEL-PROSES', 'BEDCOVER SET LUXURY', 'Lilac', 1, '[2] Menunggu Pickup', 45000, 'TM'));
+sb.bagiPembagianDashboard(tAdmin, 'TM');
+const payloadKelProses = sb.getPembagianJahit(tSuper, 'TM');
+const unitKelProses = (payloadKelProses.rekap.unit || []).find(u => u.noPesanan === 'SN-KEL-PROSES');
+const itemEstKelProses = ((payloadKelProses.estimasiHariIni.penjahit || [])[0] || { items: [] }).items.find(it => it.sku === 'BEDCOVER SET LUXURY');
+cek('kelengkapan dari Kolom E DATA PROSES diteruskan ke rekap.unit dan estimasiHariIni',
+  Boolean(unitKelProses && unitKelProses.kelengkapan === '1 Bedcover + 1 Tas Mika' &&
+          itemEstKelProses && itemEstKelProses.kelengkapan === '1 Bedcover + 1 Tas Mika'),
+  JSON.stringify({ unit: unitKelProses && unitKelProses.kelengkapan, est: itemEstKelProses && itemEstKelProses.kelengkapan }));
+
+console.log('=== 25: akurasi logika Bobot Kapasitas (desimal, tie-breaker awal, anti-overshoot, & target multi-grup) ===');
+/* 1. Parsing bobot desimal bertitik ("0.5", "1.5") maupun berkoma ("0,5", "1,5") */
+sb.simpanPenjahitDashboard(tAdmin, [
+  { nama: 'KECIL', grup: 'SPREI', aktif: 'YA', bobot: '0.5' },
+  { nama: 'BESAR', grup: 'SPREI', aktif: 'YA', bobot: '1,5' },
+  { nama: 'OPIK', grup: 'BC', aktif: 'YA', bobot: '1.0' }
+]);
+const penjahitDesimal = SM.bacaPenjahit();
+const pKecil = penjahitDesimal.find(p => p.nama === 'KECIL');
+const pBesar = penjahitDesimal.find(p => p.nama === 'BESAR');
+cek('bobot desimal "0.5" dan "1,5" terbaca akurat sebagai 0.5 dan 1.5 (bukan 5 dan 15)',
+  Boolean(pKecil && pKecil.bobot === 0.5 && pBesar && pBesar.bobot === 1.5),
+  JSON.stringify(penjahitDesimal.map(p => [p.nama, p.bobot])));
+
+/* 2. Saat awal sesi (upah=0), penjahit berbobot lebih besar mendapat item pertama walau berada di urutan bawah */
+const pilihAwalKosong = sb.pilihPenjahit_([
+  { nama: 'KECIL', bobot: 0.5 },
+  { nama: 'BESAR', bobot: 1.5 }
+], {}, 20000);
+cek('saat keduanya masih 0, penjahit berbobot besar (1.5x) dipilih lebih dulu daripada 0.5x',
+  Boolean(pilihAwalKosong && pilihAwalKosong.nama === 'BESAR'),
+  JSON.stringify(pilihAwalKosong));
+
+/* 3. Saat rasio upah/bobot seimbang (BESAR 2x punya 2 pcs Rp 100rb, KECIL 1x punya 1 pcs Rp 50rb), tie-breaker pcs dibagi bobot */
+const pilihRasioSeimbang = sb.pilihPenjahit_([
+  { nama: 'KECIL', bobot: 1 },
+  { nama: 'BESAR', bobot: 2 }
+], { KECIL: { upah: 50000, pcs: 1 }, BESAR: { upah: 100000, pcs: 2 } }, 50000);
+cek('saat rasio upah/bobot dan pcs/bobot seimbang, penjahit berbobot lebih besar mendapat giliran berikutnya',
+  Boolean(pilihRasioSeimbang && pilihRasioSeimbang.nama === 'BESAR'),
+  JSON.stringify(pilihRasioSeimbang));
+
+/* 4. Anti-overshoot (Sainte-Laguë): 5 pcs @ Rp 20.000 pada bobot 0.5 vs 1.5 (target 25rb vs 75rb) dibagi 1 pcs (20rb) : 4 pcs (80rb) */
+pros().data[1][1] = 20000;
+sb.hapusCacheProses_();
+sb.bersihkanPembagianDashboard(tAdmin, { toko: '', hapusProduksi: 'SEMUA' });
+ord.data.length = 1;
+ord.appendRow(pesanRow('SN-BOBOT-5', 'SPREI DK 90/25 SET', 'Biru', 5, '[2] Menunggu Pickup', 100000, 'BGD'));
+const bagiBobot5 = sb.bagiPembagianDashboard(tAdmin, '');
+const rekapBobot5 = sb.getPembagianJahit(tSuper, '').rekap;
+const rkKecil = rekapBobot5.perPenjahit.find(p => p.nama === 'KECIL');
+const rkBesar = rekapBobot5.perPenjahit.find(p => p.nama === 'BESAR');
+cek('5 pcs @ Rp 20.000 dengan bobot 0.5 : 1.5 dibagi 1 pcs (Rp 20.000) untuk KECIL dan 4 pcs (Rp 80.000) untuk BESAR',
+  Boolean(rkKecil && rkKecil.pcs === 1 && rkKecil.upah === 20000 && rkBesar && rkBesar.pcs === 4 && rkBesar.upah === 80000),
+  JSON.stringify({ kecil: rkKecil && [rkKecil.pcs, rkKecil.upah], besar: rkBesar && [rkBesar.pcs, rkBesar.upah], bagi: bagiBobot5.qtyDitambah }));
+cek('target berbobot 0.5 : 1.5 dari total Rp 100.000 adalah Rp 25.000 dan Rp 75.000',
+  Boolean(rkKecil && rkKecil.target === 25000 && rkBesar && rkBesar.target === 75000),
+  JSON.stringify({ targetKecil: rkKecil && rkKecil.target, targetBesar: rkBesar && rkBesar.target }));
+
+/* 5. Multi-grup dengan pemisah garis miring (BC/SPREI) & penjahit nonaktif tidak mengacaukan total target */
+const petaUjiMulti = {
+  A: { nama: 'A', grup: 'BC', bobot: 1, aktif: true, upah: 30000 },
+  B: { nama: 'B', grup: 'BC/SPREI', bobot: 2, aktif: true, upah: 60000 },
+  C: { nama: 'C', grup: 'SPREI', bobot: 1, aktif: true, upah: 30000 },
+  LIBUR: { nama: 'LIBUR', grup: 'BC', bobot: 1, aktif: false, upah: 20000 }
+};
+const targetA = sb.hitungTargetPenjahit_(petaUjiMulti.A, petaUjiMulti, {}, {});
+const targetB = sb.hitungTargetPenjahit_(petaUjiMulti.B, petaUjiMulti, {}, {});
+const targetC = sb.hitungTargetPenjahit_(petaUjiMulti.C, petaUjiMulti, {}, {});
+cek('target multi-grup transitif (BC + BC/SPREI + SPREI) konsisten dan berjumlah tepat 100% pool aktif (30rb + 60rb + 30rb = 120rb)',
+  targetA === 30000 && targetB === 60000 && targetC === 30000 && (targetA + targetB + targetC === 120000),
+  JSON.stringify({ targetA, targetB, targetC }));
+
+console.log('=== 26: isolasi beban sesi tertutup & penyeimbangan ulang 16 pcs multi-grup (Rp 9.000 rata) ===');
+sb.bersihkanPembagianDashboard(tAdmin, { toko: '', hapusProduksi: 'SEMUA' });
+ord.data.length = 1;
+pros().data.length = 1;
+pros().appendRow(['BC AJA 120*220', 8000, 20, 5]);
+pros().appendRow(['Bantal Infinity', 5000, 15, 5]);
+pros().appendRow(['SARBAN SAMBUNG', 1000, 5, 2]);
+sb.hapusCacheProses_();
+
+sb.simpanAturanDashboard(tAdmin, [
+  { pola: 'BC AJA', grup: 'BC' },
+  { pola: 'BANTAL INFINITY', grup: 'BC' },
+  { pola: 'SARBAN', grup: 'SARBAN' },
+  { pola: 'SPREI', grup: 'SPREI' }
+]);
+sb.simpanPenjahitDashboard(tAdmin, [
+  { nama: 'ADUL', grup: 'BC, SPREI, SARBAN', aktif: 'YA', bobot: 1 },
+  { nama: 'OPIK', grup: 'BC, SPREI, SARBAN', aktif: 'YA', bobot: 1 },
+  { nama: 'ELSI', grup: 'SPREI, SARBAN', aktif: 'YA', bobot: 1 }
+]);
+
+/* Sesi 1 ditutup ketika pesanan masih berstatus [2] Menunggu Pickup */
+ord.appendRow(pesanRow('SN-SESI-LAMA', 'BC AJA 120*220', 'Hitam', 1, '[2] Menunggu Pickup', 8000, 'BGD'));
+sb.tutupSesiJahit(tAdmin, '', 'PAGI', '');
+
+/* Sesi 2: 12 baris (16 pcs, total Rp 27.000) yang sebelumnya timpang (ADUL=15.000, OPIK=9.000, ELSI=3.000) */
+ord.appendRow(pesanRow('26100973CH89D7', 'BC AJA 120*220', 'Turkish', 1, '[2] Menunggu Pickup', 8000, 'BGD'));
+ord.appendRow(pesanRow('26100973CH89D7', 'Bantal Infinity', 'Blue Sky', 1, '[2] Menunggu Pickup', 5000, 'BGD'));
+ord.appendRow(pesanRow('2610096QF2BHQ9', 'SARBAN SAMBUNG', 'Random', 6, '[2] Menunggu Pickup', 6000, 'BGD'));
+ord.appendRow(pesanRow('2610096WRWJC56', 'SARBAN SAMBUNG', 'Random', 2, '[2] Menunggu Pickup', 2000, 'BGD'));
+ord.appendRow(pesanRow('2610096XX8MEJ1', 'SARBAN SAMBUNG', 'Random', 1, '[2] Menunggu Pickup', 1000, 'BGD'));
+ord.appendRow(pesanRow('2610096XX8MEJ1', 'SARBAN SAMBUNG', 'SpreiSet DoubleKaret', 1, '[2] Menunggu Pickup', 1000, 'BGD'));
+ord.appendRow(pesanRow('2610096XY89G08', 'SARBAN SAMBUNG', 'Random', 2, '[2] Menunggu Pickup', 2000, 'BGD'));
+ord.appendRow(pesanRow('26100974P8GKSR', 'SARBAN SAMBUNG', 'Random', 2, '[2] Menunggu Pickup', 2000, 'BGD'));
+
+SM.simpanQtyPembagian([
+  { toko: 'BGD', noPesanan: '26100973CH89D7', sku: 'BC AJA 120*220', variasi: 'Turkish', penjahit: 'ADUL', grup: 'BC', harga: 8000, qty: 1 },
+  { toko: 'BGD', noPesanan: '26100973CH89D7', sku: 'Bantal Infinity', variasi: 'Blue Sky', penjahit: 'OPIK', grup: 'BC', harga: 5000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096QF2BHQ9', sku: 'SARBAN SAMBUNG', variasi: 'Black', penjahit: 'ADUL', grup: 'SARBAN', harga: 1000, qty: 5 },
+  { toko: 'BGD', noPesanan: '2610096QF2BHQ9', sku: 'SARBAN SAMBUNG', variasi: 'Navy', penjahit: 'OPIK', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096WRWJC56', sku: 'SARBAN SAMBUNG', variasi: 'Random', penjahit: 'ADUL', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096WRWJC56', sku: 'SARBAN SAMBUNG', variasi: 'Random', penjahit: 'OPIK', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096XX8MEJ1', sku: 'SARBAN SAMBUNG', variasi: 'Random', penjahit: 'ADUL', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096XX8MEJ1', sku: 'SARBAN SAMBUNG', variasi: 'SpreiSet DoubleKaret', penjahit: 'ELSI', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096XY89G08', sku: 'SARBAN SAMBUNG', variasi: 'Brown Cream', penjahit: 'ELSI', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '2610096XY89G08', sku: 'SARBAN SAMBUNG', variasi: 'Dusty Pink', penjahit: 'OPIK', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '26100974P8GKSR', sku: 'SARBAN SAMBUNG', variasi: 'Brown Cream', penjahit: 'ELSI', grup: 'SARBAN', harga: 1000, qty: 1 },
+  { toko: 'BGD', noPesanan: '26100974P8GKSR', sku: 'SARBAN SAMBUNG', variasi: 'Soft Denim', penjahit: 'OPIK', grup: 'SARBAN', harga: 1000, qty: 1 }
+], '2026-10-09 20:00:00');
+
+const bagiSeimbang = sb.bagiPembagianDashboard(tAdmin, '');
+const rekapSeimbang = sb.getPembagianJahit(tSuper, '').rekap;
+const pAdul26 = rekapSeimbang.perPenjahit.find(p => p.nama === 'ADUL');
+const pOpik26 = rekapSeimbang.perPenjahit.find(p => p.nama === 'OPIK');
+const pElsi26 = rekapSeimbang.perPenjahit.find(p => p.nama === 'ELSI');
+cek('penyeimbangan ulang membagi rata upah ADUL, OPIK, ELSI masing-masing Rp 9.000 (selisih Rp 0)',
+  Boolean(pAdul26 && pAdul26.upah === 9000 && pAdul26.pcs === 2 &&
+          pOpik26 && pOpik26.upah === 9000 && pOpik26.pcs === 5 &&
+          pElsi26 && pElsi26.upah === 9000 && pElsi26.pcs === 9 &&
+          rekapSeimbang.total.upah === 27000 && rekapSeimbang.total.selisih === 0),
+  JSON.stringify({ adul: pAdul26 && [pAdul26.pcs, pAdul26.upah], opik: pOpik26 && [pOpik26.pcs, pOpik26.upah], elsi: pElsi26 && [pElsi26.pcs, pElsi26.upah], bagi: bagiSeimbang.qtyDitambah }));
+
+const variasiTerjaga = rekapSeimbang.unit.map(u => u.noPesanan + ':' + u.variasi + ':' + u.qty).sort();
+cek('seluruh variasi hasil suntingan manual (Black Qty 5, Navy, Dusty Pink, Soft Denim, Brown Cream) tetap terjaga',
+  variasiTerjaga.indexOf('2610096QF2BHQ9:Black:5') !== -1 &&
+  variasiTerjaga.indexOf('2610096QF2BHQ9:Navy:1') !== -1 &&
+  variasiTerjaga.indexOf('2610096XY89G08:Dusty Pink:1') !== -1 &&
+  variasiTerjaga.indexOf('26100974P8GKSR:Soft Denim:1') !== -1,
+  JSON.stringify(variasiTerjaga));
+
+/* Auto-clear cache saat mengambil / memuat ulang data (tanpa panggil hapusCacheProses_ manual) */
+pros().appendRow(['SPREI BARU SEGAR', 25000, 10, 4]);
+ord.appendRow(pesanRow('SN-FRESH-CACHE', 'SPREI BARU SEGAR', 'Putih', 1, '[2] Menunggu Pickup', 25000, 'BGD'));
+const antrianFresh = sb.getAntrianProduksi(tSuper, '');
+const itemFresh = (antrianFresh.pesanan || []).find(p => p.noPesanan === 'SN-FRESH-CACHE');
+cek('getAntrianProduksi otomatis membersihkan cache DATA PROSES dan membaca harga terbaru (Rp 25.000)',
+  Boolean(itemFresh && itemFresh.hargaSatuan === 25000 && !itemFresh.tanpaHarga),
+  JSON.stringify(itemFresh));
+
+/* Real-time version tracking: cekVersiData, onEdit, dan doPost */
+const vAwal = sb.cekVersiData(tSuper).versi;
+sb.onEdit({});
+const vSetelahEdit = sb.cekVersiData(tSuper).versi;
+cek('onEdit otomatis menaikkan versi data real-time (cekVersiData)',
+  Boolean(vAwal && vSetelahEdit && vSetelahEdit !== vAwal),
+  vAwal + ' -> ' + vSetelahEdit);
+
+const cfgSecret = SM.getConfig().BEGOOD_API_SECRET || '';
+const postRes = sb.doPost({
+  postData: { contents: JSON.stringify({ secret: cfgSecret, action: 'invalidate' }) },
+  parameter: {}
+});
+const postJson = typeof postRes === 'object' && postRes.getContent ? JSON.parse(postRes.getContent()) : postRes;
+const vSetelahPost = sb.cekVersiData(tSuper).versi;
+cek('doPost webhook memperbarui versi data dan mengembalikan status sukses',
+  Boolean(postJson && postJson.success === true && vSetelahPost && vSetelahPost !== vSetelahEdit),
+  JSON.stringify(postJson));
+
 console.log('');
 console.log('HASIL PEMBAGIAN JAHIT: '+(gagal===0?'SEMUA LULUS':gagal+' KEGAGALAN'));
 process.exit(gagal===0?0:1);

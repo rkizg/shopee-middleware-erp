@@ -85,10 +85,17 @@ const setWajibLogin_=(nilai)=>{
 };
 setWajibLogin_('YA');
 
+const hariJakarta_=(offsetHari)=>{
+  const j=new Date(Date.now()+7*3600*1000-offsetHari*86400000);
+  const p=(n)=>String(n).padStart(2,'0');
+  return j.getUTCFullYear()+'-'+p(j.getUTCMonth()+1)+'-'+p(j.getUTCDate());
+};
+const tglUji = hariJakarta_(0);
+
 const ord=ss.getSheetByName('Pesanan Masuk');
 ord.data.length=1;
-ord.appendRow(['SN-K1','2026-09-27 08:00:00','READY_TO_SHIP','[1] Siap Packing','budi','Tas','SKU-1','Hitam',2,150000,12000,'JNE','RESI-1','','Bandung','2026-09-27 08:00:00','BGD1']);
-ord.appendRow(['SN-K2','2026-09-27 09:00:00','READY_TO_SHIP','[1] Siap Packing','sari','Sepatu','SKU-2','Merah',1,250000,15000,'SPX','RESI-2','','Bandung','2026-09-27 09:00:00','BGD1']);
+ord.appendRow(['SN-K1',tglUji + ' 08:00:00','READY_TO_SHIP','[1] Siap Packing','budi','Tas','SKU-1','Hitam',2,150000,12000,'JNE','RESI-1','','Bandung',tglUji + ' 08:00:00','BGD1']);
+ord.appendRow(['SN-K2',tglUji + ' 09:00:00','READY_TO_SHIP','[1] Siap Packing','sari','Sepatu','SKU-2','Merah',1,250000,15000,'SPX','RESI-2','','Bandung',tglUji + ' 09:00:00','BGD1']);
 
 SM.simpanPengguna({kode:'pemilik',nama:'Pemilik',peran:'SUPERADMIN',sandi:'sandiPemilik1'});
 SM.simpanPengguna({kode:'admin1',nama:'Admin Satu',peran:'ADMIN',sandi:'sandiAdmin1'});

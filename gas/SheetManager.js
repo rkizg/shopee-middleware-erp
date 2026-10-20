@@ -24,7 +24,9 @@ var SheetManager = (function() {
        dipakai tim, supaya isinya dapat disalin langsung. */
     PENJAHIT: 'SETTING PENJAHIT',
     RULES: 'SKU RULES',
-    BAGI: 'PEMBAGIAN JAHIT'
+    BAGI: 'PEMBAGIAN JAHIT',
+    PACKING: 'SETTING PACKING',
+    BAGI_PACKING: 'PEMBAGIAN PACKING'
   };
 
   var STATUS_OPTIONS = [
@@ -622,8 +624,8 @@ var SheetManager = (function() {
     if (typeof raw === 'number') return isFinite(raw) ? raw : 0;
     var teks = String(raw).trim().replace(/^Rp\s?/i, '');
     if (!teks) return 0;
-    if (teks.indexOf(',') >= 0 && teks.indexOf('.') < 0) teks = teks.replace(',', '.');
-    else teks = teks.replace(/\./g, '');
+    if (teks.indexOf(',') >= 0) teks = teks.replace(/\./g, '').replace(',', '.');
+    else if (/^-?\d{1,3}(\.\d{3})+$/.test(teks)) teks = teks.replace(/\./g, '');
     var num = parseFloat(teks);
     return isNaN(num) ? 0 : num;
   }
@@ -754,8 +756,8 @@ var SheetManager = (function() {
     var lastRow = sheet.getLastRow();
     if (lastRow < 2) return [];
 
-    var range = sheet.getRange(2, 1, lastRow - 1, PROSES_HEADERS.length);
-    var nilai = range.getValues();
+    var range = sheet.getRange(2, 1, lastRow - 1, Math.max(PROSES_HEADERS.length, 5));
+    var nilai = range.getValues(); var adaKel = String(sheet.getRange(1, 5, 1, 1).getValues()[0][0] || '').trim().toUpperCase() === 'KELENGKAPAN';
     var tampil = range.getDisplayValues();
 
     var hasil = [];
@@ -769,7 +771,7 @@ var SheetManager = (function() {
         sku: sku,
         harga: angkaKolom_(baris[KOLOM_PROSES.HARGA]),
         waktuJahit: angkaKolom_(baris[KOLOM_PROSES.JAHIT]),
-        waktuPotong: angkaKolom_(baris[KOLOM_PROSES.POTONG])
+        waktuPotong: angkaKolom_(baris[KOLOM_PROSES.POTONG]), kelengkapan: adaKel ? String(baris[4] || '').trim() : ''
       });
     }
     return hasil;
@@ -1112,6 +1114,39 @@ var SheetManager = (function() {
     sheet.getRange(adaHeader ? 2 : 1, 1, isi.length, headers.length).setValues(isi);
     return isi.length;
   }
+
+  var PACKING_HEADERS = [
+    'Nama Petugas',  // 1 (A)
+    'Aktif',         // 2 (B) YA atau TIDAK
+    'Bobot',         // 3 (C) 1 = kapasitas biasa
+    'Catatan'        // 4 (D)
+  ];
+
+  var BAGI_PACKING_HEADERS = [
+    'Tanggal',         // 1 (A)
+    'Sesi',            // 2 (B) PAGI atau SIANG
+    'Toko',            // 3 (C)
+    'No. Pesanan',     // 4 (D)
+    'No. Resi',        // 5 (E)
+    'Kurir',           // 6 (F)
+    'Total Qty',       // 7 (G)
+    'Petugas Packing', // 8 (H)
+    'Status Packing',  // 9 (I) MENUNGGU atau SELESAI
+    'Dibagi (WIB)'     // 10 (J)
+  ];
+
+  var KOLOM_PACKING = { NAMA: 0, AKTIF: 1, BOBOT: 2, CATATAN: 3 };
+  var KOLOM_BAGI_PACKING = {
+    TANGGAL: 0, SESI: 1, TOKO: 2, PESANAN: 3, RESI: 4,
+    KURIR: 5, QTY: 6, PETUGAS: 7, STATUS: 8, DIBAGI: 9
+  };
+
+  var PACKING_DEFAULT = [
+    ['Nama Petugas', 'Aktif', 'Bobot', 'Catatan'],
+    ['KELVIN', 'YA', 1, 'Meja 1'],
+    ['DENI', 'YA', 1, 'Meja 2'],
+    ['AGUS', 'YA', 1, 'Meja 3']
+  ];
 
   return {
     SHEETS: SHEETS,
@@ -1957,6 +1992,25 @@ var SheetManager = (function() {
         var updatedCount = 0;
         var newRows = [];
 
+        var pesananUnikMap = {};
+        var urutanSn = [];
+        for (var u = 0; u < ordersList.length; u++) {
+          var o = ordersList[u];
+          var s = String(o && o.order_sn || '').trim();
+          if (!s) continue;
+          if (!pesananUnikMap[s]) {
+            pesananUnikMap[s] = o;
+            urutanSn.push(s);
+          } else {
+            var adaItems = o.items && o.items.length > 0;
+            var lamaItems = pesananUnikMap[s].items && pesananUnikMap[s].items.length > 0;
+            if (adaItems && !lamaItems) {
+              pesananUnikMap[s] = o;
+            }
+          }
+        }
+        ordersList = urutanSn.map(function(s) { return pesananUnikMap[s]; });
+
         for (var i = 0; i < ordersList.length; i++) {
           var ord = ordersList[i];
           var sn = String(ord.order_sn || '').trim();
@@ -2220,6 +2274,7 @@ var SheetManager = (function() {
         var uniqueOrdersSeen = {};
         var uniqueOrdersCount = 0;
         var kunciPerToko = {};
+        var dilihatTabel80 = {};
 
         // Loop dari bawah ke atas (data terbaru terlebih dahulu)
         for (var i = values.length - 1; i >= 0; i--) {
@@ -2305,7 +2360,12 @@ var SheetManager = (function() {
           }
 
           // Simpan hingga 80 baris pesanan terbaru (optimal untuk kecepatan transfer payload RPC)
-          if (ordersList.length < 80) {
+          var skuUpper = sku.toUpperCase();
+          var varUpper = String(row[7] || '').trim().toUpperCase();
+          var namaUpper = String(row[5] || '').trim().toUpperCase();
+          var kunciDuplikatTabel = sn + '|' + tokoBaris + '|' + skuUpper + '|' + varUpper + '|' + namaUpper;
+          if (!dilihatTabel80[kunciDuplikatTabel] && ordersList.length < 80) {
+            dilihatTabel80[kunciDuplikatTabel] = true;
             ordersList.push({
               orderSn: sn,
               date: dateStr,
@@ -2610,11 +2670,13 @@ var SheetManager = (function() {
       var saringAktifGudang = (kata.indexOf('siap packing') !== -1 || kata.indexOf('pickup') !== -1) &&
         kata.indexOf('batal') === -1;
       var hasil = [];
+      var barisDilihat = {};
 
       // Dibaca dari bawah ke atas supaya baris terbaru muncul lebih dulu
       for (var i = nilai.length - 1; i >= 0 && hasil.length < maxBaris; i--) {
         var row = nilai[i];
-        if (!String(row[0] || '').trim()) continue;
+        var snBaris = String(row[0] || '').trim();
+        if (!snBaris) continue;
         if (!barisSesuaiToko_(row, kode)) continue;
 
         var stRendah = String(row[3] || '').toLowerCase();
@@ -2635,6 +2697,14 @@ var SheetManager = (function() {
             continue;
           }
         }
+
+        var tokoBaris = String(row[16] || '').trim().toUpperCase();
+        var skuBaris = String(row[6] || '').trim().toUpperCase();
+        var varBaris = String(row[7] || '').trim().toUpperCase();
+        var namaBaris = String(row[5] || '').trim().toUpperCase();
+        var kunciDuplikat = snBaris + '|' + tokoBaris + '|' + skuBaris + '|' + varBaris + '|' + namaBaris;
+        if (barisDilihat[kunciDuplikat]) continue;
+        barisDilihat[kunciDuplikat] = true;
 
         hasil.push(mapBarisPesanan_(row));
       }
@@ -3172,9 +3242,15 @@ var SheetManager = (function() {
       rapikanPembagianLama_(bagiSheet);
       tulisHeader_(bagiSheet, BAGI_HEADERS);
 
+      var packingSheet = getOrCreateSheet(SHEETS.PACKING);
+      tulisHeader_(packingSheet, PACKING_HEADERS);
+      var bagiPackingSheet = getOrCreateSheet(SHEETS.BAGI_PACKING);
+      tulisHeader_(bagiPackingSheet, BAGI_PACKING_HEADERS);
+
       return {
         penjahit: isiBawaanBilaKosong_(penjahitSheet, PENJAHIT_HEADERS, PENJAHIT_DEFAULT),
-        aturan: isiBawaanBilaKosong_(aturanSheet, RULES_HEADERS, RULES_DEFAULT)
+        aturan: isiBawaanBilaKosong_(aturanSheet, RULES_HEADERS, RULES_DEFAULT),
+        packing: isiBawaanBilaKosong_(packingSheet, PACKING_HEADERS, PACKING_DEFAULT)
       };
     },
 
@@ -3226,9 +3302,9 @@ var SheetManager = (function() {
      * @param {string} dibagi stempel waktu pembagian, untuk baris yang baru
      * @return {Object} jumlah baris baru, baris yang ditambahi, dan pcs yang ditambahkan
      */
-    simpanQtyPembagian: function(daftar, dibagi) {
+    simpanQtyPembagian: function(daftar, dibagi, hapusBaris) {
       var hasil = { barisDitambah: 0, barisDiperbarui: 0, qtyDitambah: 0 };
-      if (!daftar || daftar.length === 0) return hasil;
+      if ((!daftar || daftar.length === 0) && (!hapusBaris || !hapusBaris.length)) return hasil;
 
       var sheet = getOrCreateSheet(SHEETS.BAGI);
       var lastRow = sheet.getLastRow();
@@ -3240,7 +3316,7 @@ var SheetManager = (function() {
         range = sheet.getRange(2, 1, lastRow - 1, BAGI_HEADERS.length);
         nilai = range.getValues();
         var tampil = range.getDisplayValues();
-
+        if (hapusBaris && hapusBaris.length) { var setHapus = {}, sisaNilai = [], sisaTampil = []; for (var hb = 0; hb < hapusBaris.length; hb++) setHapus[hapusBaris[hb]] = true; for (var rh = 0; rh < nilai.length; rh++) { if (!setHapus[rh + 2]) { sisaNilai.push(nilai[rh]); sisaTampil.push(tampil[rh]); } } range.clearContent(); if (sisaNilai.length) sheet.getRange(2, 1, sisaNilai.length, BAGI_HEADERS.length).setValues(sisaNilai); nilai = sisaNilai; tampil = sisaTampil; range = sisaNilai.length ? sheet.getRange(2, 1, sisaNilai.length, BAGI_HEADERS.length) : null; }
         for (var r = 0; r < nilai.length; r++) {
           var skuBaris = teksKolom_(nilai[r][KOLOM_BAGI.SKU], tampil[r][KOLOM_BAGI.SKU]);
           if (!skuBaris) continue;
@@ -3262,22 +3338,22 @@ var SheetManager = (function() {
         if (!item.sku || tambah <= 0) continue;
 
         var kunci = kunciPembagian_(item.sku, item.variasi, item.noPesanan, item.penjahit);
-        hasil.qtyDitambah += tambah;
-
+        var kunciBelum = (item.penjahit && item.penjahit !== 'BELUM DISET') ? kunciPembagian_(item.sku, item.variasi, item.noPesanan, 'BELUM DISET') : '';
+        if (kunciBelum && !Object.prototype.hasOwnProperty.call(peta, kunci) && !Object.prototype.hasOwnProperty.call(peta, kunciBelum)) { for (var kp in peta) { var rp = peta[kp]; if (rp < nilai.length && kunciPembagian_(nilai[rp][KOLOM_BAGI.SKU], item.variasi, nilai[rp][KOLOM_BAGI.PESANAN], nilai[rp][KOLOM_BAGI.PENJAHIT]) === kunciBelum) { kunciBelum = kp; break; } } }
+        hasil.qtyDitambah += tambah; var klaimBelum = (!Object.prototype.hasOwnProperty.call(peta, kunci) && kunciBelum && Object.prototype.hasOwnProperty.call(peta, kunciBelum));
+        if (klaimBelum) { var ib = peta[kunciBelum]; delete peta[kunciBelum]; kunci = kunciPembagian_(item.sku, nilai[ib][KOLOM_BAGI.VARIASI] || item.variasi, item.noPesanan, item.penjahit); peta[kunci] = ib; nilai[ib][KOLOM_BAGI.PENJAHIT] = item.penjahit; nilai[ib][KOLOM_BAGI.QTY] = 0; }
         if (Object.prototype.hasOwnProperty.call(peta, kunci)) {
           var idx = peta[kunci];
           var qtyLama = angkaKolom_(nilai[idx][KOLOM_BAGI.QTY]);
-          if (qtyLama <= 0) qtyLama = 1;
+          if (qtyLama <= 0 && !klaimBelum) qtyLama = 1;
 
           var harga = angkaKolom_(nilai[idx][KOLOM_BAGI.HARGA]);
           if (harga <= 0) harga = angkaKolom_(item.harga);
 
-          /* Grup pada baris lama yang masih kosong diisi dari pembagian ini,
-             sedangkan yang sudah terisi dibiarkan. Variasinya ditulis ulang ke
-             bentuk pendek, supaya sheetnya tidak bercampur dua ejaan. */
-          if (String(nilai[idx][KOLOM_BAGI.GRUP] || '').trim() === '' && item.grup) {
-            nilai[idx][KOLOM_BAGI.GRUP] = String(item.grup).trim().toUpperCase();
-          }
+          /* Grup pada baris lama yang masih kosong/BELUM DISET diisi dari pembagian
+             ini, dan variasinya ditulis ulang ke bentuk pendek. */
+          var grupLama = String(nilai[idx][KOLOM_BAGI.GRUP] || '').trim().toUpperCase();
+          if ((grupLama === '' || grupLama === 'BELUM DISET') && item.grup) nilai[idx][KOLOM_BAGI.GRUP] = String(item.grup).trim().toUpperCase();
           nilai[idx][KOLOM_BAGI.VARIASI] = bersihkanVariasi_(nilai[idx][KOLOM_BAGI.VARIASI]);
 
           nilai[idx][KOLOM_BAGI.QTY] = qtyLama + tambah;
@@ -3392,7 +3468,7 @@ var SheetManager = (function() {
           nama.toUpperCase(),
           String((p && p.grup) || '').trim().toUpperCase(),
           String((p && p.aktif) || 'YA').trim().toUpperCase() === 'TIDAK' ? 'TIDAK' : 'YA',
-          Number(p && p.bobot) > 0 ? Number(p.bobot) : 1,
+          angkaKolom_(p && p.bobot) > 0 ? angkaKolom_(p.bobot) : 1,
           String((p && p.catatan) || '').trim()
         ]);
       }
@@ -3642,6 +3718,8 @@ var SheetManager = (function() {
           }
         }
 
+        var barisBagiPackingDihapus = bersihkanDataBagiPacking_(opsi);
+
         var barisProduksiDihapus = 0;
         if (modeProduksi === 'SESI_INI' || modeProduksi === 'SEMUA') {
           var sheetProd = getOrCreateSheet(SHEETS.PRODUKSI);
@@ -3805,7 +3883,8 @@ var SheetManager = (function() {
             nilai[idxTujuan][KOLOM_BAGI.HARGA] = hargaTujuan;
             nilai[idxTujuan][KOLOM_BAGI.TOTAL] = hargaTujuan * qtyGabung;
           }
-          if (String(nilai[idxTujuan][KOLOM_BAGI.GRUP] || '').trim() === '' && grupBaru) {
+          var grupTujuanLama = String(nilai[idxTujuan][KOLOM_BAGI.GRUP] || '').trim().toUpperCase();
+          if ((grupTujuanLama === '' || grupTujuanLama === 'BELUM DISET') && grupBaru) {
             nilai[idxTujuan][KOLOM_BAGI.GRUP] = grupBaru;
           }
 
@@ -3821,7 +3900,8 @@ var SheetManager = (function() {
         } else {
           nilai[idxAsal][KOLOM_BAGI.VARIASI] = variasiTarget;
           nilai[idxAsal][KOLOM_BAGI.PENJAHIT] = penjahitTarget;
-          if (String(nilai[idxAsal][KOLOM_BAGI.GRUP] || '').trim() === '' && grupBaru) {
+          var grupAsalLama = String(nilai[idxAsal][KOLOM_BAGI.GRUP] || '').trim().toUpperCase();
+          if ((grupAsalLama === '' || grupAsalLama === 'BELUM DISET') && grupBaru) {
             nilai[idxAsal][KOLOM_BAGI.GRUP] = grupBaru;
           }
           range.setValues(nilai);
@@ -3854,17 +3934,23 @@ var SheetManager = (function() {
           }
 
           if (idxProdAsal < 0 && noPesanan) {
+            var cadanganProd = -1;
             for (var rf = 0; rf < nilaiProd.length; rf++) {
               var skuF = teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.SKU], tampilProd[rf][KOLOM_PRODUKSI.SKU]);
+              var varF = bersihkanVariasi_(teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.VARIASI], tampilProd[rf][KOLOM_PRODUKSI.VARIASI]));
               var pesF = teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.PESANAN], tampilProd[rf][KOLOM_PRODUKSI.PESANAN]);
               var penjF = teksKolom_(nilaiProd[rf][KOLOM_PRODUKSI.PENJAHIT], tampilProd[rf][KOLOM_PRODUKSI.PENJAHIT]);
               if (skuF.toUpperCase() === sku.toUpperCase() &&
                   pesF.toUpperCase() === noPesanan.toUpperCase() &&
                   (!penjahitLama || penjF.toUpperCase() === penjahitLama)) {
-                idxProdAsal = rf;
-                break;
+                if (variasiLama && varF.toUpperCase() === variasiLama.toUpperCase()) {
+                  idxProdAsal = rf;
+                  break;
+                }
+                if (cadanganProd < 0) cadanganProd = rf;
               }
             }
+            if (idxProdAsal < 0) idxProdAsal = cadanganProd;
           }
 
           if (idxProdAsal >= 0) {
@@ -3996,8 +4082,375 @@ var SheetManager = (function() {
       }
 
       return hasil;
+    },
+
+    /**
+     * Membaca daftar pemetaan SKU / Pola SKU ke teks Kelengkapan Kanban tanpa
+     * harus menambah tab sheet baru. Menggabungkan:
+     * 1. Setelan tersimpan di Konfigurasi (KELENGKAPAN_SKU_KANBAN)
+     * 2. Kolom E ("Kelengkapan") pada sheet DATA PROSES (bila diisi di sheet)
+     * 3. Kolom C ("Kelengkapan") pada sheet Master Produk HPP (bila ada)
+     *
+     * @return {Array<Object>} daftar { sku, kelengkapan }
+     */
+    bacaKelengkapanSku: function() {
+      var hasil = [];
+      var indeksKunci = {};
+
+      function tambahEntri(skuRaw, kelRaw) {
+        var s = String(skuRaw === null || skuRaw === undefined ? '' : skuRaw).trim().toUpperCase();
+        var k = String(kelRaw === null || kelRaw === undefined ? '' : kelRaw).trim();
+        if (!s || !k) return;
+        var kunci = s.replace(/\s+/g, ' ');
+        if (Object.prototype.hasOwnProperty.call(indeksKunci, kunci)) {
+          hasil[indeksKunci[kunci]].kelengkapan = k;
+        } else {
+          indeksKunci[kunci] = hasil.length;
+          hasil.push({ sku: s, kelengkapan: k });
+        }
+      }
+
+      var cfg = this.getConfig();
+      var rawCfg = cfg.KELENGKAPAN_SKU_KANBAN || '';
+      var adaKonfigurasi = false;
+      if (rawCfg) {
+        try {
+          var parsed = JSON.parse(rawCfg);
+          if (Array.isArray(parsed)) {
+            adaKonfigurasi = true;
+            for (var i = 0; i < parsed.length; i++) {
+              if (parsed[i]) tambahEntri(parsed[i].sku, parsed[i].kelengkapan);
+            }
+          } else if (parsed && typeof parsed === 'object') {
+            adaKonfigurasi = true;
+            for (var k in parsed) {
+              if (Object.prototype.hasOwnProperty.call(parsed, k)) {
+                tambahEntri(k, parsed[k]);
+              }
+            }
+          }
+        } catch (err) {}
+      }
+
+      if (!adaKonfigurasi) {
+        var bawaan = [
+          { sku: 'SPREI*90*SET', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SPREI*100*SET', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SPREI*120*SET', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SPREI*140*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' },
+          { sku: 'SPREI*160*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' },
+          { sku: 'SPREI*180*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' },
+          { sku: 'SPREI*200*SET', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' }
+        ];
+        for (var bIdx = 0; bIdx < bawaan.length; bIdx++) {
+          tambahEntri(bawaan[bIdx].sku, bawaan[bIdx].kelengkapan);
+        }
+      }
+
+      /* Baca juga Kolom E (Kelengkapan) dari sheet DATA PROSES bila ada */
+      var ss = getSpreadsheet();
+      if (ss && typeof ss.getSheetByName === 'function') {
+        var sheetProses = ss.getSheetByName(SHEETS.PROSES);
+        if (sheetProses && sheetProses.getLastRow() >= 2 && sheetProses.getLastColumn() >= 5) {
+          var judulKolomE = String(sheetProses.getRange(1, 5, 1, 1).getValues()[0][0] || '').trim().toUpperCase();
+          if (judulKolomE === 'KELENGKAPAN') {
+            var nilaiProses = sheetProses.getRange(2, 1, sheetProses.getLastRow() - 1, 5).getValues();
+            for (var r = 0; r < nilaiProses.length; r++) {
+              var skuP = String(nilaiProses[r][0] === null || nilaiProses[r][0] === undefined ? '' : nilaiProses[r][0]).trim();
+              var kelP = String(nilaiProses[r][4] === null || nilaiProses[r][4] === undefined ? '' : nilaiProses[r][4]).trim();
+              if (skuP && kelP) tambahEntri(skuP, kelP);
+            }
+          }
+        }
+
+        /* Baca juga sheet Master Produk HPP bila pengguna memilikinya */
+        var sheetHpp = ss.getSheetByName('Master Produk HPP') || ss.getSheetByName('MASTER PRODUK HPP');
+        if (sheetHpp && sheetHpp.getLastRow() >= 2 && sheetHpp.getLastColumn() >= 3) {
+          var nilaiHpp = sheetHpp.getRange(2, 1, sheetHpp.getLastRow() - 1, 3).getValues();
+          for (var h = 0; h < nilaiHpp.length; h++) {
+            var skuH = String(nilaiHpp[h][0] === null || nilaiHpp[h][0] === undefined ? '' : nilaiHpp[h][0]).trim();
+            var kelH = String(nilaiHpp[h][2] === null || nilaiHpp[h][2] === undefined ? '' : nilaiHpp[h][2]).trim();
+            if (skuH && kelH) tambahEntri(skuH, kelH);
+          }
+        }
+      }
+
+      return hasil;
+    },
+
+    /**
+     * Menyimpan daftar pemetaan SKU / Pola SKU ke teks Kelengkapan Kanban
+     * ke sheet Konfigurasi (KELENGKAPAN_SKU_KANBAN) dan menyelaraskan Kolom E
+     * ("Kelengkapan") pada sheet DATA PROSES untuk SKU yang namanya sama persis.
+     *
+     * @param {Array<Object>} daftar larik { sku, kelengkapan }
+     * @return {number} jumlah entri tersimpan
+     */
+    simpanKelengkapanSku: function(daftar) {
+      var bersih = [];
+      var sudah = {};
+      var petaExact = {};
+      var list = Array.isArray(daftar) ? daftar : [];
+
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i] || {};
+        var sku = String(item.sku || '').trim().toUpperCase();
+        var kel = String(item.kelengkapan || '').trim();
+        if (!sku || !kel) continue;
+        var kunci = sku.replace(/\s+/g, ' ');
+        if (sudah[kunci]) continue;
+        sudah[kunci] = true;
+        bersih.push({ sku: sku, kelengkapan: kel });
+        petaExact[normalTeks_(sku)] = kel;
+      }
+
+      var sheetCfg = getOrCreateSheet(SHEETS.CONFIG);
+      var dataCfg = sheetCfg.getDataRange().getValues();
+      var key = 'KELENGKAPAN_SKU_KANBAN';
+      var val = JSON.stringify(bersih);
+      var ditemukan = false;
+
+      for (var c = 1; c < dataCfg.length; c++) {
+        if (String(dataCfg[c][0]).trim() === key) {
+          sheetCfg.getRange(c + 1, 2).setValue(val);
+          ditemukan = true;
+          break;
+        }
+      }
+      if (!ditemukan) {
+        sheetCfg.appendRow([key, val, 'Daftar SKU/Pola SKU dan teks Kelengkapan Sticker Kanban (JSON)']);
+      }
+
+      /* Selaraskan juga ke Kolom E ("Kelengkapan") di sheet DATA PROSES untuk SKU yang cocok */
+      var ss = getSpreadsheet();
+      var sheetProses = (ss && typeof ss.getSheetByName === 'function') ? ss.getSheetByName(SHEETS.PROSES) : null;
+      if (sheetProses && sheetProses.getLastRow() >= 2) {
+        var lastRow = sheetProses.getLastRow();
+        var skuRange = sheetProses.getRange(2, 1, lastRow - 1, 1).getValues();
+        var adaCocok = false;
+        for (var r = 0; r < skuRange.length; r++) {
+          var kSku = normalTeks_(skuRange[r][0]);
+          if (kSku && Object.prototype.hasOwnProperty.call(petaExact, kSku)) {
+            adaCocok = true;
+            break;
+          }
+        }
+        if (adaCocok || sheetProses.getLastColumn() >= 5) {
+          var headerE = String(sheetProses.getRange(1, 5).getValue() || '').trim();
+          if (!headerE) sheetProses.getRange(1, 5).setValue('Kelengkapan');
+          var kelRange = sheetProses.getRange(2, 5, lastRow - 1, 1);
+          var kelVals = kelRange.getValues();
+          var berubahProses = false;
+          for (var p = 0; p < skuRange.length; p++) {
+            var kBaris = normalTeks_(skuRange[p][0]);
+            if (!kBaris) continue;
+            var targetKel = Object.prototype.hasOwnProperty.call(petaExact, kBaris) ? petaExact[kBaris] : '';
+            if (String(kelVals[p][0] || '').trim() !== targetKel) {
+              kelVals[p][0] = targetKel;
+              berubahProses = true;
+            }
+          }
+          if (berubahProses) kelRange.setValues(kelVals);
+        }
+      }
+
+      return bersih.length;
+    },
+
+    /** Membaca daftar master petugas packing beserta status aktif dan bobotnya. */
+    bacaPetugasPacking: function() {
+      return bacaBarisPacking_();
+    },
+
+    /** Menyimpan daftar master petugas packing ke SETTING PACKING. */
+    simpanPetugasPacking: function(daftar) {
+      return simpanDaftarPacking_(daftar);
+    },
+
+    /** Membaca riwayat penugasan resi pada PEMBAGIAN PACKING. */
+    bacaPembagianPacking: function() {
+      return bacaBarisBagiPacking_();
+    },
+
+    /** Menyimpan atau memperbarui alokasi penugasan nomor pesanan ke petugas packing. */
+    simpanPembagianPacking: function(daftar) {
+      return simpanBagiPackingBatch_(daftar);
+    },
+
+    /** Mengosongkan data PEMBAGIAN PACKING sesuai kriteria. */
+    bersihkanPembagianPacking: function(opsi) {
+      return bersihkanDataBagiPacking_(opsi);
     }
   };
+
+  /** Membaca seluruh baris SETTING PACKING. */
+  function bacaBarisPacking_() {
+    var sheet = getOrCreateSheet(SHEETS.PACKING);
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    var range = sheet.getRange(2, 1, lastRow - 1, PACKING_HEADERS.length);
+    var nilai = range.getValues();
+    var tampil = range.getDisplayValues();
+    var hasil = [];
+
+    for (var i = 0; i < nilai.length; i++) {
+      var nama = teksKolom_(nilai[i][KOLOM_PACKING.NAMA], tampil[i][KOLOM_PACKING.NAMA]);
+      if (!nama) continue;
+      hasil.push({
+        barisSheet: i + 2,
+        nama: String(nama).trim().toUpperCase(),
+        aktif: String(teksKolom_(nilai[i][KOLOM_PACKING.AKTIF], tampil[i][KOLOM_PACKING.AKTIF]) || 'YA').trim().toUpperCase() === 'TIDAK' ? 'TIDAK' : 'YA',
+        bobot: angkaKolom_(nilai[i][KOLOM_PACKING.BOBOT]) || 1,
+        catatan: teksKolom_(nilai[i][KOLOM_PACKING.CATATAN], tampil[i][KOLOM_PACKING.CATATAN])
+      });
+    }
+    return hasil;
+  }
+
+  /** Menyimpan seluruh baris SETTING PACKING. */
+  function simpanDaftarPacking_(daftar) {
+    var baris = [];
+    for (var i = 0; i < (daftar || []).length; i++) {
+      var p = daftar[i];
+      var nama = String((p && (p.nama || p.Nama)) || '').trim().toUpperCase();
+      if (!nama) continue;
+      var aktif = String((p && p.aktif) || 'YA').trim().toUpperCase() === 'TIDAK' ? 'TIDAK' : 'YA';
+      var bobot = Math.max(0.1, Number(p && p.bobot) || 1);
+      var catatan = String((p && p.catatan) || '').trim();
+      baris.push([nama, aktif, bobot, catatan]);
+    }
+    if (!baris.length) {
+      throw new Error('Daftar petugas packing tidak boleh kosong. Sisakan minimal satu petugas.');
+    }
+    var sheet = getOrCreateSheet(SHEETS.PACKING);
+    tulisHeader_(sheet, PACKING_HEADERS);
+    sheet.getRange(2, 1, Math.max(1, sheet.getMaxRows() - 1), PACKING_HEADERS.length).clearContent();
+    sheet.getRange(2, 1, baris.length, PACKING_HEADERS.length).setValues(baris);
+    return baris.length;
+  }
+
+  /** Membaca seluruh baris PEMBAGIAN PACKING. */
+  function bacaBarisBagiPacking_() {
+    var sheet = getOrCreateSheet(SHEETS.BAGI_PACKING);
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+
+    var range = sheet.getRange(2, 1, lastRow - 1, BAGI_PACKING_HEADERS.length);
+    var nilai = range.getValues();
+    var tampil = range.getDisplayValues();
+    var hasil = [];
+
+    for (var i = 0; i < nilai.length; i++) {
+      var noPesanan = teksKolom_(nilai[i][KOLOM_BAGI_PACKING.PESANAN], tampil[i][KOLOM_BAGI_PACKING.PESANAN]);
+      if (!noPesanan) continue;
+      hasil.push({
+        barisSheet: i + 2,
+        tanggal: teksKolom_(nilai[i][KOLOM_BAGI_PACKING.TANGGAL], tampil[i][KOLOM_BAGI_PACKING.TANGGAL]),
+        sesi: String(teksKolom_(nilai[i][KOLOM_BAGI_PACKING.SESI], tampil[i][KOLOM_BAGI_PACKING.SESI]) || 'PAGI').toUpperCase(),
+        toko: teksKolom_(nilai[i][KOLOM_BAGI_PACKING.TOKO], tampil[i][KOLOM_BAGI_PACKING.TOKO]),
+        noPesanan: noPesanan,
+        noResi: teksKolom_(nilai[i][KOLOM_BAGI_PACKING.RESI], tampil[i][KOLOM_BAGI_PACKING.RESI]),
+        kurir: teksKolom_(nilai[i][KOLOM_BAGI_PACKING.KURIR], tampil[i][KOLOM_BAGI_PACKING.KURIR]),
+        qty: Number(nilai[i][KOLOM_BAGI_PACKING.QTY]) || 1,
+        petugasPacking: String(teksKolom_(nilai[i][KOLOM_BAGI_PACKING.PETUGAS], tampil[i][KOLOM_BAGI_PACKING.PETUGAS]) || '').trim().toUpperCase(),
+        status: String(teksKolom_(nilai[i][KOLOM_BAGI_PACKING.STATUS], tampil[i][KOLOM_BAGI_PACKING.STATUS]) || 'MENUNGGU').trim().toUpperCase(),
+        dibagi: teksKolom_(nilai[i][KOLOM_BAGI_PACKING.DIBAGI], tampil[i][KOLOM_BAGI_PACKING.DIBAGI])
+      });
+    }
+    return hasil;
+  }
+
+  /** Menyimpan atau memperbarui baris penugasan PEMBAGIAN PACKING. */
+  function simpanBagiPackingBatch_(daftar) {
+    if (!daftar || !daftar.length) return { baru: 0 };
+    var sheet = getOrCreateSheet(SHEETS.BAGI_PACKING);
+    tulisHeader_(sheet, BAGI_PACKING_HEADERS);
+
+    var petaLama = {};
+    var lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      var range = sheet.getRange(2, 1, lastRow - 1, BAGI_PACKING_HEADERS.length);
+      var vals = range.getValues();
+      for (var r = 0; r < vals.length; r++) {
+        var sn = String(vals[r][KOLOM_BAGI_PACKING.PESANAN] || '').trim();
+        if (sn) petaLama[sn] = r + 2;
+      }
+    }
+
+    var barisBaru = [];
+    for (var i = 0; i < daftar.length; i++) {
+      var d = daftar[i];
+      var snItem = String(d.noPesanan || '').trim();
+      if (!snItem) continue;
+      var rowData = [
+        String(d.tanggal || ''),
+        String(d.sesi || 'PAGI').toUpperCase(),
+        String(d.toko || ''),
+        snItem,
+        String(d.noResi || d.resi || ''),
+        String(d.kurir || ''),
+        Number(d.qty) || 1,
+        String(d.petugasPacking || '').trim().toUpperCase(),
+        String(d.status || 'MENUNGGU').trim().toUpperCase(),
+        String(d.dibagi || '')
+      ];
+      if (petaLama[snItem]) {
+        sheet.getRange(petaLama[snItem], 1, 1, BAGI_PACKING_HEADERS.length).setValues([rowData]);
+      } else {
+        barisBaru.push(rowData);
+      }
+    }
+
+    if (barisBaru.length > 0) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, barisBaru.length, BAGI_PACKING_HEADERS.length).setValues(barisBaru);
+    }
+    return { baru: barisBaru.length, total: daftar.length };
+  }
+
+  /** Menghapus data penugasan PEMBAGIAN PACKING sesuai kriteria. */
+  function bersihkanDataBagiPacking_(opsi) {
+    var sheet = getOrCreateSheet(SHEETS.BAGI_PACKING);
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return 0;
+    var cfg = opsi || {};
+    var targetToko = String(cfg.toko || '').trim().toUpperCase();
+    var targetTanggal = String(cfg.tanggal || '').trim();
+    var targetSesi = String(cfg.sesi || '').trim().toUpperCase();
+
+    if (!targetToko && !targetTanggal && !targetSesi) {
+      sheet.getRange(2, 1, lastRow - 1, BAGI_PACKING_HEADERS.length).clearContent();
+      return lastRow - 1;
+    }
+
+    var range = sheet.getRange(2, 1, lastRow - 1, BAGI_PACKING_HEADERS.length);
+    var vals = range.getValues();
+    var sisa = [];
+    var dihapus = 0;
+
+    for (var i = 0; i < vals.length; i++) {
+      var baris = vals[i];
+      var tgl = String(baris[KOLOM_BAGI_PACKING.TANGGAL] || '').trim();
+      var sesi = String(baris[KOLOM_BAGI_PACKING.SESI] || '').trim().toUpperCase();
+      var toko = String(baris[KOLOM_BAGI_PACKING.TOKO] || '').trim().toUpperCase();
+
+      var cocokToko = !targetToko || toko === targetToko;
+      var cocokTgl = !targetTanggal || tgl === targetTanggal;
+      var cocokSesi = !targetSesi || sesi === targetSesi;
+
+      if (cocokToko && cocokTgl && cocokSesi) {
+        dihapus++;
+      } else {
+        sisa.push(baris);
+      }
+    }
+
+    sheet.getRange(2, 1, lastRow - 1, BAGI_PACKING_HEADERS.length).clearContent();
+    if (sisa.length > 0) {
+      sheet.getRange(2, 1, sisa.length, BAGI_PACKING_HEADERS.length).setValues(sisa);
+    }
+    return dihapus;
+  }
 })();
 
 

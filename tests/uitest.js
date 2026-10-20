@@ -363,6 +363,90 @@ cek('status menampilkan pesan siap mengolah pesanan baru',
   htmlSetelahTutup.indexOf('siap mengolah pesanan baru')!==-1 && teks('pembagian-unit-note')==='Menampilkan 0 baris',
   teks('pembagian-unit-note'));
 
+console.log('=== 31: Poin 3 - Edit grup di Aturan SKU langsung memperbarui pilihan grup pada tab Penjahit ===');
+jalankan("dataSetelanPenjahit_=[{nama:'ADUL',grup:'BC',aktif:'YA',bobot:1,catatan:''}]; dataSetelanAturan_=[{pola:'BEDCOVER*',grup:'BC',catatan:'Bedcover'},{pola:'SPREI*',grup:'SPREI',catatan:'Sprei'}]; sinkronSemuaKomponenGrupDanAturan_();");
+cek('sebelum diubah, grup GORDEN belum ada di checkbox penjahit',
+  dokumen.getElementById('tbody-penjahit-setelan').innerHTML.indexOf('GORDEN')===-1);
+jalankan("ubahFieldAturan_(1, 'grup', 'GORDEN');");
+const htmlPenjahitSetelahEditGrup=dokumen.getElementById('tbody-penjahit-setelan').innerHTML;
+const htmlChipsTambahPenjahit=dokumen.getElementById('tambah-penjahit-grups').innerHTML;
+cek('mengubah grup di Aturan SKU langsung memunculkan checkbox GORDEN di tabel Penjahit',
+  htmlPenjahitSetelahEditGrup.indexOf('GORDEN')!==-1, htmlPenjahitSetelahEditGrup);
+cek('mengubah grup di Aturan SKU langsung memunculkan chip GORDEN di form Tambah Penjahit',
+  htmlChipsTambahPenjahit.indexOf('GORDEN')!==-1, htmlChipsTambahPenjahit);
+
+console.log('=== 32: Poin 4 - Preset Aturan Standar, 1-Klik SKU Belum Terpetakan, & Uji Coba SKU ===');
+jalankan("pembagianTerakhir={rekap:{peringatan:[{jenis:'GRUP_TIDAK_DITEMUKAN',sku:'BG-CUSTOM-99',noPesanan:'SN-500'}],tanpaAturan:1}}; dataSetelanAturan_=[{pola:'BEDCOVER*',grup:'BC',catatan:'Bedcover'},{pola:'*BC*',grup:'BC',catatan:'BC umum'}]; renderTabelAturanSetelan_();");
+const htmlBantuanAwal=dokumen.getElementById('aturan-sku-bantuan-panel').innerHTML;
+cek('panel bantuan menampilkan peringatan SKU belum punya aturan (BG-CUSTOM-99)',
+  htmlBantuanAwal.indexOf('BG-CUSTOM-99')!==-1 && htmlBantuanAwal.indexOf('petakanSkuCepatAction')!==-1, htmlBantuanAwal);
+cek('panel bantuan menampilkan chip preset yang belum terdaftar (SARGUL, GORDEN)',
+  htmlBantuanAwal.indexOf('SARGUL')!==-1 && htmlBantuanAwal.indexOf('GORDEN')!==-1, htmlBantuanAwal);
+jalankan("petakanSkuCepatAction('BG-CUSTOM-99', 'SPREI');");
+cek('1-klik petakanSkuCepatAction menambahkan aturan BG-CUSTOM-99 -> SPREI',
+  jalankan("dataSetelanAturan_.some(r => r.pola === 'BG-CUSTOM-99' && r.grup === 'SPREI')")===true);
+cek('setelah dipetakan, BG-CUSTOM-99 hilang dari daftar belum terpetakan',
+  dokumen.getElementById('aturan-sku-bantuan-panel').innerHTML.indexOf('SKU di Antrean Belum Punya Aturan')===-1);
+jalankan("tambahPresetAturanSku_('SARGUL', 'SPREI', 'Sarung guling');");
+cek('klik chip preset SARGUL menambahkan pola SARGUL -> SPREI',
+  jalankan("dataSetelanAturan_.some(r => r.pola === 'SARGUL' && r.grup === 'SPREI')")===true);
+jalankan("jalankanUjiAturanSku_('SARGUL LILAC 100X200');");
+const htmlHasilUjiCocok=dokumen.getElementById('hasil-uji-aturan-sku').innerHTML;
+cek('uji coba SKU SARGUL LILAC 100X200 menampilkan kecocokan aturan SARGUL -> SPREI',
+  htmlHasilUjiCocok.indexOf('SPREI')!==-1 && htmlHasilUjiCocok.indexOf('SARGUL')!==-1, htmlHasilUjiCocok);
+jalankan("jalankanUjiAturanSku_('PRODUK-ASING-XYZ');");
+const htmlHasilUjiGagal=dokumen.getElementById('hasil-uji-aturan-sku').innerHTML;
+cek('uji coba SKU yang belum terpetakan menampilkan BELUM DISET dan tombol + Jadikan Aturan',
+  htmlHasilUjiGagal.indexOf('BELUM DISET')!==-1 && htmlHasilUjiGagal.indexOf('isiPolaAturanCepat_')!==-1, htmlHasilUjiGagal);
+jalankan("lengkapiPresetAturanBawaanAction();");
+cek('tombol Lengkapi Semua Pola Standar melengkapi seluruh 17 pola standar tanpa duplikat',
+  jalankan('dataSetelanAturan_.length')>=17, jalankan('dataSetelanAturan_.length'));
+
+console.log('=== 33: Perbaikan 5 poin tampilan mobile (R-03 & antislop-layoutmobile) ===');
+cek('sub-tab .pembagian-nav-tabs memiliki flex-wrap: wrap dan max-width: 100%',
+  html.indexOf('.pembagian-nav-tabs {\n      display: inline-flex; flex-wrap: wrap; max-width: 100%;')!==-1);
+cek('tombol #sidebar-toggle memuat label teks Menu dan berada di urutan pertama (order: -2) pada mobile',
+  html.indexOf('<span>Menu</span>')!==-1 && html.indexOf('.sidebar-toggle { display: inline-flex; order: -2; min-height: 40px;')!==-1);
+cek('seluruh form tambah setelan memakai kelas .form-grid-setelan yang menumpuk 1 kolom di mobile',
+  (html.match(/class="form-grid-setelan"/g)||[]).length>=3 && html.indexOf('.form-grid-setelan { grid-template-columns: minmax(0, 1fr) !important; }')!==-1);
+cek('target sentuh dan ukuran huruf input 16px (cegah auto-zoom iOS) diatur pada @media (max-width: 640px)',
+  html.indexOf('.field, select.field, input.field, textarea.field { min-height: 40px; font-size: 16px; }')!==-1 &&
+  html.indexOf('.tab { min-height: 44px; }')!==-1);
+cek('.row-between membungkus (flex-wrap: wrap) dan .scan-table-wrapper dapat digeser mendatar (overflow-x: auto)',
+  html.indexOf('.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }')!==-1 &&
+  html.indexOf('.scan-table-wrapper { overflow-x: auto;')!==-1);
+
+console.log('=== 34: Pengelolaan SKU & Kelengkapan Sticker Kanban (Hemat Tabsheet) ===');
+jalankan("isiSetelanKelengkapan_({});");
+cek('daftar bawaan kelengkapan Sprei Set terisi di tabel Kelengkapan Kanban',
+  jalankan('dataSetelanKelengkapan_.length')>=7, jalankan('dataSetelanKelengkapan_.length'));
+jalankan("document.getElementById('input-kelengkapan-sku').value='BALMUT*SET'; document.getElementById('input-kelengkapan-teks').value='1 Bantal + 1 Tas'; tambahKelengkapanBaruAction();");
+cek('tambahKelengkapanBaruAction menambahkan pola BALMUT*SET -> 1 Bantal + 1 Tas',
+  jalankan("deteksiKelengkapanSpreiSet_('BALMUT 120X150 SET')")==='1 Bantal + 1 Tas');
+
+console.log('=== 35: Sinkronisasi Real-Time (Heartbeat cekVersiData & Dirty-State Guard) ===');
+jalankan("sesiToken='token-uji'; versiDataTerkini_='v-100'; tabAktifSekarang_='pembagian'; penjahitDirty_=false; aturanDirty_=false; kelengkapanDirty_=false; pilihanVariasiUnit_={}; pilihanPenjahitUnit_={}; sedangCekVersi_=false; tundaSegarkanRealtime_=false;");
+panggilanRpc.length=0; lipatSukses=null;
+jalankan("periksaPembaruanRealtime_(true);");
+cek('periksaPembaruanRealtime_ memanggil RPC cekVersiData',
+  Boolean(panggilanRpc.length===1 && panggilanRpc[0].nama==='cekVersiData'),
+  panggilanRpc.map(x=>x.nama).join(','));
+panggilanRpc.length=0;
+lipatSukses({versi:'v-101',waktu:'2026-10-09 21:40:00'});
+cek('saat versi berubah dan tidak sedang mengedit, otomatis memuat ulang dashboard & tab aktif (pembagian)',
+  panggilanRpc.some(x=>x.nama==='getDashboardData') && panggilanRpc.some(x=>x.nama==='getPembagianJahit'),
+  panggilanRpc.map(x=>x.nama).join(','));
+
+jalankan("versiDataTerkini_='v-101'; pilihanVariasiUnit_={0:'Navy'}; sedangCekVersi_=false; tundaSegarkanRealtime_=false;");
+panggilanRpc.length=0; lipatSukses=null;
+jalankan("periksaPembaruanRealtime_(true);");
+panggilanRpc.length=0;
+lipatSukses({versi:'v-102',waktu:'2026-10-09 21:41:00'});
+cek('saat pengguna sedang mengedit variasi, pembaruan real-time ditunda agar input tidak hilang',
+  panggilanRpc.length===0 && jalankan('tundaSegarkanRealtime_')===true,
+  'rpc=' + panggilanRpc.length + ', tunda=' + jalankan('tundaSegarkanRealtime_'));
+
 console.log('');
 console.log('HASIL LAYAR PENGGUNA: '+(gagal===0?'SEMUA LULUS':gagal+' KEGAGALAN'));
 process.exit(gagal===0?0:1);
+

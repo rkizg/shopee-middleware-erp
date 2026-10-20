@@ -53,6 +53,12 @@ var ShopeeApi = (function() {
         if (payload.time_to) {
           options.headers['x-shopee-time-to'] = String(payload.time_to);
         }
+        if (payload.order_sn) {
+          options.headers['x-shopee-order-sn'] = String(payload.order_sn);
+        }
+        if (payload.order_sn_list) {
+          options.headers['x-shopee-order-sn-list'] = Array.isArray(payload.order_sn_list) ? payload.order_sn_list.join(',') : String(payload.order_sn_list);
+        }
       }
     }
 
@@ -136,6 +142,42 @@ var ShopeeApi = (function() {
      */
     checkHealth: function() {
       return request('/api/health', 'GET');
+    },
+
+    /**
+     * Mengambil parameter pengiriman (opsi pickup, slot waktu, atau opsi dropoff)
+     */
+    getShippingParameter: function(params) {
+      var query = '';
+      if (params && params.order_sn) {
+        query = '?order_sn=' + encodeURIComponent(params.order_sn);
+      }
+      return request('/api/orders/shipping-parameter' + query, 'POST', params);
+    },
+
+    /**
+     * Memproses atur pengiriman (pickup atau dropoff)
+     */
+    shipOrder: function(params) {
+      var query = '';
+      if (params && params.order_sn) {
+        query = '?order_sn=' + encodeURIComponent(params.order_sn);
+      }
+      return request('/api/orders/ship' + query, 'POST', params);
+    },
+
+    /**
+     * Mengunduh berkas resi resmi Shopee (PDF Thermal A6)
+     */
+    getShippingDocument: function(params) {
+      var query = '';
+      if (params && params.order_sn) {
+        query = '?order_sn=' + encodeURIComponent(params.order_sn);
+      } else if (params && params.order_sn_list) {
+        var listStr = Array.isArray(params.order_sn_list) ? params.order_sn_list.join(',') : String(params.order_sn_list);
+        query = '?order_sn_list=' + encodeURIComponent(listStr);
+      }
+      return request('/api/orders/shipping-document' + query, 'POST', params);
     }
   };
 })();

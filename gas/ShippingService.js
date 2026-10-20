@@ -87,6 +87,126 @@ function bukaMejaPengirimanPrompt() {
 }
 
 /**
+ * Mencari indeks kolom dari array headers secara fleksibel
+ * (case-insensitive, membuang spasi/tanda baca, dan substring match)
+ */
+function cariIndeksKolom_(headers, possibleNames) {
+  if (!headers || !headers.length || !possibleNames || !possibleNames.length) return -1;
+  // 1. Exact match case-insensitive
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i] || '').trim().toLowerCase();
+    if (!h) continue;
+    for (var k = 0; k < possibleNames.length; k++) {
+      if (h === String(possibleNames[k] || '').trim().toLowerCase()) {
+        return i;
+      }
+    }
+  }
+  // 2. Normalized match (buang tanda baca, spasi, titik, underscore, kurung)
+  for (var i = 0; i < headers.length; i++) {
+    var hClean = String(headers[i] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!hClean) continue;
+    for (var k = 0; k < possibleNames.length; k++) {
+      var pClean = String(possibleNames[k] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (hClean === pClean) {
+        return i;
+      }
+    }
+  }
+  // 3. Substring match bila kata kunci cukup spesifik (panjang >= 4)
+  for (var i = 0; i < headers.length; i++) {
+    var hClean = String(headers[i] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!hClean) continue;
+    for (var k = 0; k < possibleNames.length; k++) {
+      var pClean = String(possibleNames[k] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (pClean.length >= 4 && (hClean.indexOf(pClean) !== -1 || pClean.indexOf(hClean) !== -1)) {
+        return i;
+      }
+    }
+  }
+  return -1;
+}
+
+/**
+ * Membersihkan nama variasi lokal (menghilangkan keterangan ukuran sesudah koma)
+ */
+function bersihkanVariasiLocal_(nilai) {
+  if (typeof SheetManager !== 'undefined' && SheetManager.bersihkanVariasi) {
+    try {
+      return SheetManager.bersihkanVariasi(nilai);
+    } catch (e) {}
+  }
+  var teks = String(nilai === null || nilai === undefined ? '' : nilai).trim();
+  var pisah = teks.indexOf(',');
+  if (pisah >= 0) {
+    var depan = teks.slice(0, pisah).trim();
+    var belakang = teks.slice(pisah + 1).trim();
+    var komaKedua = belakang.indexOf(',');
+    if (komaKedua >= 0) belakang = belakang.slice(0, komaKedua).trim();
+    if (/\d+\s*[xX*]\s*\d+/.test(belakang)) {
+      return depan;
+    }
+    if (/\d+\s*[xX*]\s*\d+/.test(depan)) {
+      return belakang;
+    }
+    return depan;
+  }
+  return teks;
+}
+
+/**
+ * Mengisi petaPenjahit dan petaPacking dari sebuah sheet secara aman
+ */
+function isiPetaPenjahitDanPackingDariSheet_(sheet, petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking) {
+  if (!sheet || sheet.getLastRow() < 2) return;
+  try {
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    if (!values || values.length < 2) return;
+    var headers = values[0];
+
+    var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
+    var colSku = cariIndeksKolom_(headers, ['SKU', 'Nomor Referensi SKU', 'Model SKU', 'Kode SKU']);
+    var colVar = cariIndeksKolom_(headers, ['Variasi', 'Nama Variasi', 'Model Name']);
+    var colPenjahit = cariIndeksKolom_(headers, ['Penjahit', 'Nama Penjahit', 'Tukang Jahit', 'Operator Jahit']);
+    var colPacking = cariIndeksKolom_(headers, ['Petugas Packing', 'Packing', 'Petugas', 'Nama Packing']);
+
+    if (colSn === -1) return;
+
+    for (var r = 1; r < values.length; r++) {
+      var row = values[r];
+      var sn = String(row[colSn] || '').trim();
+      if (!sn) continue;
+
+      var sku = (colSku !== -1 && row[colSku]) ? String(row[colSku]).trim().toUpperCase() : '';
+      var rawVar = (colVar !== -1 && row[colVar]) ? String(row[colVar]).trim().toUpperCase() : '';
+      var cleanVar = bersihkanVariasiLocal_(rawVar).toUpperCase();
+      var penjahit = (colPenjahit !== -1 && row[colPenjahit]) ? String(row[colPenjahit]).trim().toUpperCase() : '';
+      var packing = (colPacking !== -1 && row[colPacking]) ? String(row[colPacking]).trim().toUpperCase() : '';
+
+      if (penjahit && penjahit !== '-' && penjahit !== 'BELUM DISET') {
+        if (sku && rawVar) petaPenjahit[sn + '|' + sku + '|' + rawVar] = penjahit;
+        if (sku && cleanVar) petaPenjahit[sn + '|' + sku + '|' + cleanVar] = penjahit;
+        if (rawVar) petaPenjahit[sn + '||' + rawVar] = penjahit;
+        if (cleanVar) petaPenjahit[sn + '||' + cleanVar] = penjahit;
+        if (sku && !petaPenjahitSku[sn + '|' + sku]) petaPenjahitSku[sn + '|' + sku] = penjahit;
+        if (!petaPenjahitBySn[sn]) petaPenjahitBySn[sn] = [];
+        if (petaPenjahitBySn[sn].indexOf(penjahit) === -1) {
+          petaPenjahitBySn[sn].push(penjahit);
+        }
+      }
+
+      if (packing && packing !== '-' && packing !== 'MENUNGGU' && !petaPacking[sn]) {
+        petaPacking[sn] = packing;
+      }
+    }
+  } catch (err) {
+    console.warn('[ShippingService] Gagal membaca data dari sheet ' + (sheet ? sheet.getName() : ''), err);
+  }
+}
+
+/**
  * Menyelesaikan teks kelengkapan SKU berdasarkan aturan bawaan & konfigurasi
  */
 function resolveKelengkapanForItem_(sku, variasi, kelengkapanList) {
@@ -176,93 +296,63 @@ function getShippingOrdersSummary(kodeToko) {
     }
   } catch (errP) {}
 
-  // 1. Peta penjahit & petugas packing dari sheet PEMBAGIAN KERJA & PEMBAGIAN PACKING
+  // 1. Peta penjahit & petugas packing dari sheet PEMBAGIAN KERJA, PEMBAGIAN PACKING, & PEMBAGIAN JAHIT
   var petaPenjahit = {};      // key: orderSn + '|' + sku + '|' + variasi -> penjahit
   var petaPenjahitSku = {};   // key: orderSn + '|' + sku -> penjahit
   var petaPenjahitBySn = {};  // key: orderSn -> [penjahit1, penjahit2]
   var petaPacking = {};       // key: orderSn -> petugasPacking
 
+  // Baca dari Spreadsheet Distribusi Baru (ss)
+  isiPetaPenjahitDanPackingDariSheet_(ss.getSheetByName('PEMBAGIAN KERJA'), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+  isiPetaPenjahitDanPackingDariSheet_(ss.getSheetByName('PEMBAGIAN PACKING'), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+  isiPetaPenjahitDanPackingDariSheet_(ss.getSheetByName('PEMBAGIAN JAHIT'), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+
+  // 2. Baca dari Master Spreadsheet melalui SheetManager (jika tersedia)
   try {
-    var sheetKerja = ss.getSheetByName('PEMBAGIAN KERJA');
-    if (sheetKerja && sheetKerja.getLastRow() > 1) {
-      var kLastRow = sheetKerja.getLastRow();
-      var kLastCol = sheetKerja.getLastColumn();
-      var kValues = sheetKerja.getRange(1, 1, kLastRow, kLastCol).getValues();
-      var kHeaders = kValues[0];
-      var kColSn = kHeaders.indexOf('No. Pesanan');
-      var kColSku = kHeaders.indexOf('SKU');
-      var kColVar = kHeaders.indexOf('Variasi');
-      var kColPenjahit = kHeaders.indexOf('Penjahit');
-      var kColPacking = kHeaders.indexOf('Petugas Packing');
-
-      for (var kr = 1; kr < kValues.length; kr++) {
-        var kRow = kValues[kr];
-        var kSn = (kColSn !== -1 && kRow[kColSn]) ? String(kRow[kColSn]).trim() : '';
-        if (!kSn) continue;
-
-        var kSku = (kColSku !== -1 && kRow[kColSku]) ? String(kRow[kColSku]).trim().toUpperCase() : '';
-        var kVar = (kColVar !== -1 && kRow[kColVar]) ? String(kRow[kColVar]).trim().toUpperCase() : '';
-        var kPenjahit = (kColPenjahit !== -1 && kRow[kColPenjahit]) ? String(kRow[kColPenjahit]).trim().toUpperCase() : '';
-        var kPack = (kColPacking !== -1 && kRow[kColPacking]) ? String(kRow[kColPacking]).trim().toUpperCase() : '';
-
-        if (kPenjahit && kPenjahit !== '-' && kPenjahit !== 'BELUM DISET') {
-          petaPenjahit[kSn + '|' + kSku + '|' + kVar] = kPenjahit;
-          petaPenjahitSku[kSn + '|' + kSku] = kPenjahit;
-          if (!petaPenjahitBySn[kSn]) petaPenjahitBySn[kSn] = [];
-          if (petaPenjahitBySn[kSn].indexOf(kPenjahit) === -1) {
-            petaPenjahitBySn[kSn].push(kPenjahit);
+    if (typeof SheetManager !== 'undefined') {
+      if (typeof SheetManager.bacaPembagian === 'function') {
+        var mBagi = SheetManager.bacaPembagian();
+        for (var mb = 0; mb < mBagi.length; mb++) {
+          var mSn = String(mBagi[mb].noPesanan || '').trim();
+          var mSku = String(mBagi[mb].sku || '').trim().toUpperCase();
+          var mVar = String(mBagi[mb].variasi || '').trim().toUpperCase();
+          var mVarClean = bersihkanVariasiLocal_(mVar).toUpperCase();
+          var mPj = String(mBagi[mb].penjahit || '').trim().toUpperCase();
+          if (mSn && mPj && mPj !== '-' && mPj !== 'BELUM DISET') {
+            if (mSku && mVar) petaPenjahit[mSn + '|' + mSku + '|' + mVar] = mPj;
+            if (mSku && mVarClean) petaPenjahit[mSn + '|' + mSku + '|' + mVarClean] = mPj;
+            if (mVar) petaPenjahit[mSn + '||' + mVar] = mPj;
+            if (mVarClean) petaPenjahit[mSn + '||' + mVarClean] = mPj;
+            if (mSku && !petaPenjahitSku[mSn + '|' + mSku]) petaPenjahitSku[mSn + '|' + mSku] = mPj;
+            if (!petaPenjahitBySn[mSn]) petaPenjahitBySn[mSn] = [];
+            if (petaPenjahitBySn[mSn].indexOf(mPj) === -1) petaPenjahitBySn[mSn].push(mPj);
           }
         }
-
-        if (kPack && kPack !== '-' && kPack !== 'MENUNGGU') {
-          petaPacking[kSn] = kPack;
-        }
       }
-    }
-  } catch (eKerja) {
-    console.warn('[ShippingService] Gagal membaca sheet PEMBAGIAN KERJA:', eKerja);
-  }
-
-  // 2. Baca cadangan dari sheet PEMBAGIAN PACKING
-  try {
-    var sheetPacking = ss.getSheetByName('PEMBAGIAN PACKING');
-    if (sheetPacking && sheetPacking.getLastRow() > 1) {
-      var pVals = sheetPacking.getRange(1, 1, sheetPacking.getLastRow(), sheetPacking.getLastColumn()).getValues();
-      var pHdrs = pVals[0];
-      var pColSn = pHdrs.indexOf('No. Pesanan');
-      var pColPetugas = pHdrs.indexOf('Petugas Packing');
-      if (pColSn !== -1 && pColPetugas !== -1) {
-        for (var pr = 1; pr < pVals.length; pr++) {
-          var pSn = String(pVals[pr][pColSn] || '').trim();
-          var pPet = String(pVals[pr][pColPetugas] || '').trim().toUpperCase();
-          if (pSn && pPet && pPet !== '-' && !petaPacking[pSn]) {
+      if (typeof SheetManager.bacaPembagianPacking === 'function') {
+        var mPack = SheetManager.bacaPembagianPacking();
+        for (var mp = 0; mp < mPack.length; mp++) {
+          var pSn = String(mPack[mp].noPesanan || '').trim();
+          var pPet = String(mPack[mp].petugasPacking || '').trim().toUpperCase();
+          if (pSn && pPet && pPet !== '-' && pPet !== 'MENUNGGU' && !petaPacking[pSn]) {
             petaPacking[pSn] = pPet;
           }
         }
       }
     }
-  } catch (ePack) {
-    console.warn('[ShippingService] Gagal membaca sheet PEMBAGIAN PACKING:', ePack);
+  } catch (eMasterSm) {
+    console.warn('[ShippingService] Gagal membaca via SheetManager:', eMasterSm);
   }
 
-  // 3. Fallback master pembagian jahit
+  // 3. Fallback baca langsung dari Active Spreadsheet jika berbeda dari ss
   try {
-    if (typeof SheetManager !== 'undefined' && SheetManager.bacaHasilPembagian) {
-      var mBagi = SheetManager.bacaHasilPembagian();
-      for (var mb = 0; mb < mBagi.length; mb++) {
-        var mSn = String(mBagi[mb].noPesanan || '').trim();
-        var mSku = String(mBagi[mb].sku || '').trim().toUpperCase();
-        var mVar = String(mBagi[mb].variasi || '').trim().toUpperCase();
-        var mPj = String(mBagi[mb].penjahit || '').trim().toUpperCase();
-        if (mSn && mPj && mPj !== '-' && mPj !== 'BELUM DISET') {
-          if (!petaPenjahit[mSn + '|' + mSku + '|' + mVar]) petaPenjahit[mSn + '|' + mSku + '|' + mVar] = mPj;
-          if (!petaPenjahitSku[mSn + '|' + mSku]) petaPenjahitSku[mSn + '|' + mSku] = mPj;
-          if (!petaPenjahitBySn[mSn]) petaPenjahitBySn[mSn] = [];
-          if (petaPenjahitBySn[mSn].indexOf(mPj) === -1) petaPenjahitBySn[mSn].push(mPj);
-        }
-      }
+    var activeSs = SpreadsheetApp.getActiveSpreadsheet();
+    if (activeSs && (!ss || activeSs.getId() !== ss.getId())) {
+      isiPetaPenjahitDanPackingDariSheet_(activeSs.getSheetByName('PEMBAGIAN KERJA'), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+      isiPetaPenjahitDanPackingDariSheet_(activeSs.getSheetByName('PEMBAGIAN PACKING'), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+      isiPetaPenjahitDanPackingDariSheet_(activeSs.getSheetByName('PEMBAGIAN JAHIT'), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
     }
-  } catch (eMaster) {}
+  } catch (eActiveSs) {}
 
   // 4. Baca kamus kelengkapan SKU
   var kelengkapanList = [];
@@ -276,21 +366,21 @@ function getShippingOrdersSummary(kodeToko) {
     var rangeValues = orderSheet.getRange(1, 1, lastRow, lastCol).getValues();
     var headers = rangeValues[0];
 
-    // Pemetaan indeks kolom secara dinamis dan aman
-    var colSn = headers.indexOf('No. Pesanan');
-    var colDate = headers.indexOf('Tanggal Pesanan (WIB)');
-    var colShopeeStatus = headers.indexOf('Status Shopee');
-    var colInternalStatus = headers.indexOf('Status Internal Begood');
-    var colToko = headers.indexOf('Toko');
-    var colBuyer = headers.indexOf('Nama Pembeli');
-    var colProduct = headers.indexOf('Ringkasan Produk');
-    var colSku = headers.indexOf('Nomor Referensi SKU');
-    var colVariation = headers.indexOf('Nama Variasi');
-    var colQty = headers.indexOf('Total Qty');
-    var colCourier = headers.indexOf('Ekspedisi / Kurir');
-    var colResi = headers.indexOf('No. Resi');
-    var colCity = headers.indexOf('Kota Tujuan');
-    var colNotes = headers.indexOf('Catatan Pembeli');
+    // Pemetaan indeks kolom secara dinamis, fleksibel, dan aman
+    var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
+    var colDate = cariIndeksKolom_(headers, ['Tanggal Pesanan (WIB)', 'Tanggal Pesanan', 'Tanggal', 'Order Date']);
+    var colShopeeStatus = cariIndeksKolom_(headers, ['Status Shopee', 'Status Order', 'Shopee Status']);
+    var colInternalStatus = cariIndeksKolom_(headers, ['Status Internal Begood', 'Status Internal', 'Status']);
+    var colToko = cariIndeksKolom_(headers, ['Toko', 'Nama Toko', 'Store']);
+    var colBuyer = cariIndeksKolom_(headers, ['Nama Pembeli', 'Pembeli', 'Buyer', 'Username']);
+    var colProduct = cariIndeksKolom_(headers, ['Ringkasan Produk', 'Nama Produk', 'Produk', 'Item Name']);
+    var colSku = cariIndeksKolom_(headers, ['Nomor Referensi SKU', 'SKU Induk', 'SKU', 'Model SKU']);
+    var colVariation = cariIndeksKolom_(headers, ['Nama Variasi', 'Variasi', 'Variation', 'Model Name']);
+    var colQty = cariIndeksKolom_(headers, ['Total Qty', 'Qty', 'Jumlah', 'Quantity']);
+    var colCourier = cariIndeksKolom_(headers, ['Ekspedisi / Kurir', 'Ekspedisi', 'Kurir', 'Shipping Carrier', 'Carrier']);
+    var colResi = cariIndeksKolom_(headers, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
+    var colCity = cariIndeksKolom_(headers, ['Kota Tujuan', 'Kota', 'City', 'Recipient City']);
+    var colNotes = cariIndeksKolom_(headers, ['Catatan Pembeli', 'Catatan', 'Notes', 'Buyer Note']);
 
     // Loop dari baris paling baru ke lama
     for (var i = rangeValues.length - 1; i >= 1; i--) {
@@ -366,10 +456,16 @@ function getShippingOrdersSummary(kodeToko) {
       var itemQty = (colQty !== -1 && Number(row[colQty])) ? Number(row[colQty]) : 1;
 
       var kSkuClean = itemSku.toUpperCase();
-      var kVarClean = itemVariation.toUpperCase();
-      var itemPenjahit = petaPenjahit[orderSn + '|' + kSkuClean + '|' + kVarClean] ||
+      var kVarRaw = itemVariation.toUpperCase();
+      var kVarClean = bersihkanVariasiLocal_(itemVariation).toUpperCase();
+
+      var itemPenjahit = petaPenjahit[orderSn + '|' + kSkuClean + '|' + kVarRaw] ||
+                         petaPenjahit[orderSn + '|' + kSkuClean + '|' + kVarClean] ||
+                         petaPenjahit[orderSn + '||' + kVarRaw] ||
+                         petaPenjahit[orderSn + '||' + kVarClean] ||
                          petaPenjahitSku[orderSn + '|' + kSkuClean] ||
-                         (petaPenjahitBySn[orderSn] ? petaPenjahitBySn[orderSn][0] : '') ||
+                         (petaPenjahitBySn[orderSn] && petaPenjahitBySn[orderSn].length === 1 ? petaPenjahitBySn[orderSn][0] : '') ||
+                         (petaPenjahitBySn[orderSn] && petaPenjahitBySn[orderSn].length > 1 ? petaPenjahitBySn[orderSn].join(', ') : '') ||
                          '-';
 
       var itemKelengkapan = resolveKelengkapanForItem_(itemSku, itemVariation, kelengkapanList);
@@ -443,12 +539,12 @@ function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusS
   var values = range.getValues();
   var headers = values[0];
 
-  var colSn = headers.indexOf('No. Pesanan');
-  var colResi = headers.indexOf('No. Resi');
-  var colStatus = headers.indexOf('Status Shopee');
-  var colInternal = headers.indexOf('Status Internal Begood');
-  var colSync = headers.indexOf('Waktu Sinkronisasi');
-  var colToko = headers.indexOf('Toko');
+  var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
+  var colResi = cariIndeksKolom_(headers, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
+  var colStatus = cariIndeksKolom_(headers, ['Status Shopee', 'Status Order', 'Shopee Status']);
+  var colInternal = cariIndeksKolom_(headers, ['Status Internal Begood', 'Status Internal', 'Status']);
+  var colSync = cariIndeksKolom_(headers, ['Waktu Sinkronisasi', 'Sync Time', 'Waktu']);
+  var colToko = cariIndeksKolom_(headers, ['Toko', 'Nama Toko', 'Store']);
 
   if (colSn === -1) return false;
 
@@ -482,8 +578,8 @@ function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusS
       var pRange = sheetPacking.getRange(1, 1, sheetPacking.getLastRow(), sheetPacking.getLastColumn());
       var pVals = pRange.getValues();
       var pHdrs = pVals[0];
-      var pSnCol = pHdrs.indexOf('No. Pesanan');
-      var pResiCol = pHdrs.indexOf('No. Resi');
+      var pSnCol = cariIndeksKolom_(pHdrs, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn']);
+      var pResiCol = cariIndeksKolom_(pHdrs, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
       if (pSnCol !== -1 && pResiCol !== -1) {
         var pUpdated = false;
         for (var p = 1; p < pVals.length; p++) {
@@ -516,8 +612,8 @@ function findOrderStoreInfo_(orderSn) {
     var lastCol = sheet.getLastColumn();
     var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
     var headers = values[0];
-    var colSn = headers.indexOf('No. Pesanan');
-    var colToko = headers.indexOf('Toko');
+    var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
+    var colToko = cariIndeksKolom_(headers, ['Toko', 'Nama Toko', 'Store']);
     var targetSn = String(orderSn || '').trim();
 
     if (colSn !== -1) {
@@ -979,11 +1075,11 @@ function fetchBatchTrackingNumbersRpc(orderSnList, kodeToko) {
               var range = sheet.getRange(1, 1, lastRow, lastCol);
               var values = range.getValues();
               var headers = values[0];
-              var colSn = headers.indexOf('No. Pesanan');
-              var colResi = headers.indexOf('No. Resi');
-              var colStatus = headers.indexOf('Status Shopee');
-              var colInternal = headers.indexOf('Status Internal Begood');
-              var colSync = headers.indexOf('Waktu Sinkronisasi');
+              var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
+              var colResi = cariIndeksKolom_(headers, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
+              var colStatus = cariIndeksKolom_(headers, ['Status Shopee', 'Status Order', 'Shopee Status']);
+              var colInternal = cariIndeksKolom_(headers, ['Status Internal Begood', 'Status Internal', 'Status']);
+              var colSync = cariIndeksKolom_(headers, ['Waktu Sinkronisasi', 'Sync Time', 'Waktu']);
               var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
               var hasChanges = false;
 

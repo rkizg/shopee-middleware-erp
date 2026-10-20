@@ -1856,8 +1856,12 @@
             '<td>' +
               '<div>' + skuHtml + '</div>' +
               '<div style="font-size: 10px; color: #475569; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">' +
-                '<span style="background: #f1f5f9; padding: 1px 4px; border-radius: 2px; font-weight: 600;" title="Penjahit"><i class="fa-solid fa-scissors" style="font-size: 8.5px; margin-right: 3px;"></i>' + (o.penjahit_summary || '-') + '</span>' +
-                '<span style="background: #f1f5f9; padding: 1px 4px; border-radius: 2px; font-weight: 600;" title="Petugas Packing"><i class="fa-solid fa-box-open" style="font-size: 8.5px; margin-right: 3px;"></i>' + (o.petugas_packing || '-') + '</span>' +
+                ((o.penjahit_summary && o.penjahit_summary !== '-')
+                  ? '<span style="background: #f1f5f9; color: #0f172a; padding: 1px 5px; border-radius: 3px; font-weight: 600;" title="Penjahit"><i class="fa-solid fa-scissors" style="font-size: 8.5px; margin-right: 3px;"></i>' + o.penjahit_summary + '</span>'
+                  : '<span style="background: #fff7ed; color: #9a3412; padding: 1px 5px; border-radius: 3px; font-weight: 500; border: 1px dashed #fed7aa;" title="Belum dibagi di menu Distribusi Kerja"><i class="fa-solid fa-scissors" style="font-size: 8.5px; margin-right: 3px;"></i>Belum dibagi</span>') +
+                ((o.petugas_packing && o.petugas_packing !== '-')
+                  ? '<span style="background: #f1f5f9; color: #0f172a; padding: 1px 5px; border-radius: 3px; font-weight: 600;" title="Petugas Packing"><i class="fa-solid fa-box-open" style="font-size: 8.5px; margin-right: 3px;"></i>' + o.petugas_packing + '</span>'
+                  : '<span style="background: #f8fafc; color: #94a3b8; padding: 1px 5px; border-radius: 3px; font-weight: 500; border: 1px dashed #cbd5e1;" title="Belum diset"><i class="fa-solid fa-box-open" style="font-size: 8.5px; margin-right: 3px;"></i>Belum diset</span>') +
               '</div>' +
               (o.notes ? '<div style="font-size: 11px; color: #b45309; margin-top: 3px;"><i class="fa-regular fa-comment-dots" style="margin-right: 4px;"></i>' + o.notes + '</div>' : '') +
             '</td>' +
@@ -2045,7 +2049,7 @@
 
       var itemsHtml = '';
       (order.items || []).forEach(function(it) {
-        var penjahitText = (it.penjahit && it.penjahit !== '-') ? it.penjahit : (order.penjahit_summary || '-');
+        var penjahitText = (it.penjahit && it.penjahit !== '-') ? it.penjahit : ((order.penjahit_summary && order.penjahit_summary !== '-') ? order.penjahit_summary : '(Belum dibagi)');
         var kelengkapanText = it.kelengkapan || '';
 
         itemsHtml +=
@@ -2112,7 +2116,7 @@
           '<div class="thermal-footer-box">' +
             '<div style="display:flex; justify-content:space-between; align-items:center; font-size: 9px;">' +
               '<div>' +
-                '<div><strong>Petugas Packing:</strong> <span style="font-weight:800; text-transform:uppercase;">' + (order.petugas_packing || '-') + '</span></div>' +
+                '<div><strong>Petugas Packing:</strong> <span style="font-weight:800; text-transform:uppercase;">' + ((order.petugas_packing && order.petugas_packing !== '-') ? order.petugas_packing : '(Belum diset)') + '</span></div>' +
                 '<div style="font-size: 8px; color: #64748b; margin-top: 1px;">Sesi: PAGI | Quality Assured</div>' +
               '</div>' +
               '<div style="text-align:center; border:1px solid #000; padding:2px 8px; border-radius:2px; background:#fff;">' +
@@ -2184,7 +2188,24 @@
           '</div>';
       }
 
-      container.innerHTML = warningHtml + buildThermalLabelHtml(order, 'prev-barcode-svg');
+      var unassignedNoticeHtml = '';
+      var hasNoPenjahit = (!order.penjahit_summary || order.penjahit_summary === '-' || order.penjahit_summary === '(Belum dibagi)');
+      var hasNoPacking = (!order.petugas_packing || order.petugas_packing === '-' || order.petugas_packing === '(Belum diset)');
+
+      if (hasNoPenjahit && hasNoPacking) {
+        unassignedNoticeHtml =
+          '<div style="background: #f8fafc; border: 1px dashed #cbd5e1; color: #475569; padding: 8px 12px; border-radius: 6px; font-size: 11px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">' +
+            '<div>' +
+              '<i class="fa-solid fa-scissors" style="margin-right: 4px; color: #64748b;"></i>' +
+              '<strong>Penjahit &amp; Petugas Packing:</strong> Belum dialokasikan di menu Distribusi Kerja.' +
+            '</div>' +
+            '<a href="?page=distribusi" target="_blank" class="btn btn-sm" style="background: #0f172a; color: #fff; font-size: 10.5px; padding: 3px 8px; text-decoration: none; border-radius: 4px; font-weight: 600; white-space: nowrap;">' +
+              'Buka Distribusi Kerja &rarr;' +
+            '</a>' +
+          '</div>';
+      }
+
+      container.innerHTML = warningHtml + unassignedNoticeHtml + buildThermalLabelHtml(order, 'prev-barcode-svg');
 
       renderBarcodeForSn('prev-barcode-svg', order.tracking_number || order.order_sn);
 

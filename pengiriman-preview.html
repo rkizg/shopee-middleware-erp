@@ -895,12 +895,16 @@
     .thermal-label {
       width: 380px;
       background: #ffffff;
-      border: 1px solid #94a3b8;
+      border: 2px solid #000000;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      padding: 14px;
+      padding: 12px;
       font-family: var(--font-sans);
       color: #000000;
-      line-height: 1.3;
+      line-height: 1.25;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .thermal-header {
@@ -908,37 +912,100 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 2px solid #000;
-      padding-bottom: 8px;
-      margin-bottom: 10px;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
     }
 
-    .thermal-brand { font-size: 16px; font-weight: 900; letter-spacing: -0.02em; }
-    .thermal-courier { font-size: 18px; font-weight: 900; text-transform: uppercase; border: 2px solid #000; padding: 2px 8px; }
+    .thermal-brand { font-size: 15px; font-weight: 900; letter-spacing: -0.02em; }
+    .thermal-courier { font-size: 15px; font-weight: 900; text-transform: uppercase; border: 2px solid #000; padding: 1px 6px; border-radius: 2px; }
 
     .thermal-barcode-box {
       text-align: center;
-      margin: 10px 0;
-      padding: 6px 0;
-      border-bottom: 1px solid #000;
+      margin: 4px 0 6px 0;
+      padding: 2px 0 4px 0;
+      border-bottom: 1.5px solid #000;
     }
 
-    .thermal-barcode-box svg { max-width: 100%; height: 60px; }
-    .thermal-resi-text { font-family: var(--font-mono); font-size: 15px; font-weight: 800; letter-spacing: 0.08em; margin-top: 4px; }
+    .thermal-barcode-box svg { max-width: 100%; height: 48px; }
+    .thermal-resi-text { font-family: var(--font-mono); font-size: 13.5px; font-weight: 800; letter-spacing: 0.08em; margin-top: 2px; }
 
     .thermal-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      border-bottom: 1px solid #000;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
-      font-size: 11px;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 8px;
+      border-bottom: 1.5px solid #000;
+      padding-bottom: 5px;
+      margin-bottom: 5px;
+      font-size: 10px;
+    }
+
+    .thermal-qc-banner {
+      background: #000000;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 2.5px 4px;
+      margin-bottom: 5px;
+      border-radius: 2px;
     }
 
     .thermal-items {
-      font-size: 10.5px;
-      border-top: 1px solid #000;
-      padding-top: 6px;
+      font-size: 10px;
+      flex: 1;
+      margin-bottom: 6px;
+    }
+
+    .thermal-item-row {
+      border: 1px solid #000000;
+      border-radius: 2px;
+      padding: 4px 6px;
+      margin-bottom: 4px;
+      background: #ffffff;
+    }
+
+    .thermal-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .thermal-check-box {
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #000000;
+      border-radius: 2px;
+      display: inline-block;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .thermal-penjahit-tag {
+      font-size: 8.5px;
+      font-weight: 800;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 4px;
+      border-radius: 2px;
+      border: 1px solid #cbd5e1;
+      display: inline-block;
+    }
+
+    .thermal-kelengkapan-box {
+      font-size: 8.5px;
+      color: #1e293b;
+      margin-top: 2px;
+      padding-top: 2px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .thermal-footer-box {
+      border-top: 2px solid #000000;
+      padding-top: 4px;
+      margin-top: auto;
     }
 
     /* Toast Notification */
@@ -972,15 +1039,31 @@
     .toast.toast-danger { background: #b91c1c; }
 
     @media print {
-      body * { visibility: hidden; }
-      #thermal-print-target, #thermal-print-target * { visibility: visible; }
-      #thermal-print-target {
+      body * { visibility: hidden !important; }
+      #thermal-batch-print-container, #thermal-batch-print-container * { visibility: visible !important; }
+      #thermal-batch-print-container {
         position: absolute;
         left: 0;
         top: 0;
         width: 100mm;
         margin: 0;
         padding: 0;
+        display: block !important;
+      }
+      .thermal-label {
+        width: 100mm !important;
+        height: 147mm !important;
+        max-height: 149mm !important;
+        padding: 4mm 5mm !important;
+        margin: 0 0 2mm 0 !important;
+        box-sizing: border-box !important;
+        border: 1.5px solid #000 !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
       }
       @page {
         size: 100mm 150mm;
@@ -1324,57 +1407,35 @@
       <div class="modal-header">
         <div class="modal-title">
           <i class="fa-solid fa-print" style="margin-right: 8px;"></i>
-          Pratinjau Resi Thermal Roll A6 (100 &times; 150 mm)
+          Pratinjau Resi Thermal Roll A6 (100 &times; 150 mm) - QC &amp; Resi
         </div>
         <button class="btn-close-modal" onclick="closeModal('modal-thermal-preview')">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="thermal-preview-wrap">
-          <div class="thermal-label" id="thermal-print-target">
-            <div class="thermal-header">
-              <div class="thermal-brand">b e g o o d . b d g</div>
-              <div class="thermal-courier" id="prev-courier">SPX</div>
-            </div>
-
-            <div class="thermal-barcode-box">
-              <svg id="prev-barcode"></svg>
-              <div class="thermal-resi-text" id="prev-resi">SPXID04829103910B</div>
-            </div>
-
-            <div class="thermal-grid">
-              <div>
-                <div style="font-size: 9.5px; color: #64748b; text-transform: uppercase;">Penerima:</div>
-                <div style="font-weight: 700; font-size: 12px;" id="prev-buyer">Nama Pembeli</div>
-                <div style="font-size: 10.5px; color: #334155; margin-top: 2px;" id="prev-city">Kota Bandung, Jawa Barat</div>
-              </div>
-              <div style="text-align: right;">
-                <div style="font-size: 9.5px; color: #64748b; text-transform: uppercase;">No. Pesanan:</div>
-                <div class="mono-cell" style="font-size: 10.5px; font-weight: 700;" id="prev-sn">241020XYZ9910</div>
-                <div style="font-size: 9.5px; color: #64748b; margin-top: 4px;">Berat: ~500 gr</div>
-              </div>
-            </div>
-
-            <div class="thermal-items">
-              <div style="font-weight: 700; margin-bottom: 4px;">Daftar Produk:</div>
-              <div id="prev-items-list" style="line-height: 1.4;"></div>
-            </div>
-
-            <div style="margin-top: 12px; padding-top: 6px; border-top: 1px dashed #000; font-size: 9px; display: flex; justify-content: space-between;">
-              <span>Shopee Airway Bill Thermal</span>
-              <span>ERP Begood System</span>
-            </div>
-          </div>
+        <div class="thermal-preview-wrap" id="thermal-preview-container">
+          <!-- Di-render dinamis oleh buildThermalLabelHtml -->
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-sm" onclick="closeModal('modal-thermal-preview')">Tutup</button>
-        <button class="btn btn-sm btn-primary" onclick="printThermalDirect()">
-          <i class="fa-solid fa-print"></i>
-          <span>Cetak Sekarang (A6 Thermal)</span>
-        </button>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <button class="btn btn-sm" id="btn-dl-pdf-shopee" title="Unduh berkas PDF mentah dari server Shopee" onclick="downloadRawShopeePdfCurrent()">
+            <i class="fa-solid fa-file-pdf" style="color: #ef4444; margin-right: 4px;"></i>
+            <span>Unduh PDF Shopee Asli</span>
+          </button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-sm" onclick="closeModal('modal-thermal-preview')">Tutup</button>
+          <button class="btn btn-sm btn-primary" onclick="printThermalDirect()">
+            <i class="fa-solid fa-print"></i>
+            <span>Cetak Sekarang (A6 Thermal)</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Hidden Container khusus untuk dialog window.print() (Cetak 1 atau Massal) -->
+  <div id="thermal-batch-print-container" style="display:none;"></div>
 
   <div class="toast-container" id="toast-container"></div>
 
@@ -1395,10 +1456,13 @@
         toko: 'BEGOOD',
         stage: 'need_arrange',
         is_printed: false,
+        petugas_packing: 'RINA',
+        penjahit_summary: 'BUDI',
         total_qty: 2,
         total_amount: 145000,
         items: [
-          { sku: 'SARKUR 120/5', name: 'Sarung Kursi Begood', variation: 'Hitam', qty: 2 }
+          { sku: 'SPREI 120/SET', name: 'Sprei Set Single Begood', variation: 'Lilac', qty: 1, penjahit: 'BUDI', kelengkapan: '1 Bantal + 1 Guling + 2 Tali' },
+          { sku: 'SARKUR 120/5', name: 'Sarung Kursi Begood', variation: 'Hitam', qty: 1, penjahit: 'BUDI', kelengkapan: '5 Pcs Sarung Kursi' }
         ]
       },
       {
@@ -1414,10 +1478,12 @@
         toko: 'BEGOOD',
         stage: 'need_arrange',
         is_printed: false,
+        petugas_packing: 'SITI',
+        penjahit_summary: 'ANI',
         total_qty: 1,
         total_amount: 89000,
         items: [
-          { sku: 'BGD-TSHIRT-OVR', name: 'Kaos Begood Oversize', variation: 'Sage Green - XL', qty: 1 }
+          { sku: 'SPREI 180/SET', name: 'Sprei Set King Begood', variation: 'Sage Green - XL', qty: 1, penjahit: 'ANI', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' }
         ]
       },
       {
@@ -1433,11 +1499,13 @@
         toko: 'BEGOOD',
         stage: 'need_arrange',
         is_printed: false,
+        petugas_packing: 'RINA',
+        penjahit_summary: 'BUDI, AGUS',
         total_qty: 3,
         total_amount: 235000,
         items: [
-          { sku: 'SARKUR 100/10', name: 'Sarung Kursi Begood', variation: 'Navy', qty: 2 },
-          { sku: 'BGD-CAP', name: 'Topi Polocap Begood', variation: 'Hitam', qty: 1 }
+          { sku: 'SARKUR 100/10', name: 'Sarung Kursi Begood', variation: 'Navy', qty: 2, penjahit: 'BUDI', kelengkapan: '10 Pcs Sarung Kursi' },
+          { sku: 'BGD-CAP', name: 'Topi Polocap Begood', variation: 'Hitam', qty: 1, penjahit: 'AGUS', kelengkapan: '' }
         ]
       },
       {
@@ -1453,10 +1521,12 @@
         toko: 'BEGOOD',
         stage: 'ready_to_print',
         is_printed: false,
+        petugas_packing: 'SITI',
+        penjahit_summary: 'SITI',
         total_qty: 1,
         total_amount: 110000,
         items: [
-          { sku: 'BGD-PANTS-CHINO', name: 'Celana Chino Begood', variation: 'Krem - 32', qty: 1 }
+          { sku: 'SPREI 160/SET', name: 'Sprei Set Queen Begood', variation: 'Krem', qty: 1, penjahit: 'SITI', kelengkapan: '2 Bantal + 2 Guling + 2 Tali' }
         ]
       },
       {
@@ -1472,10 +1542,12 @@
         toko: 'BEGOOD',
         stage: 'ready_to_print',
         is_printed: false,
+        petugas_packing: 'RINA',
+        penjahit_summary: 'ANI',
         total_qty: 2,
         total_amount: 178000,
         items: [
-          { sku: 'BGD-TSHIRT-OVR', name: 'Kaos Begood Oversize', variation: 'Hitam - L', qty: 2 }
+          { sku: 'BGD-TSHIRT-OVR', name: 'Kaos Begood Oversize', variation: 'Hitam - L', qty: 2, penjahit: 'ANI', kelengkapan: '' }
         ]
       },
       {
@@ -1875,50 +1947,157 @@
       }, 700);
     }
 
-    function actionPreviewAndPrint(orderSn) {
-      var order = rawOrders.find(function(o) { return o.order_sn === orderSn; });
-      if (!order) return;
+    var activePreviewOrder = null;
 
-      document.getElementById('prev-sn').textContent = order.order_sn;
-      document.getElementById('prev-buyer').textContent = order.buyer_name;
-      document.getElementById('prev-city').textContent = order.city || 'Indonesia';
-      document.getElementById('prev-courier').textContent = order.courier || 'KURIR';
-      document.getElementById('prev-resi').textContent = order.tracking_number || order.order_sn;
-
-      try {
-        JsBarcode('#prev-barcode', order.tracking_number || order.order_sn, {
-          format: 'CODE128',
-          lineColor: '#000',
-          width: 2,
-          height: 50,
-          displayValue: false
-        });
-      } catch (eBarcode) {
-        console.warn('JsBarcode error:', eBarcode);
-      }
+    /**
+     * Helper untuk membuat markup kartu label thermal A6 lengkap (Opsi A)
+     * Memuat barcode Shopee, data penerima, tabel checklist QC, penjahit, kelengkapan, & petugas packing
+     */
+    function buildThermalLabelHtml(order, barcodeId) {
+      var trackingNum = order.tracking_number || order.order_sn;
+      var nowWIB = new Date().toLocaleDateString('id-ID', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
 
       var itemsHtml = '';
       (order.items || []).forEach(function(it) {
-        itemsHtml += '<div style="display:flex; justify-content:space-between; margin-bottom:2px;">' +
-          '<span>' + (it.sku !== '-' ? it.sku : it.name) + (it.variation ? ' - ' + it.variation : '') + '</span>' +
-          '<strong>x' + it.qty + '</strong>' +
-        '</div>';
+        var penjahitText = (it.penjahit && it.penjahit !== '-') ? it.penjahit : (order.penjahit_summary || '-');
+        var kelengkapanText = it.kelengkapan || '';
+
+        itemsHtml +=
+          '<div class="thermal-item-row">' +
+            '<div class="thermal-item-header">' +
+              '<div style="display:flex; align-items:flex-start; gap:6px;">' +
+                '<span class="thermal-check-box"></span>' +
+                '<div>' +
+                  '<div style="font-weight: 800; font-size: 10px; line-height: 1.2;">' +
+                    (it.sku && it.sku !== '-' ? it.sku : it.name) +
+                  '</div>' +
+                  (it.variation ? '<div style="font-size: 8.5px; color: #334155; margin-top: 1px;">Var: ' + it.variation + '</div>' : '') +
+                '</div>' +
+              '</div>' +
+              '<div style="font-size: 10.5px; font-weight: 900; white-space: nowrap; margin-left: 4px;">x' + it.qty + '</div>' +
+            '</div>' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; margin-top: 3px; padding-top: 2px; border-top: 1px dashed #cbd5e1; font-size: 8.5px;">' +
+              '<div>' +
+                '<strong>Penjahit:</strong> <span class="thermal-penjahit-tag">' + penjahitText + '</span>' +
+              '</div>' +
+              (kelengkapanText ? '<div style="text-align:right; font-weight:700; color:#0f172a;"><i class="fa-solid fa-tags" style="font-size:7.5px; margin-right:2px;"></i>' + kelengkapanText + '</div>' : '') +
+            '</div>' +
+          '</div>';
       });
-      document.getElementById('prev-items-list').innerHTML = itemsHtml;
+
+      return (
+        '<div class="thermal-label">' +
+          '<div>' +
+            '<div class="thermal-header">' +
+              '<div>' +
+                '<span class="thermal-brand">b e g o o d . b d g</span>' +
+                '<span style="font-size: 9.5px; font-weight: 700; color: #475569; margin-left: 5px;">| TOKO: ' + (order.toko || 'BEGOOD') + '</span>' +
+              '</div>' +
+              '<div class="thermal-courier">' + (order.courier || 'KURIR') + '</div>' +
+            '</div>' +
+
+            '<div class="thermal-barcode-box">' +
+              '<svg id="' + barcodeId + '"></svg>' +
+              '<div class="thermal-resi-text">' + trackingNum + '</div>' +
+            '</div>' +
+
+            '<div class="thermal-grid">' +
+              '<div>' +
+                '<div style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">Penerima:</div>' +
+                '<div style="font-weight: 800; font-size: 11px; line-height: 1.2;">' + (order.buyer_name || '-') + '</div>' +
+                '<div style="font-size: 9px; color: #334155; margin-top: 2px; line-height: 1.2;">' + (order.city || '-') + '</div>' +
+              '</div>' +
+              '<div style="text-align: right;">' +
+                '<div style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">No. Pesanan:</div>' +
+                '<div class="mono-cell" style="font-size: 9.5px; font-weight: 800;">' + order.order_sn + '</div>' +
+                '<div style="font-size: 8.5px; color: #475569; margin-top: 2px;">Total: <strong>' + order.total_qty + ' Pcs</strong> (~500g)</div>' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="thermal-qc-banner">' +
+              'VERIFIKASI QC, PENJAHIT &amp; KELENGKAPAN' +
+            '</div>' +
+
+            '<div class="thermal-items">' +
+              itemsHtml +
+            '</div>' +
+          '</div>' +
+
+          '<div class="thermal-footer-box">' +
+            '<div style="display:flex; justify-content:space-between; align-items:center; font-size: 9px;">' +
+              '<div>' +
+                '<div><strong>Petugas Packing:</strong> <span style="font-weight:800; text-transform:uppercase;">' + (order.petugas_packing || '-') + '</span></div>' +
+                '<div style="font-size: 8px; color: #64748b; margin-top: 1px;">Sesi: PAGI | Quality Assured</div>' +
+              '</div>' +
+              '<div style="text-align:center; border:1px solid #000; padding:2px 8px; border-radius:2px; background:#fff;">' +
+                '<div style="font-size: 7.5px; font-weight:800; text-transform:uppercase;">Paraf QC</div>' +
+                '<div style="height: 16px; width: 45px;"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex; justify-content:space-between; font-size: 7.5px; color: #64748b; margin-top: 3px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">' +
+              '<span>Cetak: ' + nowWIB + ' WIB</span>' +
+              '<span>ERP Begood Thermal Roll A6 (100x150 mm)</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    /**
+     * Render Barcode Code128 menggunakan JsBarcode
+     */
+    function renderBarcodeForSn(elementId, value) {
+      try {
+        var el = document.getElementById(elementId);
+        if (!el) return;
+        JsBarcode('#' + elementId, String(value).trim(), {
+          format: 'CODE128',
+          lineColor: '#000000',
+          width: 2,
+          height: 46,
+          displayValue: false,
+          margin: 0
+        });
+      } catch (err) {
+        console.warn('JsBarcode render error for #' + elementId + ':', err);
+      }
+    }
+
+    function actionPreviewAndPrint(orderSn) {
+      var order = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+      if (!order) return;
+      activePreviewOrder = order;
+
+      var container = document.getElementById('thermal-preview-container');
+      container.innerHTML = buildThermalLabelHtml(order, 'prev-barcode-svg');
+
+      renderBarcodeForSn('prev-barcode-svg', order.tracking_number || order.order_sn);
+
       document.getElementById('modal-thermal-preview').classList.add('active');
     }
 
     function printThermalDirect() {
-      var sn = document.getElementById('prev-sn').textContent;
+      if (!activePreviewOrder) return;
+
+      var printBox = document.getElementById('thermal-batch-print-container');
+      printBox.innerHTML = buildThermalLabelHtml(activePreviewOrder, 'direct-barcode-' + activePreviewOrder.order_sn);
+      renderBarcodeForSn('direct-barcode-' + activePreviewOrder.order_sn, activePreviewOrder.tracking_number || activePreviewOrder.order_sn);
+
       window.print();
-      var order = rawOrders.find(function(o) { return o.order_sn === sn; });
-      if (order) {
-        order.is_printed = true;
-        order.stage = 'already_printed';
-        recalculateKPIs();
-        applyFilterAndRender();
-        showToast('Resi dicetak untuk pesanan ' + sn, 'success');
-      }
+
+      activePreviewOrder.is_printed = true;
+      activePreviewOrder.stage = 'already_printed';
+      recalculateKPIs();
+      applyFilterAndRender();
+      showToast('Label A6 dicetak untuk pesanan ' + activePreviewOrder.order_sn, 'success');
+    }
+
+    function downloadRawShopeePdfCurrent() {
+      showToast('Mengunduh sampel PDF resmi Shopee...', 'success');
+      window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank');
     }
 
     function triggerBatchShipSelected(method) {
@@ -1953,22 +2132,37 @@
         return;
       }
 
-      setProgress(true);
-      setTimeout(function() {
-        setProgress(false);
-        sns.forEach(function(sn) {
-          var o = rawOrders.find(function(item) { return item.order_sn === sn; });
-          if (o) {
-            o.is_printed = true;
-            o.stage = 'already_printed';
-          }
-        });
-        clearAllSelections();
-        recalculateKPIs();
-        applyFilterAndRender();
-        showToast('Menyiapkan ' + sns.length + ' resi untuk dicetak ke Printer Thermal A6...', 'success');
-        actionPreviewAndPrint(sns[0]);
-      }, 900);
+      var ordersToPrint = rawOrders.filter(function(o) { return selectedOrderSns[o.order_sn]; });
+      if (ordersToPrint.length === 0) return;
+
+      var printBox = document.getElementById('thermal-batch-print-container');
+      printBox.innerHTML = '';
+
+      for (var i = 0; i < ordersToPrint.length; i++) {
+        var ord = ordersToPrint[i];
+        printBox.innerHTML += buildThermalLabelHtml(ord, 'batch-bc-' + ord.order_sn);
+      }
+
+      for (var j = 0; j < ordersToPrint.length; j++) {
+        var oItem = ordersToPrint[j];
+        renderBarcodeForSn('batch-bc-' + oItem.order_sn, oItem.tracking_number || oItem.order_sn);
+      }
+
+      window.print();
+
+      ordersToPrint.forEach(function(o) {
+        o.is_printed = true;
+        o.stage = 'already_printed';
+      });
+      clearAllSelections();
+      recalculateKPIs();
+      applyFilterAndRender();
+      showToast(sns.length + ' label thermal A6 dicetak ke printer roll!', 'success');
+    }
+
+    function triggerBatchDownloadShopeePdf() {
+      showToast('Mengunduh berkas PDF batch resmi Shopee...', 'success');
+      window.open('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', '_blank');
     }
 
     function closeModal(id) {

@@ -87,6 +87,55 @@ function bukaMejaPengirimanPrompt() {
 }
 
 /**
+ * Menyelesaikan teks kelengkapan SKU berdasarkan aturan bawaan & konfigurasi
+ */
+function resolveKelengkapanForItem_(sku, variasi, kelengkapanList) {
+  var s = String(sku || '').trim().toUpperCase();
+  var v = String(variasi || '').trim().toUpperCase();
+  var combined = (s + ' ' + v).replace(/\s+/g, ' ');
+
+  // 1. Cek kecocokan di daftar kelengkapan dari SheetManager
+  if (kelengkapanList && kelengkapanList.length > 0) {
+    for (var i = 0; i < kelengkapanList.length; i++) {
+      var pola = String(kelengkapanList[i].sku || '').trim().toUpperCase();
+      if (!pola) continue;
+      // Exact match
+      if (pola === s || pola === combined) {
+        return kelengkapanList[i].kelengkapan;
+      }
+      // Wildcard match (e.g. SPREI*120*SET)
+      if (pola.indexOf('*') !== -1) {
+        var regexStr = '^' + pola.split('*').map(function(part) {
+          return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }).join('.*') + '$';
+        try {
+          var re = new RegExp(regexStr, 'i');
+          if (re.test(s) || re.test(combined)) {
+            return kelengkapanList[i].kelengkapan;
+          }
+        } catch (e) {}
+      }
+    }
+  }
+
+  // 2. Fallback ke deteksi otomatis SPREI SET
+  if (combined.indexOf('SPREI') !== -1 && combined.indexOf('SET') !== -1) {
+    var mUkuran = combined.match(/\b(70|80|90|100|120|140|150|160|180|200)(?:\s*[\/xX*]|\b)/);
+    if (mUkuran) {
+      var lebar = parseInt(mUkuran[1], 10);
+      if (lebar >= 140) return '2 Bantal + 2 Guling + 2 Tali';
+      return '1 Bantal + 1 Guling + 2 Tali';
+    }
+    if (/\b(KING|QUEEN|DOUBLE)\b/.test(combined)) {
+      return '2 Bantal + 2 Guling + 2 Tali';
+    }
+    return '1 Bantal + 1 Guling + 2 Tali';
+  }
+
+  return '';
+}
+
+/**
  * Mendapatkan daftar pesanan aktif untuk Meja Pengiriman
  * dari Spreadsheet Distribusi Baru (Sheet "Pesanan Masuk")
  */
@@ -126,6 +175,102 @@ function getShippingOrdersSummary(kodeToko) {
       printedSet[String(printedList[p])] = true;
     }
   } catch (errP) {}
+
+  // 1. Peta penjahit & petugas packing dari sheet PEMBAGIAN KERJA & PEMBAGIAN PACKING
+  var petaPenjahit = {};      // key: orderSn + '|' + sku + '|' + variasi -> penjahit
+  var petaPenjahitSku = {};   // key: orderSn + '|' + sku -> penjahit
+  var petaPenjahitBySn = {};  // key: orderSn -> [penjahit1, penjahit2]
+  var petaPacking = {};       // key: orderSn -> petugasPacking
+
+  try {
+    var sheetKerja = ss.getSheetByName('PEMBAGIAN KERJA');
+    if (sheetKerja && sheetKerja.getLastRow() > 1) {
+      var kLastRow = sheetKerja.getLastRow();
+      var kLastCol = sheetKerja.getLastColumn();
+      var kValues = sheetKerja.getRange(1, 1, kLastRow, kLastCol).getValues();
+      var kHeaders = kValues[0];
+      var kColSn = kHeaders.indexOf('No. Pesanan');
+      var kColSku = kHeaders.indexOf('SKU');
+      var kColVar = kHeaders.indexOf('Variasi');
+      var kColPenjahit = kHeaders.indexOf('Penjahit');
+      var kColPacking = kHeaders.indexOf('Petugas Packing');
+
+      for (var kr = 1; kr < kValues.length; kr++) {
+        var kRow = kValues[kr];
+        var kSn = (kColSn !== -1 && kRow[kColSn]) ? String(kRow[kColSn]).trim() : '';
+        if (!kSn) continue;
+
+        var kSku = (kColSku !== -1 && kRow[kColSku]) ? String(kRow[kColSku]).trim().toUpperCase() : '';
+        var kVar = (kColVar !== -1 && kRow[kColVar]) ? String(kRow[kColVar]).trim().toUpperCase() : '';
+        var kPenjahit = (kColPenjahit !== -1 && kRow[kColPenjahit]) ? String(kRow[kColPenjahit]).trim().toUpperCase() : '';
+        var kPack = (kColPacking !== -1 && kRow[kColPacking]) ? String(kRow[kColPacking]).trim().toUpperCase() : '';
+
+        if (kPenjahit && kPenjahit !== '-' && kPenjahit !== 'BELUM DISET') {
+          petaPenjahit[kSn + '|' + kSku + '|' + kVar] = kPenjahit;
+          petaPenjahitSku[kSn + '|' + kSku] = kPenjahit;
+          if (!petaPenjahitBySn[kSn]) petaPenjahitBySn[kSn] = [];
+          if (petaPenjahitBySn[kSn].indexOf(kPenjahit) === -1) {
+            petaPenjahitBySn[kSn].push(kPenjahit);
+          }
+        }
+
+        if (kPack && kPack !== '-' && kPack !== 'MENUNGGU') {
+          petaPacking[kSn] = kPack;
+        }
+      }
+    }
+  } catch (eKerja) {
+    console.warn('[ShippingService] Gagal membaca sheet PEMBAGIAN KERJA:', eKerja);
+  }
+
+  // 2. Baca cadangan dari sheet PEMBAGIAN PACKING
+  try {
+    var sheetPacking = ss.getSheetByName('PEMBAGIAN PACKING');
+    if (sheetPacking && sheetPacking.getLastRow() > 1) {
+      var pVals = sheetPacking.getRange(1, 1, sheetPacking.getLastRow(), sheetPacking.getLastColumn()).getValues();
+      var pHdrs = pVals[0];
+      var pColSn = pHdrs.indexOf('No. Pesanan');
+      var pColPetugas = pHdrs.indexOf('Petugas Packing');
+      if (pColSn !== -1 && pColPetugas !== -1) {
+        for (var pr = 1; pr < pVals.length; pr++) {
+          var pSn = String(pVals[pr][pColSn] || '').trim();
+          var pPet = String(pVals[pr][pColPetugas] || '').trim().toUpperCase();
+          if (pSn && pPet && pPet !== '-' && !petaPacking[pSn]) {
+            petaPacking[pSn] = pPet;
+          }
+        }
+      }
+    }
+  } catch (ePack) {
+    console.warn('[ShippingService] Gagal membaca sheet PEMBAGIAN PACKING:', ePack);
+  }
+
+  // 3. Fallback master pembagian jahit
+  try {
+    if (typeof SheetManager !== 'undefined' && SheetManager.bacaHasilPembagian) {
+      var mBagi = SheetManager.bacaHasilPembagian();
+      for (var mb = 0; mb < mBagi.length; mb++) {
+        var mSn = String(mBagi[mb].noPesanan || '').trim();
+        var mSku = String(mBagi[mb].sku || '').trim().toUpperCase();
+        var mVar = String(mBagi[mb].variasi || '').trim().toUpperCase();
+        var mPj = String(mBagi[mb].penjahit || '').trim().toUpperCase();
+        if (mSn && mPj && mPj !== '-' && mPj !== 'BELUM DISET') {
+          if (!petaPenjahit[mSn + '|' + mSku + '|' + mVar]) petaPenjahit[mSn + '|' + mSku + '|' + mVar] = mPj;
+          if (!petaPenjahitSku[mSn + '|' + mSku]) petaPenjahitSku[mSn + '|' + mSku] = mPj;
+          if (!petaPenjahitBySn[mSn]) petaPenjahitBySn[mSn] = [];
+          if (petaPenjahitBySn[mSn].indexOf(mPj) === -1) petaPenjahitBySn[mSn].push(mPj);
+        }
+      }
+    }
+  } catch (eMaster) {}
+
+  // 4. Baca kamus kelengkapan SKU
+  var kelengkapanList = [];
+  try {
+    if (typeof SheetManager !== 'undefined' && SheetManager.bacaKelengkapanSku) {
+      kelengkapanList = SheetManager.bacaKelengkapanSku();
+    }
+  } catch (eKel) {}
 
   if (lastRow >= 2 && lastCol >= 1) {
     var rangeValues = orderSheet.getRange(1, 1, lastRow, lastCol).getValues();
@@ -203,6 +348,10 @@ function getShippingOrdersSummary(kodeToko) {
           toko: rowToko || 'BEGOOD',
           stage: shippingStage,
           is_printed: isPrinted,
+          petugas_packing: petaPacking[orderSn] || '-',
+          penjahit_summary: (petaPenjahitBySn[orderSn] && petaPenjahitBySn[orderSn].length > 0)
+            ? petaPenjahitBySn[orderSn].join(', ')
+            : '-',
           total_qty: 0,
           total_amount: 0,
           items: []
@@ -216,12 +365,23 @@ function getShippingOrdersSummary(kodeToko) {
       var itemVariation = (colVariation !== -1 && row[colVariation]) ? String(row[colVariation]).trim() : '';
       var itemQty = (colQty !== -1 && Number(row[colQty])) ? Number(row[colQty]) : 1;
 
+      var kSkuClean = itemSku.toUpperCase();
+      var kVarClean = itemVariation.toUpperCase();
+      var itemPenjahit = petaPenjahit[orderSn + '|' + kSkuClean + '|' + kVarClean] ||
+                         petaPenjahitSku[orderSn + '|' + kSkuClean] ||
+                         (petaPenjahitBySn[orderSn] ? petaPenjahitBySn[orderSn][0] : '') ||
+                         '-';
+
+      var itemKelengkapan = resolveKelengkapanForItem_(itemSku, itemVariation, kelengkapanList);
+
       ordersMap[orderSn].total_qty += itemQty;
       ordersMap[orderSn].items.push({
         sku: itemSku,
         name: itemName,
         variation: itemVariation,
-        qty: itemQty
+        qty: itemQty,
+        penjahit: itemPenjahit,
+        kelengkapan: itemKelengkapan
       });
     }
   }

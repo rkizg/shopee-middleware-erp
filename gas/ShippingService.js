@@ -986,6 +986,145 @@ function findOrderStoreInfo_(orderSn) {
 }
 
 /**
+ * Mencari data lengkap pengiriman & QC (toko, resi, penjahit, packing, kelengkapan, ringkasan item)
+ * untuk daftar nomor pesanan tertentu secara efisien.
+ */
+function findOrdersFullShippingData_(orderSnList) {
+  var resultMap = {};
+  var cleanList = (orderSnList || []).map(function(s) { return String(s || '').trim(); }).filter(Boolean);
+  if (cleanList.length === 0) return resultMap;
+
+  var snSet = {};
+  for (var k = 0; k < cleanList.length; k++) snSet[cleanList[k]] = true;
+
+  try {
+    var ss = getSpreadsheetPengiriman_();
+    if (!ss) return resultMap;
+
+    // 1. Ambil peta penjahit & packing
+    var petaPenjahit = {};
+    var petaPenjahitSku = {};
+    var petaPenjahitBySn = {};
+    var petaPacking = {};
+
+    var masterSs = null;
+    try {
+      if (typeof SpreadsheetApp !== 'undefined') masterSs = SpreadsheetApp.getActiveSpreadsheet();
+    } catch (eM) {}
+
+    var sheetsPeta = ['PEMBAGIAN KERJA', 'PEMBAGIAN PACKING', 'PEMBAGIAN JAHIT'];
+    for (var sp = 0; sp < sheetsPeta.length; sp++) {
+      isiPetaPenjahitDanPackingDariSheet_(ss.getSheetByName(sheetsPeta[sp]), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+      if (masterSs) {
+        isiPetaPenjahitDanPackingDariSheet_(masterSs.getSheetByName(sheetsPeta[sp]), petaPenjahit, petaPenjahitSku, petaPenjahitBySn, petaPacking);
+      }
+    }
+
+    // 2. Baca kelengkapan SKU
+    var kelengkapanList = [];
+    try {
+      if (typeof SheetManager !== 'undefined' && SheetManager.bacaKelengkapanSku) {
+        kelengkapanList = SheetManager.bacaKelengkapanSku();
+      }
+    } catch (eKel) {}
+
+    // 3. Baca Pesanan Diproses & Pesanan Masuk
+    var sheetsToCheck = ['Pesanan Diproses', 'Pesanan Masuk'];
+    for (var sIdx = 0; sIdx < sheetsToCheck.length; sIdx++) {
+      var sheet = ss.getSheetByName(sheetsToCheck[sIdx]);
+      if (!sheet || sheet.getLastRow() < 2) continue;
+
+      var values = sheet.getRange(1, 1, sheet.getLastRow(), sheet.getLastColumn()).getValues();
+      var headers = values[0];
+      var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
+      var colToko = cariIndeksKolom_(headers, ['Toko', 'Nama Toko', 'Store']);
+      var colResi = cariIndeksKolom_(headers, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
+      var colSku = cariIndeksKolom_(headers, ['SKU', 'Nomor Referensi SKU', 'Model SKU', 'Kode SKU']);
+      var colVar = cariIndeksKolom_(headers, ['Variasi', 'Nama Variasi', 'Model Name']);
+      var colQty = cariIndeksKolom_(headers, ['Jumlah', 'Qty', 'Kuantitas']);
+      var colProd = cariIndeksKolom_(headers, ['Nama Produk', 'Produk', 'Product Name']);
+      var colPenjahit = cariIndeksKolom_(headers, ['Penjahit', 'Nama Penjahit']);
+      var colPacking = cariIndeksKolom_(headers, ['Petugas Packing', 'Packing']);
+
+      if (colSn === -1) continue;
+
+      for (var r = 1; r < values.length; r++) {
+        var row = values[r];
+        var sn = String(row[colSn] || '').trim();
+        if (!snSet[sn]) continue;
+
+        if (!resultMap[sn]) {
+          var t = (colToko !== -1 && row[colToko]) ? String(row[colToko]).trim().toUpperCase() : '';
+          var resi = (colResi !== -1 && row[colResi]) ? String(row[colResi]).trim() : '';
+          if (resi === '-' || resi === 'BELUM ADA RESI') resi = '';
+
+          var pPacking = (colPacking !== -1 && row[colPacking]) ? String(row[colPacking]).trim().toUpperCase() : '';
+          if (!pPacking || pPacking === '-') pPacking = petaPacking[sn] || '-';
+
+          resultMap[sn] = {
+            order_sn: sn,
+            toko: t,
+            tracking_number: resi,
+            petugas_packing: pPacking,
+            penjahit_list: [],
+            kelengkapan_list: [],
+            items_summary_list: []
+          };
+        }
+
+        var sku = (colSku !== -1 && row[colSku]) ? String(row[colSku]).trim() : '';
+        var rawVar = (colVar !== -1 && row[colVar]) ? String(row[colVar]).trim() : '';
+        var cleanVar = bersihkanVariasiLocal_(rawVar);
+        var qty = (colQty !== -1 && Number(row[colQty])) ? Number(row[colQty]) : 1;
+        var prod = (colProd !== -1 && row[colProd]) ? String(row[colProd]).trim() : '';
+
+        // Tentukan penjahit baris ini
+        var rowPenjahit = (colPenjahit !== -1 && row[colPenjahit]) ? String(row[colPenjahit]).trim().toUpperCase() : '';
+        if (!rowPenjahit || rowPenjahit === '-') {
+          var kSkuClean = sku.toUpperCase();
+          var kVarRaw = rawVar.toUpperCase();
+          var kVarClean = cleanVar.toUpperCase();
+          rowPenjahit = petaPenjahit[sn + '|' + kSkuClean + '|' + kVarRaw] ||
+                        petaPenjahit[sn + '|' + kSkuClean + '|' + kVarClean] ||
+                        petaPenjahit[sn + '||' + kVarRaw] ||
+                        petaPenjahit[sn + '||' + kVarClean] ||
+                        petaPenjahitSku[sn + '|' + kSkuClean] ||
+                        (petaPenjahitBySn[sn] && petaPenjahitBySn[sn].length > 0 ? petaPenjahitBySn[sn].join(', ') : '') ||
+                        '-';
+        }
+        if (rowPenjahit && rowPenjahit !== '-' && resultMap[sn].penjahit_list.indexOf(rowPenjahit) === -1) {
+          resultMap[sn].penjahit_list.push(rowPenjahit);
+        }
+
+        // Tentukan kelengkapan baris ini
+        var itemKelengkapan = resolveKelengkapanForItem_(sku, rawVar, kelengkapanList);
+        if (itemKelengkapan && itemKelengkapan !== '-' && resultMap[sn].kelengkapan_list.indexOf(itemKelengkapan) === -1) {
+          resultMap[sn].kelengkapan_list.push(itemKelengkapan);
+        }
+
+        // Format ringkasan item
+        var labelItem = (sku && sku !== '-') ? sku : (prod ? prod.slice(0, 16) : 'Item');
+        if (rawVar && rawVar !== '-') labelItem += ' (' + rawVar + ')';
+        labelItem += ' x' + qty;
+        resultMap[sn].items_summary_list.push(labelItem);
+      }
+    }
+  } catch (err) {
+    console.warn('[ShippingService] findOrdersFullShippingData_ error:', err);
+  }
+
+  // Finalisasi string per pesanan
+  for (var sKey in resultMap) {
+    var obj = resultMap[sKey];
+    obj.penjahit = obj.penjahit_list.length > 0 ? obj.penjahit_list.join(', ') : '-';
+    obj.kelengkapan = obj.kelengkapan_list.length > 0 ? obj.kelengkapan_list.join('; ') : '-';
+    obj.items_summary = obj.items_summary_list.length > 0 ? obj.items_summary_list.join(', ') : '-';
+  }
+
+  return resultMap;
+}
+
+/**
  * Helper untuk mengambil seluruh token Shopee aktif dari Spreadsheet Master (DB_Token)
  * dengan memprioritaskan toko target bila ditentukan.
  */
@@ -1257,6 +1396,8 @@ function processBatchShipOrdersRpc(orderSnList, method, extraParams, kodeToko) {
 
 /**
  * RPC: Ambil Berkas PDF Dokumen Resi Thermal A6 Resmi Shopee (Base64)
+ * Mendukung download satuan maupun massal lintas toko, serta secara otomatis
+ * menyisipkan stempel footer QC (Penjahit, Packing, Kelengkapan) ke setiap halaman resi.
  */
 function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
   try {
@@ -1267,87 +1408,114 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
     var cleanList = orderSnList.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
     if (cleanList.length === 0) throw new Error('Daftar order_sn valid kosong.');
 
-    // Kumpulkan info toko dan nomor resi untuk setiap pesanan
-    var orderListPayload = [];
-    var detectedStore = '';
+    // 1. Kumpulkan data lengkap toko, resi, penjahit, packing, dan kelengkapan
+    var fullDataMap = findOrdersFullShippingData_(cleanList);
 
-    for (var c = 0; c < cleanList.length; c++) {
-      var snItem = cleanList[c];
-      var info = findOrderStoreInfo_(snItem);
-      if (!detectedStore && info.toko) {
-        detectedStore = info.toko;
-      }
-      orderListPayload.push({
-        order_sn: snItem,
-        tracking_number: info.tracking_number || ''
+    // 2. Kelompokkan pesanan berdasarkan toko (shop_id / target store)
+    var groupsByStore = {};
+    for (var i = 0; i < cleanList.length; i++) {
+      var sn = cleanList[i];
+      var info = fullDataMap[sn] || { order_sn: sn, toko: kodeToko || '', tracking_number: '' };
+      var tName = String(info.toko || kodeToko || 'DEFAULT').toUpperCase();
+      if (!groupsByStore[tName]) groupsByStore[tName] = [];
+      groupsByStore[tName].push({
+        order_sn: sn,
+        tracking_number: info.tracking_number || '',
+        penjahit: info.penjahit || '-',
+        petugas_packing: info.petugas_packing || '-',
+        kelengkapan: info.kelengkapan || '-',
+        items_summary: info.items_summary || '-'
       });
     }
 
-    var targetStore = kodeToko || detectedStore || '';
-    var tokens = getActiveShopeeTokensList_(targetStore);
+    var allTokens = getActiveShopeeTokensList_();
+    var pdfBase64List = [];
+    var totalOrdersDownloaded = 0;
+    var lastStoreLabel = '';
+    var storeKeys = Object.keys(groupsByStore);
 
-    var lastErr = null;
-    var testedStores = [];
+    for (var s = 0; s < storeKeys.length; s++) {
+      var sKey = storeKeys[s];
+      var storeOrders = groupsByStore[sKey];
 
-    for (var i = 0; i < tokens.length; i++) {
-      var tok = tokens[i];
-      var storeLabel = tok.kode_toko || tok.nama_toko || ('Shop ' + tok.shop_id);
-      testedStores.push(storeLabel);
+      // Cari token yang cocok untuk toko ini
+      var tokenForStore = null;
+      for (var t = 0; t < allTokens.length; t++) {
+        var tok = allTokens[t];
+        var tokCode = String(tok.kode_toko || '').toUpperCase();
+        var tokName = String(tok.nama_toko || '').toUpperCase();
+        var tokShopId = String(tok.shop_id || '');
+        if (sKey === tokCode || sKey === tokName || sKey === tokShopId) {
+          tokenForStore = tok;
+          break;
+        }
+      }
+      if (!tokenForStore && allTokens.length > 0) {
+        tokenForStore = allTokens[0]; // fallback ke toko aktif pertama
+      }
+      if (!tokenForStore) {
+        throw new Error('Token Shopee untuk toko ' + sKey + ' tidak ditemukan di DB_Token.');
+      }
 
-      try {
+      lastStoreLabel = tokenForStore.kode_toko || tokenForStore.nama_toko || ('Shop ' + tokenForStore.shop_id);
+
+      // Shopee API batas maksimal 50 pesanan per request. Bila > 50, pecah menjadi chunk 50
+      for (var chunkStart = 0; chunkStart < storeOrders.length; chunkStart += 50) {
+        var chunkOrders = storeOrders.slice(chunkStart, chunkStart + 50);
+        var chunkSnList = chunkOrders.map(function(o) { return o.order_sn; });
+
         var payloadApi = {
-          order_sn_list: cleanList,
-          order_list: orderListPayload,
+          order_sn_list: chunkSnList,
+          order_list: chunkOrders,
           document_type: 'THERMAL_AIR_WAYBILL',
-          shop_id: tok.shop_id,
-          access_token: tok.access_token,
-          refresh_token: tok.refresh_token,
-          expired_at: tok.expired_at
+          shop_id: tokenForStore.shop_id,
+          access_token: tokenForStore.access_token,
+          refresh_token: tokenForStore.refresh_token,
+          expired_at: tokenForStore.expired_at,
+          format: 'json'
         };
 
         var res = ShopeeApi.getShippingDocument(payloadApi);
-
         if (res && res.data && res.data.pdf_base64) {
-          return {
-            success: true,
-            pdf_base64: res.data.pdf_base64,
-            order_count: res.data.order_count || cleanList.length,
-            toko: storeLabel
-          };
+          pdfBase64List.push(res.data.pdf_base64);
+          totalOrdersDownloaded += (res.data.order_count || chunkSnList.length);
+        } else {
+          var failMsg = res ? res.message : 'Respons kosong';
+          throw new Error('Gagal mengunduh dokumen resi toko ' + lastStoreLabel + ': ' + failMsg);
         }
-      } catch (err) {
-        lastErr = err;
-        var errStr = String(err.message || err);
-
-        // Jika errornya spesifik masih dalam antrian render Shopee (status: PROCESSING), langsung hentikan loop dan teruskan pesan jelas ke user!
-        if (errStr.indexOf('PROCESSING') !== -1 || errStr.indexOf('antrian render') !== -1 || errStr.indexOf('masih dalam antrian') !== -1) {
-          throw err;
-        }
-
-        // Jika errornya order_not_exist dan ada toko lain, lanjutkan loop ke toko berikutnya
-        if (errStr.indexOf('order_not_exist') !== -1 || errStr.indexOf('not exist') !== -1) {
-          continue;
-        }
-
-        // Bila toko target cocok dengan toko ini (bukan fallback), jangan lanjutkan ke toko lain agar error aslinya tidak tertimpa
-        if (targetStore && (String(tok.kode_toko).toUpperCase() === targetStore || String(tok.nama_toko).toUpperCase() === targetStore)) {
-          throw err;
-        }
-
-        if (tokens.length === 1) throw err;
       }
     }
 
-    if (lastErr) {
-      var lastErrStr = String(lastErr.message || lastErr);
-      if (lastErrStr.indexOf('order_not_exist') !== -1 || lastErrStr.indexOf('not exist') !== -1) {
-        throw new Error('Dokumen PDF resmi tidak ditemukan di server Shopee untuk pesanan ' + cleanList.join(', ') +
-          '. Kemungkinan pesanan belum diatur pengirimannya (Dropoff/Pickup), resi kurir belum terbit, atau akun toko di DB_Token (' +
-          testedStores.join(', ') + ') berbeda dengan toko asal pesanan ini. Silakan gunakan tombol "Cetak Sekarang (A6 Thermal)" untuk mencetak label workshop ERP Begood.');
-      }
+    if (pdfBase64List.length === 0) {
+      throw new Error('Tidak ada dokumen PDF resi yang berhasil diunduh.');
     }
 
-    throw (lastErr || new Error('Gagal mengunduh dokumen resi dari toko Shopee.'));
+    // Bila hanya 1 berkas PDF (1 toko & <= 50 pesanan), langsung kembalikan
+    if (pdfBase64List.length === 1) {
+      return {
+        success: true,
+        pdf_base64: pdfBase64List[0],
+        order_count: totalOrdersDownloaded,
+        toko: lastStoreLabel
+      };
+    }
+
+    // Bila lebih dari 1 berkas PDF (lintas toko atau > 50 pesanan), gabungkan via endpoint merge-pdf di middleware
+    var mergeRes = null;
+    try {
+      mergeRes = ShopeeApi.mergePdfs({ pdf_base64_list: pdfBase64List });
+    } catch (eMerge) {
+      console.warn('[ShippingService] Gagal merge PDF via middleware:', eMerge);
+    }
+
+    var finalBase64 = (mergeRes && mergeRes.data && mergeRes.data.pdf_base64) ? mergeRes.data.pdf_base64 : pdfBase64List[0];
+
+    return {
+      success: true,
+      pdf_base64: finalBase64,
+      order_count: totalOrdersDownloaded,
+      toko: storeKeys.length > 1 ? (storeKeys.length + ' Toko') : lastStoreLabel
+    };
   } catch (err) {
     return { success: false, message: err.message || String(err) };
   }

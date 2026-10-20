@@ -1,5 +1,6 @@
 import { createShopeeClient } from '../lib/shopee.js';
 import { TokenService } from './token.service.js';
+import { PdfStamperService } from './pdf-stamper.service.js';
 import type { AccessToken } from '@congminh1254/shopee-sdk/schemas';
 
 export interface ShippingAuthParams {
@@ -34,6 +35,10 @@ export interface ShippingOrderItemParam {
   order_sn: string;
   package_number?: string;
   tracking_number?: string;
+  penjahit?: string;
+  petugas_packing?: string;
+  kelengkapan?: string;
+  items_summary?: string;
 }
 
 export interface GetShippingDocumentParams extends ShippingAuthParams {
@@ -276,6 +281,13 @@ export class ShippingService {
       pdfBuffer = Buffer.from(downloadRes, 'binary');
     } else {
       throw new Error('Gagal mengunduh dokumen resi: Respons Shopee bukan berkas PDF.');
+    }
+
+    // Terapkan stempel footer QC Begood (Penjahit, Packing, Kelengkapan) pada label thermal A6
+    try {
+      pdfBuffer = await PdfStamperService.stampQcToShippingDocument(pdfBuffer, params.order_list);
+    } catch (eStamp: any) {
+      console.warn('[ShippingService] Gagal menerapkan stempel QC:', eStamp.message || eStamp);
     }
 
     return {

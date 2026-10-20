@@ -227,6 +227,13 @@ var ShopeeApi = (function() {
      */
     fetchTrackingNumbers: function(params) {
       return request('/api/orders/tracking', 'POST', params);
+    },
+
+    /**
+     * Menggabungkan beberapa dokumen PDF (Base64) menjadi satu berkas PDF multi-halaman
+     */
+    mergePdfs: function(params) {
+      return request('/api/orders/merge-pdf', 'POST', params);
     }
   };
 })();

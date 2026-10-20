@@ -62,13 +62,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Dapatkan list order_sn & detail items (tracking_number)
     let orderSnList: string[] = [];
-    let orderItems: Array<{ order_sn: string; tracking_number?: string; package_number?: string }> = [];
+    let orderItems: Array<{
+      order_sn: string;
+      tracking_number?: string;
+      package_number?: string;
+      penjahit?: string;
+      petugas_packing?: string;
+      kelengkapan?: string;
+      items_summary?: string;
+    }> = [];
 
     if (Array.isArray(payload?.order_list)) {
       orderItems = payload.order_list.map((it: any) => ({
         order_sn: String(it.order_sn || '').trim(),
         tracking_number: it.tracking_number ? String(it.tracking_number).trim() : undefined,
         package_number: it.package_number ? String(it.package_number).trim() : undefined,
+        penjahit: it.penjahit ? String(it.penjahit).trim() : undefined,
+        petugas_packing: it.petugas_packing ? String(it.petugas_packing).trim() : undefined,
+        kelengkapan: it.kelengkapan ? String(it.kelengkapan).trim() : undefined,
+        items_summary: it.items_summary ? String(it.items_summary).trim() : undefined,
       })).filter((it: any) => !!it.order_sn);
 
       for (const item of orderItems) {

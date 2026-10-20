@@ -270,7 +270,7 @@ function syncOrdersPengirimanRpc(kodeToko) {
  * Memperbarui Nomor Resi dan Status Shopee di Spreadsheet Operasional Baru
  * (dan Master Spreadsheet jika terpasang)
  */
-function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusShopee) {
+function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusShopee, confirmedToko) {
   var ss = getSpreadsheetPengiriman_();
   if (!ss) return false;
 
@@ -286,7 +286,9 @@ function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusS
   var colSn = headers.indexOf('No. Pesanan');
   var colResi = headers.indexOf('No. Resi');
   var colStatus = headers.indexOf('Status Shopee');
+  var colInternal = headers.indexOf('Status Internal Begood');
   var colSync = headers.indexOf('Waktu Sinkronisasi');
+  var colToko = headers.indexOf('Toko');
 
   if (colSn === -1) return false;
 
@@ -298,6 +300,12 @@ function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusS
     if (String(values[i][colSn]).trim() === targetSn) {
       if (trackingNumber && colResi !== -1) values[i][colResi] = trackingNumber;
       if (newStatusShopee && colStatus !== -1) values[i][colStatus] = newStatusShopee;
+      if (colInternal !== -1 && (!values[i][colInternal] || values[i][colInternal] === '[1] Siap Packing')) {
+        values[i][colInternal] = '[2] Menunggu Diambil Kurir';
+      }
+      if (confirmedToko && colToko !== -1 && (!values[i][colToko] || values[i][colToko] === 'BEGOOD')) {
+        values[i][colToko] = confirmedToko;
+      }
       if (colSync !== -1) values[i][colSync] = nowWIB;
       updated = true;
     }
@@ -335,51 +343,111 @@ function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusS
 }
 
 /**
- * Helper untuk mengambil token Shopee aktif dari Spreadsheet Master (DB_Token)
+ * Mencari informasi toko pemilik pesanan dari sheet Pesanan Masuk
  */
-function getActiveShopeeToken_(kodeToko) {
-  var target = String(kodeToko || '').trim().toUpperCase();
-  var daftar = [];
-
-  // 1. Coba melalui getTokoUntukSync
+function findOrderStoreInfo_(orderSn) {
   try {
-    if (typeof SheetManager !== 'undefined' && SheetManager.getTokoUntukSync) {
-      daftar = SheetManager.getTokoUntukSync(target && target !== 'SEMUA' ? target : undefined);
+    var ss = getSpreadsheetPengiriman_();
+    if (!ss) return { toko: '' };
+    var sheet = ss.getSheetByName('Pesanan Masuk');
+    if (!sheet || sheet.getLastRow() < 2) return { toko: '' };
+
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    var values = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    var headers = values[0];
+    var colSn = headers.indexOf('No. Pesanan');
+    var colToko = headers.indexOf('Toko');
+    var targetSn = String(orderSn || '').trim();
+
+    if (colSn !== -1) {
+      for (var i = 1; i < values.length; i++) {
+        if (String(values[i][colSn]).trim() === targetSn) {
+          var t = (colToko !== -1 && values[i][colToko]) ? String(values[i][colToko]).trim().toUpperCase() : '';
+          return { toko: t };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[ShippingService] findOrderStoreInfo_ error:', e);
+  }
+  return { toko: '' };
+}
+
+/**
+ * Helper untuk mengambil seluruh token Shopee aktif dari Spreadsheet Master (DB_Token)
+ * dengan memprioritaskan toko target bila ditentukan.
+ */
+function getActiveShopeeTokensList_(preferredKodeToko) {
+  var tokens = [];
+  var target = String(preferredKodeToko || '').trim().toUpperCase();
+
+  // 1. Coba kumpulkan dari getTokenRecords
+  try {
+    if (typeof SheetManager !== 'undefined' && SheetManager.getTokenRecords) {
+      var semua = SheetManager.getTokenRecords();
+      for (var i = 0; i < semua.length; i++) {
+        if (semua[i].access_token && semua[i].aktif !== 'TIDAK') {
+          tokens.push(semua[i]);
+        }
+      }
     }
   } catch (e1) {}
 
-  // 2. Coba melalui getTokenRecords
-  if (!daftar || daftar.length === 0) {
+  // 2. Coba melalui getTokoUntukSync bila masih kosong
+  if (tokens.length === 0) {
     try {
-      if (typeof SheetManager !== 'undefined' && SheetManager.getTokenRecords) {
-        var semua = SheetManager.getTokenRecords();
-        for (var i = 0; i < semua.length; i++) {
-          if (semua[i].access_token && semua[i].aktif !== 'TIDAK') {
-            if (!target || target === 'SEMUA' || String(semua[i].kode_toko || '').toUpperCase() === target) {
-              daftar.push(semua[i]);
-            }
-          }
+      if (typeof SheetManager !== 'undefined' && SheetManager.getTokoUntukSync) {
+        var dariSync = SheetManager.getTokoUntukSync();
+        for (var s = 0; s < dariSync.length; s++) {
+          if (dariSync[s].access_token) tokens.push(dariSync[s]);
         }
-        if (daftar.length === 0 && semua.length > 0) daftar.push(semua[0]);
       }
     } catch (e2) {}
   }
 
-  // 3. Fallback ke getTokenRecord tunggal
-  if (!daftar || daftar.length === 0) {
+  // 3. Fallback ke token tunggal
+  if (tokens.length === 0) {
     try {
       if (typeof SheetManager !== 'undefined' && SheetManager.getTokenRecord) {
         var rec = SheetManager.getTokenRecord();
-        if (rec && rec.access_token) daftar.push(rec);
+        if (rec && rec.access_token) tokens.push(rec);
       }
     } catch (e3) {}
   }
 
-  if (!daftar || daftar.length === 0 || !daftar[0].access_token) {
-    throw new Error('Tidak ditemukan Access Token aktif di sheet DB_Token. Pastikan toko sudah terhubung di ERP Begood.');
+  if (tokens.length === 0) {
+    throw new Error('Tidak ditemukan Access Token aktif di sheet DB_Token. Pastikan toko Shopee sudah terhubung di ERP Begood.');
   }
 
-  return daftar[0];
+  // Jika ada preferred store, urutkan toko yang cocok di baris paling depan
+  if (target && tokens.length > 1) {
+    tokens.sort(function(a, b) {
+      var kA = String(a.kode_toko || '').toUpperCase();
+      var nA = String(a.nama_toko || '').toUpperCase();
+      var sA = String(a.shop_id || '');
+      var kB = String(b.kode_toko || '').toUpperCase();
+      var nB = String(b.nama_toko || '').toUpperCase();
+      var sB = String(b.shop_id || '');
+
+      var matchA = (kA === target || nA === target || sA === target);
+      var matchB = (kB === target || nB === target || sB === target);
+
+      if (matchA && !matchB) return -1;
+      if (!matchA && matchB) return 1;
+      return 0;
+    });
+  }
+
+  return tokens;
+}
+
+/**
+ * Helper untuk mengambil token Shopee aktif pertama (kompatibilitas mundur)
+ */
+function getActiveShopeeToken_(kodeToko) {
+  var list = getActiveShopeeTokensList_(kodeToko);
+  return list[0];
 }
 
 /**
@@ -387,17 +455,40 @@ function getActiveShopeeToken_(kodeToko) {
  */
 function getShippingParameterRpc(orderSn, kodeToko) {
   try {
-    var primary = getActiveShopeeToken_(kodeToko);
+    var cleanSn = String(orderSn || '').trim();
+    if (!cleanSn) throw new Error('Nomor pesanan (order_sn) kosong.');
 
-    var res = ShopeeApi.getShippingParameter({
-      order_sn: orderSn,
-      shop_id: primary.shop_id,
-      access_token: primary.access_token,
-      refresh_token: primary.refresh_token,
-      expired_at: primary.expired_at
-    });
+    var storeInfo = findOrderStoreInfo_(cleanSn);
+    var preferredStore = kodeToko || storeInfo.toko;
+    var tokens = getActiveShopeeTokensList_(preferredStore);
 
-    return { success: true, data: res.data || res };
+    var lastErr = null;
+    for (var i = 0; i < tokens.length; i++) {
+      var tok = tokens[i];
+      try {
+        var res = ShopeeApi.getShippingParameter({
+          order_sn: cleanSn,
+          shop_id: tok.shop_id,
+          access_token: tok.access_token,
+          refresh_token: tok.refresh_token,
+          expired_at: tok.expired_at
+        });
+        return {
+          success: true,
+          data: res.data || res,
+          toko: tok.kode_toko || tok.nama_toko || ''
+        };
+      } catch (err) {
+        lastErr = err;
+        var errStr = String(err.message || err);
+        if (errStr.indexOf('order_not_exist') !== -1 || errStr.indexOf('not exist') !== -1) {
+          continue;
+        }
+        if (tokens.length === 1) throw err;
+      }
+    }
+
+    throw (lastErr || new Error('Parameter pengiriman tidak ditemukan di toko mana pun di DB_Token.'));
   } catch (err) {
     return { success: false, message: err.message || String(err) };
   }
@@ -408,48 +499,112 @@ function getShippingParameterRpc(orderSn, kodeToko) {
  */
 function processShipOrderRpc(orderSn, method, extraParams, kodeToko) {
   try {
-    var primary = getActiveShopeeToken_(kodeToko);
+    var cleanSn = String(orderSn || '').trim();
+    if (!cleanSn) throw new Error('Nomor pesanan (order_sn) kosong.');
 
-    var payload = {
-      order_sn: orderSn,
-      shop_id: primary.shop_id,
-      access_token: primary.access_token,
-      refresh_token: primary.refresh_token,
-      expired_at: primary.expired_at
-    };
+    var storeInfo = findOrderStoreInfo_(cleanSn);
+    var preferredStore = kodeToko || storeInfo.toko;
+    var tokens = getActiveShopeeTokensList_(preferredStore);
 
-    if (method === 'pickup') {
-      payload.pickup = extraParams || {};
-    } else {
-      payload.dropoff = extraParams || {};
+    var winningToken = null;
+    var trackingNumber = '';
+    var lastError = null;
+    var testedNames = [];
+
+    for (var i = 0; i < tokens.length; i++) {
+      var tok = tokens[i];
+      var storeLabel = tok.kode_toko || tok.nama_toko || ('Shop ' + tok.shop_id);
+      testedNames.push(storeLabel);
+
+      try {
+        var payload = {
+          order_sn: cleanSn,
+          shop_id: tok.shop_id,
+          access_token: tok.access_token,
+          refresh_token: tok.refresh_token,
+          expired_at: tok.expired_at
+        };
+
+        if (method === 'pickup') {
+          payload.pickup = extraParams || {};
+        } else {
+          payload.dropoff = extraParams || {};
+        }
+
+        var shipRes = ShopeeApi.shipOrder(payload);
+        winningToken = tok;
+        break; // Berhasil atur pengiriman di toko ini!
+      } catch (err) {
+        lastError = err;
+        var errStr = String(err.message || err);
+
+        // Jika galatnya order_not_exist, periksa toko lain yang terhubung
+        if (errStr.indexOf('order_not_exist') !== -1 || errStr.indexOf('not exist') !== -1) {
+          console.warn('[ShippingService] Order ' + cleanSn + ' tidak ada di toko ' + storeLabel + '. Menguji toko berikutnya...');
+          continue;
+        }
+
+        // Cek apakah pesanan sebenarnya SUDAH diproses sebelumnya di Seller Centre
+        // (contoh: error order_status_invalid atau sudah punya resi)
+        try {
+          var checkOrder = ShopeeApi.fetchDailyOrders({
+            order_sn_list: [cleanSn],
+            shop_id: tok.shop_id,
+            access_token: tok.access_token,
+            refresh_token: tok.refresh_token
+          });
+          if (checkOrder && checkOrder.data && checkOrder.data.orders && checkOrder.data.orders.length > 0) {
+            var ord = checkOrder.data.orders[0];
+            if (ord.tracking_number) {
+              winningToken = tok;
+              trackingNumber = ord.tracking_number;
+              break;
+            }
+          }
+        } catch (eCheck) {}
+
+        // Bila bukan order_not_exist dan toko tunggal, lemparkan galat
+        if (tokens.length === 1) {
+          throw err;
+        }
+      }
     }
 
-    var shipRes = ShopeeApi.shipOrder(payload);
-
-    // Ambil nomor resi terbaru setelah diatur
-    var trackingNumber = '';
-    try {
-      var fetchRes = ShopeeApi.fetchDailyOrders({
-        order_sn_list: [orderSn],
-        shop_id: primary.shop_id,
-        access_token: primary.access_token,
-        refresh_token: primary.refresh_token
-      });
-      if (fetchRes && fetchRes.data && fetchRes.data.orders && fetchRes.data.orders.length > 0) {
-        trackingNumber = fetchRes.data.orders[0].tracking_number || '';
+    if (!winningToken) {
+      var msg = lastError ? (lastError.message || String(lastError)) : 'Pesanan tidak ditemukan.';
+      if (msg.indexOf('order_not_exist') !== -1 || msg.indexOf('not exist') !== -1) {
+        throw new Error('Pesanan ' + cleanSn + ' tidak ditemukan di toko Shopee yang terhubung di DB_Token (' +
+          testedNames.join(', ') + '). Pastikan pesanan ini berasal dari akun toko yang sudah diotorisasi dan belum dibatalkan.');
       }
-    } catch (eTrack) {
-      console.warn('Gagal menarik nomor resi otomatis setelah ship:', eTrack);
+      throw lastError;
+    }
+
+    // Ambil nomor resi terbaru setelah diatur jika belum didapatkan
+    if (!trackingNumber) {
+      try {
+        var fetchRes = ShopeeApi.fetchDailyOrders({
+          order_sn_list: [cleanSn],
+          shop_id: winningToken.shop_id,
+          access_token: winningToken.access_token,
+          refresh_token: winningToken.refresh_token
+        });
+        if (fetchRes && fetchRes.data && fetchRes.data.orders && fetchRes.data.orders.length > 0) {
+          trackingNumber = fetchRes.data.orders[0].tracking_number || '';
+        }
+      } catch (eTrack) {
+        console.warn('Gagal menarik nomor resi otomatis setelah ship:', eTrack);
+      }
     }
 
     // Perbarui sheet Pesanan Masuk di Spreadsheet Distribusi Baru
-    updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, 'PROCESSED');
+    updateOrderInSpreadsheetDistribusi_(cleanSn, trackingNumber, 'PROCESSED', winningToken.kode_toko);
 
     return {
       success: true,
-      order_sn: orderSn,
+      order_sn: cleanSn,
       tracking_number: trackingNumber,
-      message: 'Pesanan ' + orderSn + ' berhasil diatur pengirimannya.'
+      toko: winningToken.kode_toko || winningToken.nama_toko || '',
+      message: 'Pesanan ' + cleanSn + ' berhasil diatur pengirimannya (Toko: ' + (winningToken.kode_toko || winningToken.nama_toko || winningToken.shop_id) + ').'
     };
   } catch (err) {
     return { success: false, message: err.message || String(err) };
@@ -498,26 +653,45 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
       throw new Error('Daftar order_sn tidak boleh kosong.');
     }
 
-    var primary = getActiveShopeeToken_(kodeToko);
+    var cleanList = orderSnList.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
+    if (cleanList.length === 0) throw new Error('Daftar order_sn valid kosong.');
 
-    var res = ShopeeApi.getShippingDocument({
-      order_sn_list: orderSnList,
-      document_type: 'THERMAL_AIR_WAYBILL',
-      shop_id: primary.shop_id,
-      access_token: primary.access_token,
-      refresh_token: primary.refresh_token,
-      expired_at: primary.expired_at
-    });
+    // Cari toko dari order pertama atau parameter
+    var firstStore = kodeToko || (cleanList.length > 0 ? findOrderStoreInfo_(cleanList[0]).toko : '');
+    var tokens = getActiveShopeeTokensList_(firstStore);
 
-    if (!res || !res.data || !res.data.pdf_base64) {
-      throw new Error(res.message || 'Gagal menerima berkas PDF resi dari server Shopee.');
+    var lastErr = null;
+    for (var i = 0; i < tokens.length; i++) {
+      var tok = tokens[i];
+      try {
+        var res = ShopeeApi.getShippingDocument({
+          order_sn_list: cleanList,
+          document_type: 'THERMAL_AIR_WAYBILL',
+          shop_id: tok.shop_id,
+          access_token: tok.access_token,
+          refresh_token: tok.refresh_token,
+          expired_at: tok.expired_at
+        });
+
+        if (res && res.data && res.data.pdf_base64) {
+          return {
+            success: true,
+            pdf_base64: res.data.pdf_base64,
+            order_count: res.data.order_count || cleanList.length,
+            toko: tok.kode_toko || tok.nama_toko || ''
+          };
+        }
+      } catch (err) {
+        lastErr = err;
+        var errStr = String(err.message || err);
+        if (errStr.indexOf('order_not_exist') !== -1 || errStr.indexOf('not exist') !== -1) {
+          continue;
+        }
+        if (tokens.length === 1) throw err;
+      }
     }
 
-    return {
-      success: true,
-      pdf_base64: res.data.pdf_base64,
-      order_count: res.data.order_count || orderSnList.length
-    };
+    throw (lastErr || new Error('Gagal mengunduh dokumen resi dari toko Shopee.'));
   } catch (err) {
     return { success: false, message: err.message || String(err) };
   }

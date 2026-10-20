@@ -1469,6 +1469,7 @@
     var searchQuery = '';
     var activeSort = 'newest';
     var activePickupOrderSn = '';
+    var activePickupOrderToko = '';
 
     // Inisialisasi saat halaman dimuat
     window.addEventListener('DOMContentLoaded', function() {
@@ -1765,7 +1766,7 @@
             '</td>' +
             '<td>' +
               '<div class="mono-cell" style="font-weight: 700; color: #0f172a;">' + o.order_sn + '</div>' +
-              '<div style="font-size: 11px; color: #64748b; margin-top: 2px;">' + (o.order_date || '-') + '</div>' +
+              '<div style="font-size: 11px; color: #64748b; margin-top: 2px;">' + (o.order_date || '-') + (o.toko ? ' <span style="display:inline-block; font-size:10px; font-weight:700; background:#f1f5f9; color:#475569; padding:1px 5px; border-radius:3px; margin-left:4px;">' + o.toko + '</span>' : '') + '</div>' +
             '</td>' +
             '<td>' +
               '<div style="font-weight: 600; color: #0f172a;">' + o.buyer_name + '</div>' +
@@ -1829,7 +1830,9 @@
      * Aksi: Atur Pengiriman Satuan
      */
     function actionShipSingle(orderSn, method) {
-      if (!confirm('Atur pengiriman untuk pesanan ' + orderSn + ' dengan metode ' + method.toUpperCase() + '?')) return;
+      var ord = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+      var toko = ord ? (ord.toko || '') : '';
+      if (!confirm('Atur pengiriman untuk pesanan ' + orderSn + (toko ? ' (' + toko + ')' : '') + ' dengan metode ' + method.toUpperCase() + '?')) return;
       setProgress(true);
 
       google.script.run
@@ -1846,7 +1849,7 @@
           setProgress(false);
           showToast('Galat server: ' + (err.message || err), 'danger');
         })
-        .processShipOrderRpc(orderSn, method, {}, '');
+        .processShipOrderRpc(orderSn, method, {}, toko);
     }
 
     /**
@@ -1854,7 +1857,11 @@
      */
     function actionOpenPickupModal(orderSn) {
       activePickupOrderSn = orderSn;
-      document.getElementById('modal-pickup-sn').textContent = orderSn;
+      var ord = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+      var toko = ord ? (ord.toko || '') : '';
+      activePickupOrderToko = toko;
+
+      document.getElementById('modal-pickup-sn').textContent = orderSn + (toko ? ' [' + toko + ']' : '');
       document.getElementById('modal-pickup').classList.add('active');
       setProgress(true);
 
@@ -1906,7 +1913,7 @@
           addrSelect.innerHTML = '<option value="0">Alamat Gudang Default Begood</option>';
           timeSelect.innerHTML = '<option value="">Jadwal Reguler Kurir</option>';
         })
-        .getShippingParameterRpc(orderSn, '');
+        .getShippingParameterRpc(orderSn, toko);
     }
 
     /**
@@ -1938,7 +1945,7 @@
           setProgress(false);
           showToast('Galat pickup: ' + (err.message || err), 'danger');
         })
-        .processShipOrderRpc(activePickupOrderSn, 'pickup', extraParams, '');
+        .processShipOrderRpc(activePickupOrderSn, 'pickup', extraParams, activePickupOrderToko || '');
     }
 
     /**
@@ -2003,6 +2010,9 @@
       }
       if (!confirm('Atur pengiriman ' + sns.length + ' pesanan terpilih secara massal (' + method.toUpperCase() + ')?')) return;
 
+      var firstOrder = rawOrders.find(function(o) { return selectedOrderSns[o.order_sn]; });
+      var batchToko = firstOrder ? (firstOrder.toko || '') : '';
+
       setProgress(true);
       showToast('Memproses ' + sns.length + ' pesanan ke Shopee...', 'warn');
 
@@ -2021,7 +2031,7 @@
           setProgress(false);
           showToast('Galat batch: ' + (err.message || err), 'danger');
         })
-        .processBatchShipOrdersRpc(sns, method, {}, '');
+        .processBatchShipOrdersRpc(sns, method, {}, batchToko);
     }
 
     /**
@@ -2033,6 +2043,9 @@
         showToast('Pilih pesanan yang ingin dicetak resinya.', 'warn');
         return;
       }
+
+      var firstOrder = rawOrders.find(function(o) { return selectedOrderSns[o.order_sn]; });
+      var batchToko = firstOrder ? (firstOrder.toko || '') : '';
 
       setProgress(true);
       showToast('Menghubungi server Shopee untuk membuat PDF Resi Resmi A6...', 'warn');
@@ -2065,7 +2078,7 @@
           setProgress(false);
           showToast('Galat dokumen resi: ' + (err.message || err), 'danger');
         })
-        .fetchShippingDocumentPdfRpc(sns, '');
+        .fetchShippingDocumentPdfRpc(sns, batchToko);
     }
 
     function closeModal(id) {

@@ -721,7 +721,6 @@ function quickAssignTimPengirimanRpc(orderSnList, penjahit, petugasPacking) {
     };
   }
 }
-}
 
 /**
  * RPC: Sinkronisasi / Tarik Pesanan Siap Kirim Terbaru dari Shopee langsung ke Spreadsheet Baru

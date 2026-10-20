@@ -154,6 +154,11 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
               <td class="py-2.5 text-slate-100">/api/orders/daily</td>
               <td class="py-2.5 text-slate-400 font-sans">Penarikan pesanan multi-chunk dengan nomor resi & SKU</td>
             </tr>
+            <tr>
+              <td class="py-2.5 font-bold text-sky-400">POST</td>
+              <td class="py-2.5 text-slate-100">/api/orders/webhook</td>
+              <td class="py-2.5 text-slate-400 font-sans">Webhook Push Shopee real-time ke Google Apps Script</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -186,6 +191,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       auth_callback: '/api/auth/callback',
       auth_refresh: '/api/auth/refresh',
       orders_daily: '/api/orders/daily',
+      orders_webhook: '/api/orders/webhook',
     },
     timestamp: new Date().toISOString(),
   });

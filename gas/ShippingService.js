@@ -900,54 +900,121 @@ function markOrdersAsPrintedRpc(orderSnList) {
  * Sangat berguna ketika pesanan sudah diatur pengirimannya di Shopee Seller Centre,
  * atau ketika nomor resi baru saja terbit oleh pihak kurir.
  */
+/**
+ * RPC: Cek dan tarik nomor resi terbaru langsung dari Shopee untuk satu pesanan spesifik (Super Cepat)
+ */
 function fetchSingleOrderTrackingNumberRpc(orderSn, kodeToko) {
   try {
     var cleanSn = String(orderSn || '').trim();
     if (!cleanSn) throw new Error('Nomor pesanan kosong.');
 
-    var storeInfo = findOrderStoreInfo_(cleanSn);
-    var preferredStore = kodeToko || storeInfo.toko;
-    var tokens = getActiveShopeeTokensList_(preferredStore);
+    var res = fetchBatchTrackingNumbersRpc([cleanSn], kodeToko);
+    if (!res.success) throw new Error(res.message);
 
+    var info = (res.tracking_map && res.tracking_map[cleanSn]) ? res.tracking_map[cleanSn] : null;
+    if (info && info.tracking_number) {
+      return {
+        success: true,
+        tracking_number: info.tracking_number,
+        shopee_status: info.order_status || 'PROCESSED',
+        courier: info.shipping_carrier || '',
+        message: 'Berhasil menarik No. Resi: ' + info.tracking_number
+      };
+    } else if (info) {
+      return {
+        success: false,
+        has_order: true,
+        shopee_status: info.order_status,
+        message: 'Pesanan ditemukan di Shopee dengan status "' + info.order_status + '", namun pihak kurir belum menerbitkan No. Resi. Silakan pastikan pengiriman sudah selesai dikonfirmasi di Seller Centre (Dropoff/Pickup).'
+      };
+    } else {
+      throw new Error('Pesanan tidak ditemukan di akun toko Shopee.');
+    }
+  } catch (err) {
+    return {
+      success: false,
+      message: err.message || String(err)
+    };
+  }
+}
+
+/**
+ * RPC: Cek dan tarik nomor resi massal (hingga 50 pesanan) dalam satu panggilan super cepat
+ */
+function fetchBatchTrackingNumbersRpc(orderSnList, kodeToko) {
+  try {
+    if (!orderSnList || orderSnList.length === 0) {
+      return { success: false, message: 'Daftar nomor pesanan kosong.' };
+    }
+
+    var cleanList = orderSnList.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
+    if (cleanList.length === 0) throw new Error('Daftar order_sn valid kosong.');
+
+    var firstStore = kodeToko || (cleanList.length > 0 ? findOrderStoreInfo_(cleanList[0]).toko : '');
+    var tokens = getActiveShopeeTokensList_(firstStore);
+
+    var updatedCount = 0;
+    var allMap = {};
     var lastErr = null;
-    var testedNames = [];
+
     for (var i = 0; i < tokens.length; i++) {
       var tok = tokens[i];
-      var storeName = tok.kode_toko || tok.nama_toko || ('Shop ' + tok.shop_id);
-      testedNames.push(storeName);
-
       try {
-        var fetchRes = ShopeeApi.fetchDailyOrders({
-          order_sn_list: [cleanSn],
+        var res = ShopeeApi.fetchTrackingNumbers({
+          order_sn_list: cleanList,
           shop_id: tok.shop_id,
           access_token: tok.access_token,
-          refresh_token: tok.refresh_token
+          refresh_token: tok.refresh_token,
+          expired_at: tok.expired_at
         });
 
-        if (fetchRes && fetchRes.data && fetchRes.data.orders && fetchRes.data.orders.length > 0) {
-          var ord = fetchRes.data.orders[0];
-          var trackingNumber = ord.tracking_number || '';
-          var shopeeStatus = ord.order_status || 'PROCESSED';
-          var courier = ord.shipping_carrier || '';
+        if (res && res.success && res.data) {
+          var dataMap = res.data;
+          var ss = getSpreadsheetPengiriman_();
+          if (ss) {
+            var sheet = ss.getSheetByName('Pesanan Masuk');
+            if (sheet && sheet.getLastRow() >= 2) {
+              var lastRow = sheet.getLastRow();
+              var lastCol = sheet.getLastColumn();
+              var range = sheet.getRange(1, 1, lastRow, lastCol);
+              var values = range.getValues();
+              var headers = values[0];
+              var colSn = headers.indexOf('No. Pesanan');
+              var colResi = headers.indexOf('No. Resi');
+              var colStatus = headers.indexOf('Status Shopee');
+              var colInternal = headers.indexOf('Status Internal Begood');
+              var colSync = headers.indexOf('Waktu Sinkronisasi');
+              var nowWIB = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+              var hasChanges = false;
 
-          if (trackingNumber) {
-            updateOrderInSpreadsheetDistribusi_(cleanSn, trackingNumber, shopeeStatus, tok.kode_toko);
-            return {
-              success: true,
-              tracking_number: trackingNumber,
-              shopee_status: shopeeStatus,
-              courier: courier,
-              toko: tok.kode_toko || tok.nama_toko || '',
-              message: 'Berhasil menarik No. Resi: ' + trackingNumber
-            };
-          } else {
-            return {
-              success: false,
-              has_order: true,
-              shopee_status: shopeeStatus,
-              message: 'Pesanan ditemukan di Shopee (' + storeName + ') dengan status ' + shopeeStatus + ', namun pihak kurir belum menerbitkan No. Resi. Mohon tunggu beberapa saat.'
-            };
+              for (var r = 1; r < values.length; r++) {
+                var rowSn = String(values[r][colSn] || '').trim();
+                if (dataMap[rowSn]) {
+                  var itemInfo = dataMap[rowSn];
+                  allMap[rowSn] = itemInfo;
+                  if (itemInfo.tracking_number && colResi !== -1) {
+                    values[r][colResi] = itemInfo.tracking_number;
+                    hasChanges = true;
+                    updatedCount++;
+                  }
+                  if (itemInfo.order_status && colStatus !== -1) {
+                    values[r][colStatus] = itemInfo.order_status;
+                    hasChanges = true;
+                  }
+                  if (itemInfo.tracking_number && colInternal !== -1 && values[r][colInternal] === '[1] Siap Packing') {
+                    values[r][colInternal] = '[2] Menunggu Diambil Kurir';
+                    hasChanges = true;
+                  }
+                  if (colSync !== -1) values[r][colSync] = nowWIB;
+                }
+              }
+
+              if (hasChanges) {
+                range.setValues(values);
+              }
+            }
           }
+          break; // Berhasil
         }
       } catch (err) {
         lastErr = err;
@@ -959,15 +1026,13 @@ function fetchSingleOrderTrackingNumberRpc(orderSn, kodeToko) {
       }
     }
 
-    if (lastErr) {
-      var lastErrStr = String(lastErr.message || lastErr);
-      if (lastErrStr.indexOf('order_not_exist') !== -1 || lastErrStr.indexOf('not exist') !== -1) {
-        throw new Error('Pesanan ' + cleanSn + ' tidak ditemukan di akun toko Shopee yang terhubung di DB_Token (' +
-          testedNames.join(', ') + '). Pastikan pesanan ini berasal dari akun toko yang sudah diotorisasi.');
-      }
-    }
-
-    throw (lastErr || new Error('Gagal memeriksa resi pesanan dari toko Shopee.'));
+    return {
+      success: true,
+      updated_count: updatedCount,
+      total_requested: cleanList.length,
+      tracking_map: allMap,
+      message: 'Berhasil menyinkronkan ' + updatedCount + ' nomor resi dari Shopee.'
+    };
   } catch (err) {
     return {
       success: false,

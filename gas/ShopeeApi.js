@@ -178,6 +178,13 @@ var ShopeeApi = (function() {
         query = '?order_sn_list=' + encodeURIComponent(listStr);
       }
       return request('/api/orders/shipping-document' + query, 'POST', params);
+    },
+
+    /**
+     * Memeriksa dan mengambil nomor resi terbaru (bisa satuan atau batch hingga 50 pesanan)
+     */
+    fetchTrackingNumbers: function(params) {
+      return request('/api/orders/tracking', 'POST', params);
     }
   };
 })();

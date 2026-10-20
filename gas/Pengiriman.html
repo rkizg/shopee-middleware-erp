@@ -1393,6 +1393,10 @@
               <i class="fa-solid fa-truck-pickup"></i>
               <span>Pickup Sekaligus</span>
             </button>
+            <button class="btn btn-sm btn-primary" title="Tarik nomor resi terbaru untuk seluruh pesanan terpilih dalam 1 klik" onclick="triggerBatchSyncTrackingSelected()">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>Tarik Resi Massal</span>
+            </button>
             <button class="btn btn-sm" style="background:#fff; color:#0f172a; font-weight:700;" onclick="triggerBatchPrintSelected()">
               <i class="fa-solid fa-print"></i>
               <span>Cetak Label Thermal A6 (QC + Resi)</span>
@@ -1791,7 +1795,7 @@
 
         // Action Buttons
         var actionBtns = '';
-        if (o.stage === 'need_arrange') {
+        if (o.stage === 'need_arrange' || !o.tracking_number) {
           actionBtns =
             '<div style="display: flex; gap: 6px; justify-content: flex-end;">' +
               '<button class="btn btn-sm btn-warn" title="Atur Pengiriman Drop-off ke Gerai" onclick="actionShipSingle(\'' + o.order_sn + '\', \'dropoff\')">' +
@@ -1799,6 +1803,9 @@
               '</button>' +
               '<button class="btn btn-sm btn-primary" title="Atur Penjemputan Kurir" onclick="actionOpenPickupModal(\'' + o.order_sn + '\')">' +
                 '<i class="fa-solid fa-truck-pickup"></i><span>Pickup</span>' +
+              '</button>' +
+              '<button class="btn btn-sm btn-ghost" title="Pratinjau / Cetak A6" onclick="actionPreviewAndPrint(\'' + o.order_sn + '\')">' +
+                '<i class="fa-solid fa-print"></i><span>Cetak A6</span>' +
               '</button>' +
             '</div>';
         } else {
@@ -2154,17 +2161,26 @@
       var warningHtml = '';
       if (!order.tracking_number) {
         warningHtml =
-          '<div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 11.5px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left;">' +
+          '<div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 12px 14px; border-radius: 8px; font-size: 11.5px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; text-align: left;">' +
             '<div style="display: flex; align-items: flex-start; gap: 8px;">' +
-              '<i class="fa-solid fa-circle-info" style="font-size: 14px; margin-top: 2px;"></i>' +
+              '<i class="fa-solid fa-circle-info" style="font-size: 14px; margin-top: 2px; color: #d97706;"></i>' +
               '<div>' +
-                '<strong>Perhatian: Resi kurir belum tercatat di data lokal Begood.</strong><br>' +
-                'Bila Anda sudah mengatur pesanan di Shopee Seller Centre, klik tombol <em>Tarik Resi</em> untuk menyinkronkannya.' +
+                '<strong>Perhatian: Resi kurir belum terbit / belum tersimpan di Begood.</strong><br>' +
+                'Status Shopee: <strong style="color: #b45309;">' + (order.shopee_status || 'READY_TO_SHIP') + '</strong>. ' +
+                'Jika sudah klik Konfirmasi di Seller Centre, klik <em>Tarik Resi</em>. Jika belum, Anda bisa langsung atur pengirimannya di bawah ini:' +
               '</div>' +
             '</div>' +
-            '<button class="btn btn-sm" style="background: #f59e0b; color: #ffffff; white-space: nowrap; font-weight: 600; padding: 4px 10px;" onclick="syncSingleOrderTracking(\'' + order.order_sn + '\')">' +
-              '<i class="fa-solid fa-arrows-rotate" style="margin-right: 4px;"></i>Tarik Resi' +
-            '</button>' +
+            '<div style="display: flex; gap: 6px; justify-content: flex-end; margin-top: 2px;">' +
+              '<button class="btn btn-sm btn-ghost" style="border: 1px solid #f59e0b; color: #b45309; padding: 3px 8px;" onclick="closeModal(\'modal-thermal-preview\'); actionShipSingle(\'' + order.order_sn + '\', \'dropoff\')">' +
+                '<i class="fa-solid fa-box" style="margin-right: 4px;"></i>Atur Drop-off' +
+              '</button>' +
+              '<button class="btn btn-sm btn-ghost" style="border: 1px solid #f59e0b; color: #b45309; padding: 3px 8px;" onclick="closeModal(\'modal-thermal-preview\'); actionOpenPickupModal(\'' + order.order_sn + '\')">' +
+                '<i class="fa-solid fa-truck-pickup" style="margin-right: 4px;"></i>Atur Pickup' +
+              '</button>' +
+              '<button class="btn btn-sm" style="background: #f59e0b; color: #ffffff; white-space: nowrap; font-weight: 600; padding: 4px 10px;" onclick="syncSingleOrderTracking(\'' + order.order_sn + '\')">' +
+                '<i class="fa-solid fa-arrows-rotate" style="margin-right: 4px;"></i>Tarik Resi' +
+              '</button>' +
+            '</div>' +
           '</div>';
       }
 
@@ -2386,6 +2402,39 @@
       clearAllSelections();
       renderTable();
       showToast(sns.length + ' label thermal A6 siap dicetak ke printer roll!', 'success');
+    }
+
+    /**
+     * Tarik Nomor Resi Massal untuk seluruh pesanan yang dicentang
+     */
+    function triggerBatchSyncTrackingSelected() {
+      var sns = Object.keys(selectedOrderSns);
+      if (sns.length === 0) {
+        showToast('Pilih setidaknya 1 pesanan terlebih dahulu.', 'warn');
+        return;
+      }
+      var firstOrder = rawOrders.find(function(o) { return selectedOrderSns[o.order_sn]; });
+      var batchToko = firstOrder ? (firstOrder.toko || '') : '';
+
+      setProgress(true);
+      showToast('Menghubungi server Shopee untuk memeriksa nomor resi ' + sns.length + ' pesanan...', 'warn');
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setProgress(false);
+          if (res && res.success) {
+            showToast(res.message || ('Berhasil update ' + res.updated_count + ' resi!'), 'success');
+            clearAllSelections();
+            muatDataPengiriman(false);
+          } else {
+            showToast('Gagal tarik resi massal: ' + (res ? res.message : 'Error'), 'danger');
+          }
+        })
+        .withFailureHandler(function(err) {
+          setProgress(false);
+          showToast('Galat tarik resi: ' + (err.message || err), 'danger');
+        })
+        .fetchBatchTrackingNumbersRpc(sns, batchToko);
     }
 
     /**

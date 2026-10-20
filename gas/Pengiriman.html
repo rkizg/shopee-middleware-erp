@@ -2145,9 +2145,32 @@
       activePreviewOrder = order;
 
       var container = document.getElementById('thermal-preview-container');
-      container.innerHTML = buildThermalLabelHtml(order, 'prev-barcode-svg');
+      var warningHtml = '';
+      if (!order.tracking_number) {
+        warningHtml =
+          '<div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 11.5px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px; text-align: left;">' +
+            '<i class="fa-solid fa-circle-info" style="font-size: 13px; margin-top: 2px;"></i>' +
+            '<div>' +
+              '<strong>Perhatian: Resi kurir belum terbit di Shopee.</strong><br>' +
+              'Barcode pada label ini menggunakan Nomor Pesanan. Anda tetap dapat menekan <strong>Cetak Sekarang (A6 Thermal)</strong> untuk label produksi/packing meja QC. Untuk mengunduh PDF resmi Shopee, pastikan pengiriman sudah diatur (Dropoff/Pickup).' +
+            '</div>' +
+          '</div>';
+      }
+
+      container.innerHTML = warningHtml + buildThermalLabelHtml(order, 'prev-barcode-svg');
 
       renderBarcodeForSn('prev-barcode-svg', order.tracking_number || order.order_sn);
+
+      var btnShopeePdf = document.getElementById('btn-dl-pdf-shopee');
+      if (btnShopeePdf) {
+        if (!order.tracking_number) {
+          btnShopeePdf.style.opacity = '0.6';
+          btnShopeePdf.title = 'Resi kurir belum terbit di Shopee. Atur pengiriman terlebih dahulu untuk mengunduh PDF resmi.';
+        } else {
+          btnShopeePdf.style.opacity = '1';
+          btnShopeePdf.title = 'Unduh berkas PDF mentah dari server Shopee';
+        }
+      }
 
       document.getElementById('modal-thermal-preview').classList.add('active');
     }
@@ -2180,6 +2203,12 @@
       if (!activePreviewOrder) return;
       var sn = activePreviewOrder.order_sn;
       var toko = activePreviewOrder.toko || '';
+
+      if (!activePreviewOrder.tracking_number) {
+        showToast('Pesanan ini belum memiliki nomor resi di Shopee. Harap Atur Pengiriman terlebih dahulu.', 'warn');
+        return;
+      }
+
       setProgress(true);
       showToast('Mengunduh PDF resmi dari server Shopee...', 'warn');
 
@@ -2197,7 +2226,20 @@
             var blobUrl = URL.createObjectURL(blob);
             window.open(blobUrl, '_blank');
           } else {
-            showToast('Gagal unduh PDF: ' + (res ? res.message : 'Error'), 'danger');
+            var msg = res ? res.message : 'Error';
+            showToast(msg, 'danger');
+            if (msg.indexOf('tidak ditemukan') !== -1 || msg.indexOf('order_not_exist') !== -1) {
+              alert(
+                'INFO UNDUH PDF SHOPEE:\n\n' +
+                'Shopee belum menerbitkan dokumen PDF untuk pesanan ' + sn + '.\n\n' +
+                'Penyebab umum:\n' +
+                '1. Pesanan belum diatur pengirimannya (Drop-off / Request Pickup).\n' +
+                '2. Kurir belum menerbitkan nomor resi resmi.\n' +
+                '3. Pesanan berasal dari toko Shopee yang belum terhubung di DB_Token.\n\n' +
+                'Solusi Opsi A:\n' +
+                'Gunakan tombol "Cetak Sekarang (A6 Thermal)" di sebelah kanan untuk langsung mencetak label roll A6 workshop Begood (lengkap dengan nama penjahit, ceklis kelengkapan, dan paraf QC).'
+              );
+            }
           }
         })
         .withFailureHandler(function(err) {

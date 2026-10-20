@@ -821,8 +821,11 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
     var tokens = getActiveShopeeTokensList_(firstStore);
 
     var lastErr = null;
+    var testedStores = [];
     for (var i = 0; i < tokens.length; i++) {
       var tok = tokens[i];
+      var storeLabel = tok.kode_toko || tok.nama_toko || ('Shop ' + tok.shop_id);
+      testedStores.push(storeLabel);
       try {
         var res = ShopeeApi.getShippingDocument({
           order_sn_list: cleanList,
@@ -838,7 +841,7 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
             success: true,
             pdf_base64: res.data.pdf_base64,
             order_count: res.data.order_count || cleanList.length,
-            toko: tok.kode_toko || tok.nama_toko || ''
+            toko: storeLabel
           };
         }
       } catch (err) {
@@ -848,6 +851,15 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
           continue;
         }
         if (tokens.length === 1) throw err;
+      }
+    }
+
+    if (lastErr) {
+      var lastErrStr = String(lastErr.message || lastErr);
+      if (lastErrStr.indexOf('order_not_exist') !== -1 || lastErrStr.indexOf('not exist') !== -1) {
+        throw new Error('Dokumen PDF resmi tidak ditemukan di server Shopee untuk pesanan ' + cleanList.join(', ') +
+          '. Kemungkinan pesanan belum diatur pengirimannya (Dropoff/Pickup), resi kurir belum terbit, atau akun toko di DB_Token (' +
+          testedStores.join(', ') + ') berbeda dengan toko asal pesanan ini. Silakan gunakan tombol "Cetak Sekarang (A6 Thermal)" untuk mencetak label workshop ERP Begood.');
       }
     }
 

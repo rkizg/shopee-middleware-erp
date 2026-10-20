@@ -2072,9 +2072,32 @@
       activePreviewOrder = order;
 
       var container = document.getElementById('thermal-preview-container');
-      container.innerHTML = buildThermalLabelHtml(order, 'prev-barcode-svg');
+      var warningHtml = '';
+      if (!order.tracking_number) {
+        warningHtml =
+          '<div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 11.5px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px; text-align: left;">' +
+            '<i class="fa-solid fa-circle-info" style="font-size: 13px; margin-top: 2px;"></i>' +
+            '<div>' +
+              '<strong>Perhatian: Resi kurir belum terbit di Shopee.</strong><br>' +
+              'Barcode pada label ini menggunakan Nomor Pesanan. Anda tetap dapat menekan <strong>Cetak Sekarang (A6 Thermal)</strong> untuk label produksi/packing meja QC. Untuk mengunduh PDF resmi Shopee, pastikan pengiriman sudah diatur (Dropoff/Pickup).' +
+            '</div>' +
+          '</div>';
+      }
+
+      container.innerHTML = warningHtml + buildThermalLabelHtml(order, 'prev-barcode-svg');
 
       renderBarcodeForSn('prev-barcode-svg', order.tracking_number || order.order_sn);
+
+      var btnShopeePdf = document.getElementById('btn-dl-pdf-shopee');
+      if (btnShopeePdf) {
+        if (!order.tracking_number) {
+          btnShopeePdf.style.opacity = '0.6';
+          btnShopeePdf.title = 'Resi kurir belum terbit di Shopee. Atur pengiriman terlebih dahulu untuk mengunduh PDF resmi.';
+        } else {
+          btnShopeePdf.style.opacity = '1';
+          btnShopeePdf.title = 'Unduh berkas PDF mentah dari server Shopee';
+        }
+      }
 
       document.getElementById('modal-thermal-preview').classList.add('active');
     }

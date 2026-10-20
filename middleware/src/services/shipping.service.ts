@@ -215,6 +215,10 @@ export class ShippingService {
       }
     }
 
+    if (!isReady) {
+      throw new Error(`Dokumen resi Shopee untuk pesanan ${params.order_sn_list.join(', ')} belum siap di server logistik Shopee. Pastikan pengiriman telah diatur dan nomor resi telah diterbitkan oleh pihak kurir Shopee.`);
+    }
+
     // 3. Unduh berkas dokumen pengiriman biner (PDF Thermal)
     const downloadPayload = {
       shipping_document_type: docType,

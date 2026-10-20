@@ -155,9 +155,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       refresh_token: refreshToken,
     });
 
-    const isDirectPdf = req.query?.format === 'pdf' ||
+    const wantsJson = req.query?.format === 'json' ||
+      payload?.format === 'json' ||
+      (req.headers['accept'] && req.headers['accept'].includes('application/json')) ||
+      Boolean(req.headers['x-begood-secret']);
+
+    const isDirectPdf = !wantsJson && (
+      req.query?.format === 'pdf' ||
+      payload?.format === 'pdf' ||
       (req.headers['accept'] && req.headers['accept'].includes('application/pdf')) ||
-      (req.method === 'GET' && req.query?.format !== 'json');
+      (req.method === 'GET')
+    );
 
     if (isDirectPdf) {
       res.setHeader('Content-Type', 'application/pdf');

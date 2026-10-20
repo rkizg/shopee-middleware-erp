@@ -20,6 +20,9 @@ var ShopeeApi = (function() {
 
     // Bersihkan trailing slash
     baseUrl = baseUrl.replace(/\/+$/, '');
+    if (baseUrl.indexOf('http://') === 0 && baseUrl.indexOf('localhost') === -1 && baseUrl.indexOf('127.0.0.1') === -1) {
+      baseUrl = baseUrl.replace('http://', 'https://');
+    }
     var url = baseUrl + endpoint;
 
     var options = {
@@ -64,7 +67,43 @@ var ShopeeApi = (function() {
 
     var response = UrlFetchApp.fetch(url, options);
     var statusCode = response.getResponseCode();
-    var responseText = response.getContentText();
+    var responseHeaders = response.getHeaders() || {};
+    var contentType = responseHeaders['Content-Type'] || responseHeaders['content-type'] || '';
+    var responseText = '';
+
+    // Deteksi jika server mengembalikan berkas PDF biner langsung (HTTP 200)
+    var isPdfResponse = (contentType.indexOf('application/pdf') !== -1);
+    if (!isPdfResponse) {
+      try {
+        responseText = response.getContentText();
+        if (responseText && responseText.substring(0, 5) === '%PDF-') {
+          isPdfResponse = true;
+        }
+      } catch (e) {
+        // Abaikan galat membaca teks jika biner murni
+      }
+    }
+
+    if (isPdfResponse && statusCode >= 200 && statusCode < 300) {
+      var pdfBytes = response.getBlob().getBytes();
+      var b64 = Utilities.base64Encode(pdfBytes);
+      var orderCount = 1;
+      if (payload && payload.order_sn_list && Array.isArray(payload.order_sn_list)) {
+        orderCount = payload.order_sn_list.length;
+      }
+      return {
+        success: true,
+        message: 'Berhasil mengunduh dokumen resi resmi Shopee (PDF)',
+        data: {
+          pdf_base64: b64,
+          order_count: orderCount
+        }
+      };
+    }
+
+    if (!responseText) {
+      responseText = response.getContentText();
+    }
 
     var jsonResult = null;
     try {
@@ -170,12 +209,15 @@ var ShopeeApi = (function() {
      * Mengunduh berkas resi resmi Shopee (PDF Thermal A6)
      */
     getShippingDocument: function(params) {
-      var query = '';
+      var query = '?format=json';
       if (params && params.order_sn) {
-        query = '?order_sn=' + encodeURIComponent(params.order_sn);
+        query += '&order_sn=' + encodeURIComponent(params.order_sn);
       } else if (params && params.order_sn_list) {
         var listStr = Array.isArray(params.order_sn_list) ? params.order_sn_list.join(',') : String(params.order_sn_list);
-        query = '?order_sn_list=' + encodeURIComponent(listStr);
+        query += '&order_sn_list=' + encodeURIComponent(listStr);
+      }
+      if (params && !params.format) {
+        params.format = 'json';
       }
       return request('/api/orders/shipping-document' + query, 'POST', params);
     },

@@ -2598,7 +2598,17 @@
           } else {
             var msg = res ? res.message : 'Error';
             showToast(msg, 'danger');
-            if (msg.indexOf('tidak ditemukan') !== -1 || msg.indexOf('order_not_exist') !== -1) {
+            if (msg.indexOf('PROCESSING') !== -1 || msg.indexOf('antrian render') !== -1 || msg.indexOf('masih dalam antrian') !== -1) {
+              alert(
+                'INFO ANTRIAN RENDER SHOPEE:\n\n' +
+                msg + '\n\n' +
+                'Penjelasan:\n' +
+                'Shopee membutuhkan waktu 15-30 detik untuk mengompilasi layout barcode dan waybill kurir.\n\n' +
+                'Tips:\n' +
+                '1. Silakan tunggu sebentar lalu klik "Unduh PDF Shopee Asli" lagi.\n' +
+                '2. Atau langsung klik tombol "Cetak Sekarang (A6 Thermal)" di sebelah kanan untuk mencetak label workshop Begood secara instan tanpa menunggu server Shopee.'
+              );
+            } else if (msg.indexOf('tidak ditemukan') !== -1 || msg.indexOf('order_not_exist') !== -1) {
               alert(
                 'INFO UNDUH PDF SHOPEE:\n\n' +
                 'Shopee belum menerbitkan dokumen PDF untuk pesanan ' + sn + '.\n\n' +
@@ -2614,7 +2624,17 @@
         })
         .withFailureHandler(function(err) {
           setProgress(false);
-          showToast('Galat PDF: ' + (err.message || err), 'danger');
+          var errMsg = err ? (err.message || String(err)) : 'Galat tidak diketahui';
+          showToast('Galat PDF: ' + errMsg, 'danger');
+          if (errMsg.indexOf('PROCESSING') !== -1 || errMsg.indexOf('antrian render') !== -1 || errMsg.indexOf('masih dalam antrian') !== -1) {
+            alert(
+              'INFO ANTRIAN RENDER SHOPEE:\n\n' +
+              errMsg + '\n\n' +
+              'Tips:\n' +
+              '1. Silakan tunggu 15-30 detik lalu coba klik "Unduh PDF Shopee Asli" lagi.\n' +
+              '2. Atau langsung klik tombol "Cetak Sekarang (A6 Thermal)" untuk cetak label workshop Begood secara instan.'
+            );
+          }
         })
         .fetchShippingDocumentPdfRpc([sn], toko);
     }
@@ -2763,7 +2783,15 @@
             clearAllSelections();
             muatDataPengiriman(false);
           } else {
-            showToast('Gagal mengunduh PDF resi: ' + (res ? res.message : 'Tidak ada data PDF'), 'danger');
+            var bMsg = res ? res.message : 'Tidak ada data PDF';
+            showToast('Gagal mengunduh PDF resi: ' + bMsg, 'danger');
+            if (bMsg.indexOf('PROCESSING') !== -1 || bMsg.indexOf('antrian render') !== -1) {
+              alert(
+                'INFO ANTRIAN RENDER SHOPEE (BATCH):\n\n' +
+                bMsg + '\n\n' +
+                'Tips: Silakan tunggu 15-30 detik lalu ulangi unduh batch, atau gunakan tombol "Cetak Label Massal (A6 Roll)" untuk langsung cetak label workshop.'
+              );
+            }
           }
         })
         .withFailureHandler(function(err) {

@@ -30,8 +30,15 @@ export interface ShipOrderParams extends ShippingAuthParams {
   };
 }
 
+export interface ShippingOrderItemParam {
+  order_sn: string;
+  package_number?: string;
+  tracking_number?: string;
+}
+
 export interface GetShippingDocumentParams extends ShippingAuthParams {
   order_sn_list: string[];
+  order_list?: ShippingOrderItemParam[];
   shipping_document_type?: 'THERMAL_AIR_WAYBILL' | 'NORMAL_AIR_WAYBILL' | string;
 }
 
@@ -160,10 +167,31 @@ export class ShippingService {
       throw new Error('Daftar order_sn_list tidak boleh kosong.');
     }
 
-    const orderListPayload = params.order_sn_list.map((sn) => ({
-      order_sn: sn,
-      shipping_document_type: docType,
-    }));
+    const orderListPayload: any[] = params.order_sn_list.map((sn) => {
+      const itemInfo = params.order_list?.find((it) => it.order_sn === sn);
+      const itemPayload: any = {
+        order_sn: sn,
+        shipping_document_type: docType,
+      };
+      if (itemInfo?.tracking_number) {
+        itemPayload.tracking_number = itemInfo.tracking_number;
+      }
+      if (itemInfo?.package_number) {
+        itemPayload.package_number = itemInfo.package_number;
+      }
+      return itemPayload;
+    });
+
+    // Bila tracking_number belum disertakan untuk single order, coba ambil otomatis dari getTrackingNumber
+    if (orderListPayload.length === 1 && !orderListPayload[0].tracking_number) {
+      try {
+        const trackRes: any = await sdk.logistics.getTrackingNumber({ order_sn: orderListPayload[0].order_sn });
+        const trData = trackRes?.response || trackRes?.result || trackRes;
+        if (trData?.tracking_number) {
+          orderListPayload[0].tracking_number = trData.tracking_number;
+        }
+      } catch (eTr) {}
+    }
 
     // 1. Buat tugas dokumen pengiriman (Create Shipping Document Task)
     try {
@@ -178,14 +206,15 @@ export class ShippingService {
       console.warn('[ShippingService] createShippingDocument error (melanjutkan ke cek status):', createErr.message || createErr);
     }
 
-    // 2. Polling status dokumen hingga READY (maksimal 6 kali per 1.2 detik)
+    // 2. Polling status dokumen hingga READY (maksimal 14 kali per 1.5 detik = 21 detik)
     let isReady = false;
     let pollCount = 0;
-    const maxPolls = 6;
+    const maxPolls = 14;
+    let lastStatus = 'PROCESSING';
 
     while (!isReady && pollCount < maxPolls) {
       pollCount++;
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       try {
         const resultRes: any = await sdk.logistics.getShippingDocumentResult({
@@ -201,14 +230,18 @@ export class ShippingService {
             isReady = true;
             break;
           }
-          const hasFailed = resultList.some((item: any) => item.status === 'FAILED');
-          if (hasFailed) {
-            const failItem = resultList.find((item: any) => item.status === 'FAILED');
-            throw new Error(`Pembuatan resi gagal: ${failItem?.fail_message || failItem?.fail_error || 'Dokumen gagal diproses'}`);
+          const failItem = resultList.find((item: any) => item.status === 'FAILED');
+          if (failItem) {
+            const failMsg = failItem.fail_message || failItem.fail_error || 'Dokumen gagal diproses oleh Shopee';
+            throw new Error(`Pembuatan resi gagal di server Shopee: ${failMsg}`);
+          }
+          const processingItem = resultList.find((item: any) => item.status === 'PROCESSING');
+          if (processingItem) {
+            lastStatus = 'PROCESSING';
           }
         }
       } catch (pollErr: any) {
-        if (pollErr.message && pollErr.message.includes('Pembuatan resi gagal')) {
+        if (pollErr.message && pollErr.message.includes('Pembuatan resi gagal di server Shopee')) {
           throw pollErr;
         }
         console.warn(`[ShippingService] Polling ${pollCount} getShippingDocumentResult error:`, pollErr.message || pollErr);
@@ -216,13 +249,20 @@ export class ShippingService {
     }
 
     if (!isReady) {
+      if (lastStatus === 'PROCESSING') {
+        throw new Error(`Dokumen resi Shopee untuk pesanan ${params.order_sn_list.join(', ')} saat ini masih dalam antrian render server Shopee (status: PROCESSING). Silakan tunggu sekitar 15-30 detik lalu coba klik 'Unduh PDF Shopee Asli' kembali, atau langsung gunakan tombol 'Cetak Sekarang (A6 Thermal)' untuk cetak instan.`);
+      }
       throw new Error(`Dokumen resi Shopee untuk pesanan ${params.order_sn_list.join(', ')} belum siap di server logistik Shopee. Pastikan pengiriman telah diatur dan nomor resi telah diterbitkan oleh pihak kurir Shopee.`);
     }
 
     // 3. Unduh berkas dokumen pengiriman biner (PDF Thermal)
-    const downloadPayload = {
+    const downloadPayload: any = {
       shipping_document_type: docType,
-      order_list: params.order_sn_list.map((sn) => ({ order_sn: sn })),
+      order_list: orderListPayload.map((it: any) => {
+        const item: any = { order_sn: it.order_sn };
+        if (it.package_number) item.package_number = it.package_number;
+        return item;
+      }),
     };
 
     const downloadRes: any = await sdk.logistics.downloadShippingDocument(downloadPayload);

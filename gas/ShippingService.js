@@ -948,14 +948,14 @@ function updateOrderInSpreadsheetDistribusi_(orderSn, trackingNumber, newStatusS
 }
 
 /**
- * Mencari informasi toko pemilik pesanan dari sheet Pesanan Diproses & Pesanan Masuk
+ * Mencari informasi toko pemilik pesanan dan nomor resi dari sheet Pesanan Diproses & Pesanan Masuk
  */
 function findOrderStoreInfo_(orderSn) {
   try {
     var ss = getSpreadsheetPengiriman_();
-    if (!ss) return { toko: '' };
+    if (!ss) return { toko: '', tracking_number: '' };
     var targetSn = String(orderSn || '').trim();
-    if (!targetSn) return { toko: '' };
+    if (!targetSn) return { toko: '', tracking_number: '' };
 
     var sheetsToCheck = ['Pesanan Diproses', 'Pesanan Masuk'];
     for (var sIdx = 0; sIdx < sheetsToCheck.length; sIdx++) {
@@ -966,12 +966,15 @@ function findOrderStoreInfo_(orderSn) {
       var headers = values[0];
       var colSn = cariIndeksKolom_(headers, ['No. Pesanan', 'No Pesanan', 'Nomor Pesanan', 'Order SN', 'order_sn', 'Order ID']);
       var colToko = cariIndeksKolom_(headers, ['Toko', 'Nama Toko', 'Store']);
+      var colResi = cariIndeksKolom_(headers, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
 
       if (colSn !== -1) {
         for (var i = 1; i < values.length; i++) {
           if (String(values[i][colSn]).trim() === targetSn) {
             var t = (colToko !== -1 && values[i][colToko]) ? String(values[i][colToko]).trim().toUpperCase() : '';
-            return { toko: t };
+            var r = (colResi !== -1 && values[i][colResi]) ? String(values[i][colResi]).trim() : '';
+            if (r === '-' || r === 'BELUM ADA RESI') r = '';
+            return { toko: t, tracking_number: r };
           }
         }
       }
@@ -979,7 +982,7 @@ function findOrderStoreInfo_(orderSn) {
   } catch (e) {
     console.warn('[ShippingService] findOrderStoreInfo_ error:', e);
   }
-  return { toko: '' };
+  return { toko: '', tracking_number: '' };
 }
 
 /**
@@ -1264,25 +1267,45 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
     var cleanList = orderSnList.map(function(s) { return String(s || '').trim(); }).filter(Boolean);
     if (cleanList.length === 0) throw new Error('Daftar order_sn valid kosong.');
 
-    // Cari toko dari order pertama atau parameter
-    var firstStore = kodeToko || (cleanList.length > 0 ? findOrderStoreInfo_(cleanList[0]).toko : '');
-    var tokens = getActiveShopeeTokensList_(firstStore);
+    // Kumpulkan info toko dan nomor resi untuk setiap pesanan
+    var orderListPayload = [];
+    var detectedStore = '';
+
+    for (var c = 0; c < cleanList.length; c++) {
+      var snItem = cleanList[c];
+      var info = findOrderStoreInfo_(snItem);
+      if (!detectedStore && info.toko) {
+        detectedStore = info.toko;
+      }
+      orderListPayload.push({
+        order_sn: snItem,
+        tracking_number: info.tracking_number || ''
+      });
+    }
+
+    var targetStore = kodeToko || detectedStore || '';
+    var tokens = getActiveShopeeTokensList_(targetStore);
 
     var lastErr = null;
     var testedStores = [];
+
     for (var i = 0; i < tokens.length; i++) {
       var tok = tokens[i];
       var storeLabel = tok.kode_toko || tok.nama_toko || ('Shop ' + tok.shop_id);
       testedStores.push(storeLabel);
+
       try {
-        var res = ShopeeApi.getShippingDocument({
+        var payloadApi = {
           order_sn_list: cleanList,
+          order_list: orderListPayload,
           document_type: 'THERMAL_AIR_WAYBILL',
           shop_id: tok.shop_id,
           access_token: tok.access_token,
           refresh_token: tok.refresh_token,
           expired_at: tok.expired_at
-        });
+        };
+
+        var res = ShopeeApi.getShippingDocument(payloadApi);
 
         if (res && res.data && res.data.pdf_base64) {
           return {
@@ -1295,9 +1318,22 @@ function fetchShippingDocumentPdfRpc(orderSnList, kodeToko) {
       } catch (err) {
         lastErr = err;
         var errStr = String(err.message || err);
+
+        // Jika errornya spesifik masih dalam antrian render Shopee (status: PROCESSING), langsung hentikan loop dan teruskan pesan jelas ke user!
+        if (errStr.indexOf('PROCESSING') !== -1 || errStr.indexOf('antrian render') !== -1 || errStr.indexOf('masih dalam antrian') !== -1) {
+          throw err;
+        }
+
+        // Jika errornya order_not_exist dan ada toko lain, lanjutkan loop ke toko berikutnya
         if (errStr.indexOf('order_not_exist') !== -1 || errStr.indexOf('not exist') !== -1) {
           continue;
         }
+
+        // Bila toko target cocok dengan toko ini (bukan fallback), jangan lanjutkan ke toko lain agar error aslinya tidak tertimpa
+        if (targetStore && (String(tok.kode_toko).toUpperCase() === targetStore || String(tok.nama_toko).toUpperCase() === targetStore)) {
+          throw err;
+        }
+
         if (tokens.length === 1) throw err;
       }
     }

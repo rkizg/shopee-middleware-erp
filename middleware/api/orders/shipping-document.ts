@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ShippingService } from '../../src/services/shipping.service.js';
 import { validateAuth } from '../../src/lib/auth-guard.js';
 
+export const maxDuration = 60;
+
 async function parseBody(req: VercelRequest): Promise<any> {
   if (req.method !== 'POST' && req.method !== 'PUT') return req.query || {};
 
@@ -58,14 +60,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const payload = await parseBody(req);
 
-    // Dapatkan list order_sn
+    // Dapatkan list order_sn & detail items (tracking_number)
     let orderSnList: string[] = [];
+    let orderItems: Array<{ order_sn: string; tracking_number?: string; package_number?: string }> = [];
+
+    if (Array.isArray(payload?.order_list)) {
+      orderItems = payload.order_list.map((it: any) => ({
+        order_sn: String(it.order_sn || '').trim(),
+        tracking_number: it.tracking_number ? String(it.tracking_number).trim() : undefined,
+        package_number: it.package_number ? String(it.package_number).trim() : undefined,
+      })).filter((it: any) => !!it.order_sn);
+
+      for (const item of orderItems) {
+        if (!orderSnList.includes(item.order_sn)) {
+          orderSnList.push(item.order_sn);
+        }
+      }
+    }
+
     const rawList = payload?.order_sn_list || req.query?.order_sn_list || req.headers['x-shopee-order-sn-list'];
     if (rawList) {
       if (Array.isArray(rawList)) {
-        orderSnList = rawList.map(String).map((s: string) => s.trim()).filter(Boolean);
+        for (const s of rawList.map(String).map((s: string) => s.trim()).filter(Boolean)) {
+          if (!orderSnList.includes(s)) orderSnList.push(s);
+        }
       } else if (typeof rawList === 'string') {
-        orderSnList = rawList.split(',').map((s: string) => s.trim()).filter(Boolean);
+        for (const s of rawList.split(',').map((s: string) => s.trim()).filter(Boolean)) {
+          if (!orderSnList.includes(s)) orderSnList.push(s);
+        }
       }
     }
 
@@ -78,6 +100,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (singleSn && !orderSnList.includes(singleSn)) {
       orderSnList.push(singleSn);
+    }
+
+    // Jika ada nomor resi tunggal yang dikirim di root payload, kaitkan dengan singleSn atau order pertama
+    const singleTracking = String(payload?.tracking_number || req.query?.tracking_number || '').trim();
+    if (singleTracking && orderSnList.length === 1) {
+      if (orderItems.length === 0) {
+        orderItems.push({
+          order_sn: orderSnList[0],
+          tracking_number: singleTracking,
+        });
+      } else if (!orderItems[0].tracking_number) {
+        orderItems[0].tracking_number = singleTracking;
+      }
     }
 
     if (orderSnList.length === 0) {
@@ -113,6 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const result = await ShippingService.getShippingDocument({
       order_sn_list: orderSnList,
+      order_list: orderItems.length > 0 ? orderItems : undefined,
       shipping_document_type: docType,
       shop_id: shopId,
       access_token: accessToken,

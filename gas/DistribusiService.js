@@ -131,6 +131,7 @@ function pastikanStrukturSpreadsheetDistribusiBaru_() {
   var ss = getSpreadsheetDistribusiBaru_();
   var sheets = {
     pesanan: { nama: 'Pesanan Masuk', headers: HEADERS_DISTRIBUSI_PESANAN },
+    diproses: { nama: 'Pesanan Diproses', headers: HEADERS_DISTRIBUSI_PESANAN },
     kerja: { nama: 'PEMBAGIAN KERJA', headers: HEADERS_DISTRIBUSI_KERJA }
   };
 
@@ -163,8 +164,9 @@ function pastikanStrukturSpreadsheetDistribusiBaru_() {
 
 /**
  * RPC: Mengambil data pesanan siap kirim (belum diatur pengiriman / resi kosong)
- * LANGSUNG dari Vercel Serverless Middleware (Shopee Open API), bukan dari sheet Pesanan Masuk lama,
- * lalu menyimpannya ke Sheet "Pesanan Masuk" di Spreadsheet Baru.
+ * dan pesanan diproses (sudah atur pengiriman / ada resi) LANGSUNG dari Vercel
+ * Serverless Middleware (Shopee Open API), lalu menyimpannya secara terpisah ke
+ * Sheet "Pesanan Masuk" dan "Pesanan Diproses" di Spreadsheet Baru.
  */
 function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
   pastikanStrukturSpreadsheetDistribusiBaru_();
@@ -182,14 +184,16 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
     throw new Error('Tidak ada toko aktif di DB_Token Spreadsheet Master untuk menarik data dari Vercel.');
   }
 
-  // Waktu penarikan: 15 hari ke belakang (mencakup seluruh antrian ready to ship yang aktif)
+  // Waktu penarikan: 15 hari ke belakang (mencakup seluruh antrian aktif)
   var nowSec = Math.floor(Date.now() / 1000);
   var timeFrom = nowSec - (15 * 86400);
   var timeTo = nowSec;
   var sekarangWib = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
 
-  var barisSiapKirim = [];
-  var orderSnSet = {};
+  var barisReadyToShip = [];
+  var barisProcessed = [];
+  var orderSnReadySet = {};
+  var orderSnProcessedSet = {};
   var pesanGalatToko = [];
 
   for (var t = 0; t < daftarToko.length; t++) {
@@ -200,55 +204,33 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
       continue;
     }
 
-    try {
-      // Panggil Vercel Middleware secara langsung dengan filter status READY_TO_SHIP
-      var payload = {
-        time_from: timeFrom,
-        time_to: timeTo,
-        order_status: 'READY_TO_SHIP',
-        access_token: tok.access_token,
-        refresh_token: tok.refresh_token,
-        expired_at: tok.expired_at,
-        shop_id: tok.shop_id
-      };
-
-      var apiRes = ShopeeApi.fetchDailyOrders(payload);
-      if (!apiRes || !apiRes.data) {
-        throw new Error(apiRes.message || 'Respons Vercel tidak memuat data.');
-      }
-
-      // Simpan pembaruan token bila Vercel melakukan auto-refresh
-      if (apiRes.data.new_token && SheetManager.saveTokenRecord) {
-        var nTok = apiRes.data.new_token;
-        SheetManager.saveTokenRecord({
-          shop_id: nTok.shop_id || tok.shop_id,
-          access_token: nTok.access_token,
-          refresh_token: nTok.refresh_token,
-          expire_in: nTok.expire_in
-        });
-      }
-
-      var orders = apiRes.data.orders || [];
+    // Helper pemroses daftar pesanan dari Shopee API
+    function prosesDaftarPesananShopee_(orders, statusFallback) {
       for (var o = 0; o < orders.length; o++) {
         var ord = orders[o];
         var orderSn = String(ord.order_sn || '').trim();
         if (!orderSn) continue;
 
-        var statusShopee = String(ord.order_status || '').toUpperCase();
-        var isReady = (statusShopee === 'READY_TO_SHIP' || statusShopee === 'PROCESSED');
+        var statusShopee = String(ord.order_status || statusFallback || '').toUpperCase();
+        var isCancelled = (statusShopee === 'CANCELLED' || statusShopee === 'IN_CANCEL');
+        if (isCancelled) continue;
+
         var resi = String(ord.tracking_number || '').trim();
         var belumAturPengiriman = (!resi || resi === '-' || resi === 'BELUM ADA RESI');
+        var isProcessed = (statusShopee === 'PROCESSED' || !belumAturPengiriman);
 
-        if (isReady && belumAturPengiriman) {
-          var items = (ord.items && ord.items.length > 0) ? ord.items : null;
+        var items = (ord.items && ord.items.length > 0) ? ord.items : null;
+
+        if (isProcessed) {
+          orderSnProcessedSet[orderSn] = true;
           if (items) {
             for (var it = 0; it < items.length; it++) {
               var itm = items[it];
-              barisSiapKirim.push([
+              barisProcessed.push([
                 orderSn,
                 ord.create_time_formatted || sekarangWib,
-                statusShopee,
-                ord.internal_status || '[1] Siap Packing',
+                statusShopee || 'PROCESSED',
+                ord.internal_status || '[2] Menunggu Diambil Kurir',
                 kodeToko,
                 ord.buyer_username || '',
                 itm.item_name || ord.items_summary || '',
@@ -256,7 +238,7 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
                 bersihkanVariasiDistribusi_(itm.model_name),
                 Number(itm.model_quantity_purchased) || 1,
                 ord.shipping_carrier || '',
-                '', // No. Resi kosong
+                resi || '',
                 ord.recipient_city || '',
                 ord.note || '',
                 sekarangWib,
@@ -268,7 +250,59 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
               ]);
             }
           } else {
-            barisSiapKirim.push([
+            barisProcessed.push([
+              orderSn,
+              ord.create_time_formatted || sekarangWib,
+              statusShopee || 'PROCESSED',
+              ord.internal_status || '[2] Menunggu Diambil Kurir',
+              kodeToko,
+              ord.buyer_username || '',
+              ord.items_summary || '',
+              ord.sku_summary || '',
+              bersihkanVariasiDistribusi_(ord.variation_summary),
+              Number(ord.total_items_count) || 1,
+              ord.shipping_carrier || '',
+              resi || '',
+              ord.recipient_city || '',
+              ord.note || '',
+              sekarangWib,
+              ord.recipient_name || '',
+              ord.recipient_full_address || '',
+              ord.recipient_phone || '',
+              ord.recipient_city || '',
+              ord.recipient_state || ''
+            ]);
+          }
+        } else if (statusShopee === 'READY_TO_SHIP' && belumAturPengiriman) {
+          orderSnReadySet[orderSn] = true;
+          if (items) {
+            for (var it = 0; it < items.length; it++) {
+              var itm = items[it];
+              barisReadyToShip.push([
+                orderSn,
+                ord.create_time_formatted || sekarangWib,
+                statusShopee,
+                ord.internal_status || '[1] Siap Packing',
+                kodeToko,
+                ord.buyer_username || '',
+                itm.item_name || ord.items_summary || '',
+                itm.model_sku || '',
+                bersihkanVariasiDistribusi_(itm.model_name),
+                Number(itm.model_quantity_purchased) || 1,
+                ord.shipping_carrier || '',
+                '', // Belum ada resi
+                ord.recipient_city || '',
+                ord.note || '',
+                sekarangWib,
+                ord.recipient_name || '',
+                ord.recipient_full_address || '',
+                ord.recipient_phone || '',
+                ord.recipient_city || '',
+                ord.recipient_state || ''
+              ]);
+            }
+          } else {
+            barisReadyToShip.push([
               orderSn,
               ord.create_time_formatted || sekarangWib,
               statusShopee,
@@ -280,7 +314,7 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
               bersihkanVariasiDistribusi_(ord.variation_summary),
               Number(ord.total_items_count) || 1,
               ord.shipping_carrier || '',
-              '', // No. Resi kosong
+              '', // Belum ada resi
               ord.recipient_city || '',
               ord.note || '',
               sekarangWib,
@@ -291,36 +325,148 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
               ord.recipient_state || ''
             ]);
           }
-          orderSnSet[orderSn] = true;
         }
       }
-    } catch (errApi) {
-      pesanGalatToko.push('Toko ' + kodeToko + ': ' + (errApi.message || errApi));
+    }
+
+    // 1. Tarik status READY_TO_SHIP
+    try {
+      var payloadReady = {
+        time_from: timeFrom,
+        time_to: timeTo,
+        order_status: 'READY_TO_SHIP',
+        access_token: tok.access_token,
+        refresh_token: tok.refresh_token,
+        expired_at: tok.expired_at,
+        shop_id: tok.shop_id
+      };
+
+      var apiResReady = ShopeeApi.fetchDailyOrders(payloadReady);
+      if (apiResReady && apiResReady.data) {
+        if (apiResReady.data.new_token && SheetManager.saveTokenRecord) {
+          var nTok = apiResReady.data.new_token;
+          SheetManager.saveTokenRecord({
+            shop_id: nTok.shop_id || tok.shop_id,
+            access_token: nTok.access_token,
+            refresh_token: nTok.refresh_token,
+            expire_in: nTok.expire_in
+          });
+        }
+        var ordersReady = apiResReady.data.orders || [];
+        prosesDaftarPesananShopee_(ordersReady, 'READY_TO_SHIP');
+      }
+    } catch (errApiReady) {
+      pesanGalatToko.push('Toko ' + kodeToko + ' (READY_TO_SHIP): ' + (errApiReady.message || errApiReady));
+    }
+
+    // 2. Tarik status PROCESSED (pesanan yang sudah atur pickup/dropoff namun belum discan kurir)
+    try {
+      var payloadProc = {
+        time_from: timeFrom,
+        time_to: timeTo,
+        order_status: 'PROCESSED',
+        access_token: tok.access_token,
+        refresh_token: tok.refresh_token,
+        expired_at: tok.expired_at,
+        shop_id: tok.shop_id
+      };
+      var apiResProc = ShopeeApi.fetchDailyOrders(payloadProc);
+      if (apiResProc && apiResProc.data) {
+        var ordersProc = apiResProc.data.orders || [];
+        prosesDaftarPesananShopee_(ordersProc, 'PROCESSED');
+      }
+    } catch (errApiProc) {
+      // PROCESSED call bersifat pelengkap
+      console.warn('Sync PROCESSED Toko ' + kodeToko + ':', errApiProc);
     }
   }
 
-  // 2. Tulis ke Spreadsheet Baru (Sheet "Pesanan Masuk")
+  // Saring agar tidak ada orderSn yang masuk di barisReadyToShip jika sudah masuk barisProcessed
+  var barisReadyClean = [];
+  for (var b = 0; b < barisReadyToShip.length; b++) {
+    var bSn = barisReadyToShip[b][0];
+    if (!orderSnProcessedSet[bSn]) {
+      barisReadyClean.push(barisReadyToShip[b]);
+    } else {
+      delete orderSnReadySet[bSn];
+    }
+  }
+
+  // 2. Tulis ke Spreadsheet Baru
   var newSs = getSpreadsheetDistribusiBaru_();
-  var newSheet = newSs.getSheetByName('Pesanan Masuk');
 
-  var newLastRow = newSheet.getLastRow();
-  if (newLastRow > 1) {
-    newSheet.getRange(2, 1, newLastRow - 1, HEADERS_DISTRIBUSI_PESANAN.length).clearContent();
+  // (a) Sheet "Pesanan Masuk" (Hanya antrian unarranged / READY_TO_SHIP)
+  var sheetMasuk = newSs.getSheetByName('Pesanan Masuk');
+  if (sheetMasuk) {
+    var newLastRow = sheetMasuk.getLastRow();
+    if (newLastRow > 1) {
+      sheetMasuk.getRange(2, 1, newLastRow - 1, HEADERS_DISTRIBUSI_PESANAN.length).clearContent();
+    }
+    if (barisReadyClean.length > 0) {
+      sheetMasuk.getRange(2, 1, barisReadyClean.length, HEADERS_DISTRIBUSI_PESANAN.length).setValues(barisReadyClean);
+    }
   }
 
-  if (barisSiapKirim.length > 0) {
-    newSheet.getRange(2, 1, barisSiapKirim.length, HEADERS_DISTRIBUSI_PESANAN.length).setValues(barisSiapKirim);
+  // (b) Sheet "Pesanan Diproses" (Antrian PROCESSED / sudah ada resi)
+  var sheetDiproses = newSs.getSheetByName('Pesanan Diproses');
+  if (!sheetDiproses) {
+    pastikanStrukturSpreadsheetDistribusiBaru_();
+    sheetDiproses = newSs.getSheetByName('Pesanan Diproses');
   }
 
-  var msg = 'Berhasil menarik langsung dari Vercel: ' + Object.keys(orderSnSet).length + ' pesanan (' + barisSiapKirim.length + ' baris produk) siap kirim ke Spreadsheet Baru.';
+  // Pertahankan pesanan lokal di Pesanan Diproses yang baru diatur di ERP (jika ada) yang belum sempat kembali dari API Shopee
+  var existingProcessedMap = {};
+  if (sheetDiproses && sheetDiproses.getLastRow() > 1) {
+    var exVals = sheetDiproses.getRange(2, 1, sheetDiproses.getLastRow() - 1, HEADERS_DISTRIBUSI_PESANAN.length).getValues();
+    for (var ep = 0; ep < exVals.length; ep++) {
+      var epSn = String(exVals[ep][0] || '').trim();
+      var epStatus = String(exVals[ep][2] || '').trim().toUpperCase();
+      var epInternal = String(exVals[ep][3] || '').trim();
+      if (epSn && epStatus !== 'SHIPPED' && epStatus !== 'CANCELLED' && epInternal !== '[6] Dibatalkan') {
+        if (!existingProcessedMap[epSn]) existingProcessedMap[epSn] = [];
+        existingProcessedMap[epSn].push(exVals[ep]);
+      }
+    }
+  }
+
+  var barisProcessedFinal = [].concat(barisProcessed);
+  for (var exSn in existingProcessedMap) {
+    if (!orderSnProcessedSet[exSn]) {
+      var rowsToKeep = existingProcessedMap[exSn];
+      for (var rk = 0; rk < rowsToKeep.length; rk++) {
+        barisProcessedFinal.push(rowsToKeep[rk]);
+      }
+      orderSnProcessedSet[exSn] = true;
+    }
+  }
+
+  if (sheetDiproses) {
+    var lastRowD = sheetDiproses.getLastRow();
+    if (lastRowD > 1) {
+      sheetDiproses.getRange(2, 1, lastRowD - 1, HEADERS_DISTRIBUSI_PESANAN.length).clearContent();
+    }
+    if (barisProcessedFinal.length > 0) {
+      sheetDiproses.getRange(2, 1, barisProcessedFinal.length, HEADERS_DISTRIBUSI_PESANAN.length).setValues(barisProcessedFinal);
+    }
+  }
+
+  var countReady = Object.keys(orderSnReadySet).length;
+  var countProc = Object.keys(orderSnProcessedSet).length;
+  var totalOrders = countReady + countProc;
+
+  var msg = 'Berhasil menarik langsung dari Vercel: ' + totalOrders + ' pesanan (' +
+            countReady + ' antrian potong/jahit di "Pesanan Masuk", ' +
+            countProc + ' antrian packing/resi di "Pesanan Diproses").';
   if (pesanGalatToko.length > 0) {
     msg += ' (Catatan galat: ' + pesanGalatToko.join('; ') + ')';
   }
 
   return {
     success: true,
-    countOrders: Object.keys(orderSnSet).length,
-    countRows: barisSiapKirim.length,
+    countOrders: totalOrders,
+    countReady: countReady,
+    countProcessed: countProc,
+    countRows: barisReadyClean.length + barisProcessedFinal.length,
     message: msg
   };
 }
@@ -645,18 +791,21 @@ function simpanHasilDistribusi(token, payload) {
     }
   }
 
-  // Peta info pesanan (kurir & kota) dari sheet Pesanan Masuk sebagai pelengkap
+  // Peta info pesanan (kurir & kota) dari sheet Pesanan Masuk & Pesanan Diproses sebagai pelengkap
   var petaPesanan = {};
-  var sheetPesanan = ss.getSheetByName('Pesanan Masuk');
-  if (sheetPesanan && sheetPesanan.getLastRow() > 1) {
-    var pVals = sheetPesanan.getRange(2, 1, sheetPesanan.getLastRow() - 1, HEADERS_DISTRIBUSI_PESANAN.length).getValues();
-    for (var ps = 0; ps < pVals.length; ps++) {
-      var sn = String(pVals[ps][3] || '').trim();
-      if (sn && !petaPesanan[sn]) {
-        petaPesanan[sn] = {
-          courier: String(pVals[ps][10] || ''),
-          city: String(pVals[ps][12] || '')
-        };
+  var sheetsInfo = ['Pesanan Masuk', 'Pesanan Diproses'];
+  for (var si = 0; si < sheetsInfo.length; si++) {
+    var sInfo = ss.getSheetByName(sheetsInfo[si]);
+    if (sInfo && sInfo.getLastRow() > 1) {
+      var pVals = sInfo.getRange(2, 1, sInfo.getLastRow() - 1, HEADERS_DISTRIBUSI_PESANAN.length).getValues();
+      for (var ps = 0; ps < pVals.length; ps++) {
+        var sn = String(pVals[ps][0] || '').trim();
+        if (sn && !petaPesanan[sn]) {
+          petaPesanan[sn] = {
+            courier: String(pVals[ps][10] || ''),
+            city: String(pVals[ps][12] || '')
+          };
+        }
       }
     }
   }
@@ -1118,40 +1267,43 @@ function updateVariasiPesananDistribusi(token, payload) {
   var updatedPesanan = 0;
   var updatedKerja = 0;
 
-  // 1. Perbarui pada Sheet "Pesanan Masuk"
-  var sheetPesanan = ss.getSheetByName('Pesanan Masuk');
-  if (sheetPesanan && sheetPesanan.getLastRow() > 1) {
-    var lastRowP = sheetPesanan.getLastRow();
-    // HEADERS_DISTRIBUSI_PESANAN: Col 1: No. Pesanan, Col 8: SKU, Col 9: Variasi
-    var valsP = sheetPesanan.getRange(2, 1, lastRowP - 1, 9).getValues();
-    var barisCocokP = [];
-    var barisOrderP = [];
+  // 1. Perbarui pada Sheet "Pesanan Masuk" & "Pesanan Diproses"
+  var sheetsPesanan = ['Pesanan Masuk', 'Pesanan Diproses'];
+  for (var sp = 0; sp < sheetsPesanan.length; sp++) {
+    var sheetPesanan = ss.getSheetByName(sheetsPesanan[sp]);
+    if (sheetPesanan && sheetPesanan.getLastRow() > 1) {
+      var lastRowP = sheetPesanan.getLastRow();
+      // HEADERS_DISTRIBUSI_PESANAN: Col 1: No. Pesanan, Col 8: SKU, Col 9: Variasi
+      var valsP = sheetPesanan.getRange(2, 1, lastRowP - 1, 9).getValues();
+      var barisCocokP = [];
+      var barisOrderP = [];
 
-    for (var i = 0; i < valsP.length; i++) {
-      var rowSn = String(valsP[i][0] || '').trim();
-      if (rowSn !== orderSn) continue;
+      for (var i = 0; i < valsP.length; i++) {
+        var rowSn = String(valsP[i][0] || '').trim();
+        if (rowSn !== orderSn) continue;
 
-      barisOrderP.push(i);
+        barisOrderP.push(i);
 
-      var rowSku = String(valsP[i][7] || '').trim();
-      var rowVar = bersihkanVariasiDistribusi_(valsP[i][8]);
+        var rowSku = String(valsP[i][7] || '').trim();
+        var rowVar = bersihkanVariasiDistribusi_(valsP[i][8]);
 
-      var skuCocok = !skuTarget || !rowSku || rowSku.toLowerCase() === skuTarget.toLowerCase();
-      var varCocok = !variasiLama || !rowVar || rowVar.toLowerCase() === variasiLama.toLowerCase();
+        var skuCocok = !skuTarget || !rowSku || rowSku.toLowerCase() === skuTarget.toLowerCase();
+        var varCocok = !variasiLama || !rowVar || rowVar.toLowerCase() === variasiLama.toLowerCase();
 
-      if (skuCocok && varCocok) {
-        barisCocokP.push(i);
+        if (skuCocok && varCocok) {
+          barisCocokP.push(i);
+        }
       }
-    }
 
-    if (barisCocokP.length === 0 && barisOrderP.length === 1) {
-      barisCocokP = barisOrderP;
-    }
+      if (barisCocokP.length === 0 && barisOrderP.length === 1) {
+        barisCocokP = barisOrderP;
+      }
 
-    for (var p = 0; p < barisCocokP.length; p++) {
-      var rowIndexP = barisCocokP[p];
-      sheetPesanan.getRange(rowIndexP + 2, 9).setValue(variasiBaru);
-      updatedPesanan++;
+      for (var p = 0; p < barisCocokP.length; p++) {
+        var rowIndexP = barisCocokP[p];
+        sheetPesanan.getRange(rowIndexP + 2, 9).setValue(variasiBaru);
+        updatedPesanan++;
+      }
     }
   }
 

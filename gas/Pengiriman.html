@@ -1834,16 +1834,17 @@
         if (searchQuery) {
           var q = searchQuery;
           var inSn = String(order.order_sn || '').toLowerCase().includes(q);
-          var inBuyer = String(order.buyer_name || '').toLowerCase().includes(q) || String(order.buyer_username || '').toLowerCase().includes(q);
+          var inBuyer = String(order.buyer_name || '').toLowerCase().includes(q) || String(order.buyer_username || '').toLowerCase().includes(q) || String(order.recipient_name || '').toLowerCase().includes(q);
           var inResi = String(order.tracking_number || '').toLowerCase().includes(q);
-          var inCity = String(order.city || '').toLowerCase().includes(q);
+          var inCity = String(order.city || '').toLowerCase().includes(q) || String(order.recipient_city || '').toLowerCase().includes(q) || String(order.recipient_province || '').toLowerCase().includes(q);
+          var inPhone = String(order.recipient_phone || '').toLowerCase().includes(q);
           var inPenjahit = String(order.penjahit_summary || '').toLowerCase().includes(q);
           var inPacking = String(order.petugas_packing || '').toLowerCase().includes(q);
           var inItems = (order.items || []).some(function(it) {
             return String(it.sku || '').toLowerCase().includes(q) ||
                    String(it.name || '').toLowerCase().includes(q);
           });
-          if (!inSn && !inBuyer && !inResi && !inCity && !inItems && !inPenjahit && !inPacking) return false;
+          if (!inSn && !inBuyer && !inResi && !inCity && !inPhone && !inItems && !inPenjahit && !inPacking) return false;
         }
         return true;
       });
@@ -2070,8 +2071,9 @@
               '<div style="font-size: 11px; color: #64748b; margin-top: 2px;">' + (o.order_date || '-') + (o.toko ? ' <span style="display:inline-block; font-size:10px; font-weight:700; background:#f1f5f9; color:#475569; padding:1px 5px; border-radius:3px; margin-left:4px;">' + o.toko + '</span>' : '') + '</div>' +
             '</td>' +
             '<td>' +
-              '<div style="font-weight: 600; color: #0f172a;">' + o.buyer_name + '</div>' +
-              '<div style="font-size: 11px; color: #64748b; margin-top: 2px;"><i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i>' + o.city + '</div>' +
+              '<div style="font-weight: 600; color: #0f172a;">' + (o.recipient_name || o.buyer_name) + '</div>' +
+              (o.recipient_phone && o.recipient_phone !== '-' ? '<div style="font-size: 10px; color: #475569; margin-top: 1px;"><i class="fa-solid fa-phone" style="font-size: 8.5px; margin-right: 3px; color: #64748b;"></i>' + o.recipient_phone + '</div>' : '') +
+              '<div style="font-size: 11px; color: #64748b; margin-top: 1px;"><i class="fa-solid fa-location-dot" style="margin-right: 4px;"></i>' + (o.recipient_city || o.city) + '</div>' +
             '</td>' +
             '<td>' +
               '<span class="tag-courier ' + courierCls + '">' + o.courier + '</span>' +
@@ -2316,19 +2318,27 @@
               '<div class="thermal-resi-text">' + trackingNum + '</div>' +
             '</div>' +
 
-            '<div class="thermal-grid" style="display:grid; grid-template-columns: 1fr 140px; gap: 8px; align-items: start;">' +
-              '<div>' +
-                '<div style="font-size: 8.5px; line-height: 1.3;">' +
-                  '<span style="font-weight: 700; color: #475569;">Username:</span> ' +
+            '<div class="thermal-grid" style="display:grid; grid-template-columns: 1fr 135px; gap: 8px; align-items: start;">' +
+              '<div style="font-size: 8.5px; line-height: 1.25;">' +
+                '<div>' +
+                  '<span style="font-weight: 700; color: #475569;">Username (Pembeli):</span> ' +
                   '<strong style="color: #0f172a; font-size: 9.5px;">' + (order.buyer_username || '-') + '</strong>' +
                 '</div>' +
-                '<div style="font-size: 8.5px; margin-top: 2px; line-height: 1.3;">' +
+                '<div style="margin-top: 2px;">' +
                   '<span style="font-weight: 700; color: #475569;">Nama Penerima:</span> ' +
-                  '<strong style="color: #0f172a; font-size: 10px;">' + (order.recipient_name || order.buyer_name || '-') + '</strong>' +
+                  '<strong style="color: #0f172a; font-size: 9.5px;">' + (order.recipient_name || order.buyer_name || '-') + '</strong>' +
                 '</div>' +
-                '<div style="font-size: 8.5px; margin-top: 2px; line-height: 1.25;">' +
-                  '<span style="font-weight: 700; color: #475569;">Alamat:</span> ' +
+                '<div style="margin-top: 2px;">' +
+                  '<span style="font-weight: 700; color: #475569;">No. Telepon:</span> ' +
+                  '<strong style="color: #0f172a; font-size: 9px;">' + (order.recipient_phone || order.phone || '-') + '</strong>' +
+                '</div>' +
+                '<div style="margin-top: 2px;">' +
+                  '<span style="font-weight: 700; color: #475569;">Alamat Pengiriman:</span> ' +
                   '<span style="color: #1e293b;">' + (order.recipient_address || order.city || '-') + '</span>' +
+                '</div>' +
+                '<div style="margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px;">' +
+                  '<div><span style="font-weight: 700; color: #475569;">Kota/Kabupaten:</span> <span style="color: #1e293b; font-weight: 600;">' + (order.recipient_city || order.city || '-') + '</span></div>' +
+                  '<div><span style="font-weight: 700; color: #475569;">Provinsi:</span> <span style="color: #1e293b; font-weight: 600;">' + (order.recipient_province || order.province || '-') + '</span></div>' +
                 '</div>' +
               '</div>' +
               '<div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">' +

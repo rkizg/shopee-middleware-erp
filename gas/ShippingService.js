@@ -372,16 +372,18 @@ function getShippingOrdersSummary(kodeToko) {
     var colShopeeStatus = cariIndeksKolom_(headers, ['Status Shopee', 'Status Order', 'Shopee Status']);
     var colInternalStatus = cariIndeksKolom_(headers, ['Status Internal Begood', 'Status Internal', 'Status']);
     var colToko = cariIndeksKolom_(headers, ['Toko', 'Nama Toko', 'Store']);
-    var colBuyer = cariIndeksKolom_(headers, ['Nama Pembeli', 'Username Pembeli', 'Buyer Username', 'Buyer', 'Username']);
+    var colBuyer = cariIndeksKolom_(headers, ['Username (Pembeli)', 'Username Pembeli', 'Nama Pembeli', 'Buyer Username', 'Buyer', 'Username']);
     var colRecipientName = cariIndeksKolom_(headers, ['Nama Penerima', 'Penerima', 'Recipient Name', 'Recipient']);
-    var colAddress = cariIndeksKolom_(headers, ['Alamat Lengkap', 'Alamat Penerima', 'Alamat', 'Full Address', 'Address']);
+    var colPhone = cariIndeksKolom_(headers, ['No. Telepon', 'No Telepon', 'Nomor Telepon', 'Telepon', 'No. HP', 'No HP', 'Phone', 'Recipient Phone', 'Mobile', 'Telephone']);
+    var colAddress = cariIndeksKolom_(headers, ['Alamat Pengiriman', 'Alamat Lengkap', 'Alamat Penerima', 'Alamat', 'Full Address', 'Address']);
     var colProduct = cariIndeksKolom_(headers, ['Ringkasan Produk', 'Nama Produk', 'Produk', 'Item Name']);
     var colSku = cariIndeksKolom_(headers, ['Nomor Referensi SKU', 'SKU Induk', 'SKU', 'Model SKU']);
     var colVariation = cariIndeksKolom_(headers, ['Nama Variasi', 'Variasi', 'Variation', 'Model Name']);
     var colQty = cariIndeksKolom_(headers, ['Total Qty', 'Qty', 'Jumlah', 'Quantity']);
     var colCourier = cariIndeksKolom_(headers, ['Ekspedisi / Kurir', 'Ekspedisi', 'Kurir', 'Shipping Carrier', 'Carrier']);
     var colResi = cariIndeksKolom_(headers, ['No. Resi', 'No Resi', 'Nomor Resi', 'Resi', 'Tracking Number']);
-    var colCity = cariIndeksKolom_(headers, ['Kota Tujuan', 'Kota', 'City', 'Recipient City']);
+    var colCity = cariIndeksKolom_(headers, ['Kota/Kabupaten', 'Kota / Kabupaten', 'Kota Tujuan', 'Kota', 'Kabupaten', 'City', 'Recipient City']);
+    var colProvince = cariIndeksKolom_(headers, ['Provinsi', 'Provinsi Tujuan', 'State', 'Province', 'Recipient State']);
     var colNotes = cariIndeksKolom_(headers, ['Catatan Pembeli', 'Catatan', 'Notes', 'Buyer Note']);
 
     // Loop dari baris paling baru ke lama
@@ -430,9 +432,26 @@ function getShippingOrdersSummary(kodeToko) {
         var buyerUsername = (colBuyer !== -1 && row[colBuyer]) ? String(row[colBuyer]).trim() : '';
         var recipientName = (colRecipientName !== -1 && row[colRecipientName]) ? String(row[colRecipientName]).trim() : '';
         if (!recipientName) recipientName = buyerUsername || '-';
+        var phone = (colPhone !== -1 && row[colPhone]) ? String(row[colPhone]).trim() : '';
         var fullAddress = (colAddress !== -1 && row[colAddress]) ? String(row[colAddress]).trim() : '';
-        var city = (colCity !== -1 && row[colCity]) ? String(row[colCity]).trim() : '-';
-        if (!fullAddress && city && city !== '-') fullAddress = city;
+        var city = (colCity !== -1 && row[colCity]) ? String(row[colCity]).trim() : '';
+        var province = (colProvince !== -1 && row[colProvince]) ? String(row[colProvince]).trim() : '';
+
+        // Ekstraksi nomor telepon dari teks alamat jika kolom telepon terpisah belum ada
+        if (!phone && fullAddress) {
+          var mPh = fullAddress.match(/(?:\+?62|08)[0-9\s\-]{8,15}/);
+          if (mPh) phone = mPh[0].trim();
+        }
+
+        // Ekstraksi kota & provinsi jika kolom kota berisi gabungan "Kota Bandung, Jawa Barat"
+        if (!province && city && city.indexOf(',') !== -1) {
+          var cParts = city.split(',');
+          city = cParts[0].trim();
+          province = cParts.slice(1).join(',').trim();
+        }
+
+        if (!fullAddress && city) fullAddress = city;
+        if (!city && fullAddress) city = fullAddress;
 
         ordersMap[orderSn] = {
           order_sn: orderSn,
@@ -442,7 +461,10 @@ function getShippingOrdersSummary(kodeToko) {
           buyer_username: buyerUsername || '-',
           buyer_name: recipientName || buyerUsername || '-',
           recipient_name: recipientName || buyerUsername || '-',
+          recipient_phone: phone || '-',
           recipient_address: fullAddress || city || '-',
+          recipient_city: city || '-',
+          recipient_province: province || '-',
           courier: courier,
           tracking_number: belumAdaResi ? '' : trackingNumber,
           notes: (colNotes !== -1 && row[colNotes]) ? String(row[colNotes]) : '',

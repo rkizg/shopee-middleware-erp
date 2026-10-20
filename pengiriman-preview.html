@@ -1828,7 +1828,13 @@
               '</button>' +
             '</div>';
         } else {
-          resiHtml = '<span style="font-size: 12px; color: #94a3b8; font-style: italic;">Belum terbit</span>';
+          resiHtml =
+            '<div style="display: flex; align-items: center; gap: 4px;">' +
+              '<span style="font-size: 12px; color: #94a3b8; font-style: italic;">Belum terbit</span>' +
+              '<button class="btn btn-sm" style="padding: 1px 6px; min-height: 20px; font-size: 10px; color: #475569;" title="Cek & Tarik No. Resi dari Shopee" onclick="syncSingleOrderTracking(\'' + o.order_sn + '\')">' +
+                '<i class="fa-solid fa-arrows-rotate"></i>' +
+              '</button>' +
+            '</div>';
         }
 
         html +=
@@ -2075,12 +2081,17 @@
       var warningHtml = '';
       if (!order.tracking_number) {
         warningHtml =
-          '<div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 11.5px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px; text-align: left;">' +
-            '<i class="fa-solid fa-circle-info" style="font-size: 13px; margin-top: 2px;"></i>' +
-            '<div>' +
-              '<strong>Perhatian: Resi kurir belum terbit di Shopee.</strong><br>' +
-              'Barcode pada label ini menggunakan Nomor Pesanan. Anda tetap dapat menekan <strong>Cetak Sekarang (A6 Thermal)</strong> untuk label produksi/packing meja QC. Untuk mengunduh PDF resmi Shopee, pastikan pengiriman sudah diatur (Dropoff/Pickup).' +
+          '<div style="background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; font-size: 11.5px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left;">' +
+            '<div style="display: flex; align-items: flex-start; gap: 8px;">' +
+              '<i class="fa-solid fa-circle-info" style="font-size: 14px; margin-top: 2px;"></i>' +
+              '<div>' +
+                '<strong>Perhatian: Resi kurir belum tercatat di data lokal Begood.</strong><br>' +
+                'Bila Anda sudah mengatur pesanan di Shopee Seller Centre, klik tombol <em>Tarik Resi</em> untuk menyinkronkannya.' +
+              '</div>' +
             '</div>' +
+            '<button class="btn btn-sm" style="background: #f59e0b; color: #ffffff; white-space: nowrap; font-weight: 600; padding: 4px 10px;" onclick="syncSingleOrderTracking(\'' + order.order_sn + '\')">' +
+              '<i class="fa-solid fa-arrows-rotate" style="margin-right: 4px;"></i>Tarik Resi' +
+            '</button>' +
           '</div>';
       }
 
@@ -2091,8 +2102,8 @@
       var btnShopeePdf = document.getElementById('btn-dl-pdf-shopee');
       if (btnShopeePdf) {
         if (!order.tracking_number) {
-          btnShopeePdf.style.opacity = '0.6';
-          btnShopeePdf.title = 'Resi kurir belum terbit di Shopee. Atur pengiriman terlebih dahulu untuk mengunduh PDF resmi.';
+          btnShopeePdf.style.opacity = '0.7';
+          btnShopeePdf.title = 'Resi kurir belum tersimpan di data lokal. Klik untuk otomatis menarik resi dan mengunduh PDF.';
         } else {
           btnShopeePdf.style.opacity = '1';
           btnShopeePdf.title = 'Unduh berkas PDF mentah dari server Shopee';
@@ -2100,6 +2111,28 @@
       }
 
       document.getElementById('modal-thermal-preview').classList.add('active');
+    }
+
+    function syncSingleOrderTracking(orderSn, callback) {
+      setProgress(true);
+      showToast('Menghubungi server Shopee untuk menarik No. Resi...', 'warn');
+      setTimeout(function() {
+        setProgress(false);
+        var ord = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+        if (ord) {
+          ord.tracking_number = 'SPXID' + Math.floor(1000000000 + Math.random() * 9000000000);
+          ord.stage = 'ready_to_print';
+          ord.shopee_status = 'PROCESSED';
+          recalculateKPIs();
+          applyFilterAndRender();
+          if (activePreviewOrder && activePreviewOrder.order_sn === orderSn) {
+            activePreviewOrder.tracking_number = ord.tracking_number;
+            actionPreviewAndPrint(orderSn);
+          }
+          showToast('Resi berhasil disinkronkan: ' + ord.tracking_number, 'success');
+          if (typeof callback === 'function') callback(ord.tracking_number);
+        }
+      }, 700);
     }
 
     function printThermalDirect() {

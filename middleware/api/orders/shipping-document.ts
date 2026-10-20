@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ShippingService } from '../../src/services/shipping.service.js';
+import { PdfStamperService } from '../../src/services/pdf-stamper.service.js';
 import { validateAuth } from '../../src/lib/auth-guard.js';
 
 export const maxDuration = 60;
@@ -59,6 +60,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const payload = await parseBody(req);
+
+    // Kasus Khusus: Penggabungan (Merge) Banyak PDF Resi Menjadi 1 Berkas Utuh
+    if (payload?.action === 'merge' || Array.isArray(payload?.pdf_base64_list)) {
+      const list: string[] = payload.pdf_base64_list || [];
+      if (!list || list.length === 0) {
+        return res.status(400).json({ success: false, message: 'Parameter pdf_base64_list tidak boleh kosong.' });
+      }
+      const buffers = list
+        .filter((b64) => typeof b64 === 'string' && b64.trim().length > 0)
+        .map((b64) => Buffer.from(b64.trim(), 'base64'));
+
+      if (buffers.length === 0) {
+        return res.status(400).json({ success: false, message: 'Tidak ada buffer PDF valid untuk digabungkan.' });
+      }
+
+      const merged = await PdfStamperService.mergePdfs(buffers);
+      return res.status(200).json({
+        success: true,
+        message: `Berhasil menggabungkan ${buffers.length} dokumen PDF resi`,
+        data: {
+          pdf_base64: merged.toString('base64'),
+          merged_count: buffers.length,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Dapatkan list order_sn & detail items (tracking_number)
     let orderSnList: string[] = [];

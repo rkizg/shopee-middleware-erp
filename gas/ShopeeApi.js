@@ -233,7 +233,9 @@ var ShopeeApi = (function() {
      * Menggabungkan beberapa dokumen PDF (Base64) menjadi satu berkas PDF multi-halaman
      */
     mergePdfs: function(params) {
-      return request('/api/orders/merge-pdf', 'POST', params);
+      params = params || {};
+      params.action = 'merge';
+      return request('/api/orders/shipping-document?format=json', 'POST', params);
     }
   };
 })();

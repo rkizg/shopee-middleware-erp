@@ -35,7 +35,9 @@ var HEADERS_DISTRIBUSI_PESANAN = [
   'No. Resi',                 // 12 (L)
   'Kota Tujuan',              // 13 (M)
   'Catatan Pembeli',          // 14 (N)
-  'Waktu Sinkronisasi'        // 15 (O)
+  'Waktu Sinkronisasi',       // 15 (O)
+  'Nama Penerima',            // 16 (P)
+  'Alamat Lengkap'            // 17 (Q)
 ];
 
 var HEADERS_DISTRIBUSI_KERJA = [
@@ -142,6 +144,8 @@ function pastikanStrukturSpreadsheetDistribusiBaru_() {
         .setFontColor('#f8fafc')
         .setFontWeight('bold');
       s.setFrozenRows(1);
+    } else if (s.getLastColumn() < def.headers.length) {
+      s.getRange(1, 1, 1, def.headers.length).setValues([def.headers]);
     }
   }
 
@@ -252,7 +256,9 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
                 '', // No. Resi kosong
                 ord.recipient_city || '',
                 ord.note || '',
-                sekarangWib
+                sekarangWib,
+                ord.recipient_name || '',
+                ord.recipient_full_address || ''
               ]);
             }
           } else {
@@ -271,7 +277,9 @@ function ambilPesananSiapKirimKeSpreadsheetBaru(token, filterToko) {
               '', // No. Resi kosong
               ord.recipient_city || '',
               ord.note || '',
-              sekarangWib
+              sekarangWib,
+              ord.recipient_name || '',
+              ord.recipient_full_address || ''
             ]);
           }
           orderSnSet[orderSn] = true;

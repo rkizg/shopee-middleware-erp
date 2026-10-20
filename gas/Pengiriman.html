@@ -1369,6 +1369,20 @@
           </div>
 
           <div class="filter-group">
+            <span class="filter-label">Penjahit:</span>
+            <select class="form-select" id="filter-penjahit" onchange="handlePenjahitFilter(this.value)">
+              <option value="all">Semua Penjahit</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Packing:</span>
+            <select class="form-select" id="filter-packing" onchange="handlePackingFilter(this.value)">
+              <option value="all">Semua Petugas Packing</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
             <span class="filter-label">Urutkan:</span>
             <select class="form-select" id="filter-sort" onchange="handleSort(this.value)">
               <option value="newest">Waktu Terbaru</option>
@@ -1385,6 +1399,10 @@
             <span>Pesanan Terpilih untuk Aksi Massal</span>
           </div>
           <div class="mass-action-buttons">
+            <button class="btn btn-sm" style="background:#334155; color:#fff;" title="Alokasikan penjahit atau petugas packing untuk pesanan terpilih" onclick="openMassQuickAssignModal()">
+              <i class="fa-solid fa-users-gear" style="margin-right:4px;"></i>
+              <span>Set Penjahit &amp; Packing</span>
+            </button>
             <button class="btn btn-sm btn-warn" onclick="triggerBatchShipSelected('dropoff')">
               <i class="fa-solid fa-box"></i>
               <span>Drop-off Sekaligus</span>
@@ -1521,6 +1539,49 @@
     </div>
   </div>
 
+  <!-- MODAL 3: Alokasi Cepat Penjahit & Petugas Packing -->
+  <div class="modal-backdrop" id="modal-quick-assign">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-user-check" style="margin-right: 8px;"></i>
+          Alokasi Tim Penjahit &amp; Packing
+        </div>
+        <button class="btn-close-modal" onclick="closeModal('modal-quick-assign')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;" id="quick-assign-desc">
+          Pilih penjahit dan petugas packing untuk pesanan ini:
+        </p>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 11.5px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            <i class="fa-solid fa-scissors" style="margin-right: 4px; color: #64748b;"></i>Penjahit:
+          </label>
+          <select class="form-select" id="qa-select-penjahit" style="width: 100%;">
+            <option value="">(Jangan Ubah / Kosongkan)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-size: 11.5px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+            <i class="fa-solid fa-box-open" style="margin-right: 4px; color: #64748b;"></i>Petugas Packing:
+          </label>
+          <select class="form-select" id="qa-select-packing" style="width: 100%;">
+            <option value="">(Jangan Ubah / Kosongkan)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-sm" onclick="closeModal('modal-quick-assign')">Batal</button>
+        <button class="btn btn-sm btn-primary" onclick="submitQuickAssign()">
+          <i class="fa-solid fa-check"></i>
+          <span>Simpan Alokasi</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Hidden Container khusus untuk dialog window.print() (Cetak 1 atau Massal) -->
   <div id="thermal-batch-print-container" style="display:none;"></div>
 
@@ -1535,6 +1596,11 @@
     var selectedOrderSns = {};
     var currentStage = 'all';
     var currentCourier = 'all';
+    var currentPenjahit = 'all';
+    var currentPacking = 'all';
+    var masterPenjahitList = [];
+    var masterPackingList = [];
+    var activeQuickAssignOrderSns = [];
     var searchQuery = '';
     var activeSort = 'newest';
     var activePickupOrderSn = '';
@@ -1590,6 +1656,14 @@
             setProgress(false);
             if (res && res.success) {
               rawOrders = res.orders || [];
+              if (res.penjahit_list && res.penjahit_list.length) {
+                masterPenjahitList = res.penjahit_list;
+                renderPenjahitFilterOptions();
+              }
+              if (res.packing_list && res.packing_list.length) {
+                masterPackingList = res.packing_list;
+                renderPackingFilterOptions();
+              }
               updateKPIStats(res.stats || {});
               if (res.spreadsheet_name) {
                 var sEl = document.getElementById('topbar-sheet-name');
@@ -1689,6 +1763,38 @@
       applyFilterAndRender();
     }
 
+    function handlePenjahitFilter(penjahit) {
+      currentPenjahit = penjahit;
+      applyFilterAndRender();
+    }
+
+    function handlePackingFilter(packing) {
+      currentPacking = packing;
+      applyFilterAndRender();
+    }
+
+    function renderPenjahitFilterOptions() {
+      var sel = document.getElementById('filter-penjahit');
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = '<option value="all">Semua Penjahit</option>';
+      masterPenjahitList.forEach(function(p) {
+        sel.innerHTML += '<option value="' + p + '">' + p + '</option>';
+      });
+      sel.value = cur || 'all';
+    }
+
+    function renderPackingFilterOptions() {
+      var sel = document.getElementById('filter-packing');
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = '<option value="all">Semua Petugas Packing</option>';
+      masterPackingList.forEach(function(pk) {
+        sel.innerHTML += '<option value="' + pk + '">' + pk + '</option>';
+      });
+      sel.value = cur || 'all';
+    }
+
     function handleSearch(query) {
       searchQuery = String(query || '').toLowerCase().trim();
       applyFilterAndRender();
@@ -1714,18 +1820,30 @@
           var filterVal = currentCourier.toLowerCase();
           if (!courierName.includes(filterVal)) return false;
         }
+        // Filter Penjahit
+        if (currentPenjahit !== 'all') {
+          var pSummary = String(order.penjahit_summary || '');
+          if (pSummary.indexOf(currentPenjahit) === -1) return false;
+        }
+        // Filter Petugas Packing
+        if (currentPacking !== 'all') {
+          var pkSummary = String(order.petugas_packing || '');
+          if (pkSummary !== currentPacking) return false;
+        }
         // Filter Pencarian
         if (searchQuery) {
           var q = searchQuery;
           var inSn = String(order.order_sn || '').toLowerCase().includes(q);
-          var inBuyer = String(order.buyer_name || '').toLowerCase().includes(q);
+          var inBuyer = String(order.buyer_name || '').toLowerCase().includes(q) || String(order.buyer_username || '').toLowerCase().includes(q);
           var inResi = String(order.tracking_number || '').toLowerCase().includes(q);
           var inCity = String(order.city || '').toLowerCase().includes(q);
+          var inPenjahit = String(order.penjahit_summary || '').toLowerCase().includes(q);
+          var inPacking = String(order.petugas_packing || '').toLowerCase().includes(q);
           var inItems = (order.items || []).some(function(it) {
             return String(it.sku || '').toLowerCase().includes(q) ||
                    String(it.name || '').toLowerCase().includes(q);
           });
-          if (!inSn && !inBuyer && !inResi && !inCity && !inItems) return false;
+          if (!inSn && !inBuyer && !inResi && !inCity && !inItems && !inPenjahit && !inPacking) return false;
         }
         return true;
       });
@@ -1741,6 +1859,111 @@
 
       renderTable();
       updateMassActionBar();
+    }
+
+    function openQuickAssignModal(orderSn) {
+      activeQuickAssignOrderSns = [orderSn];
+      var ord = rawOrders.find(function(o) { return o.order_sn === orderSn; });
+      var desc = document.getElementById('quick-assign-desc');
+      if (desc) {
+        desc.innerHTML = 'Alokasikan penjahit &amp; packing untuk pesanan <strong class="mono-cell">' + orderSn + '</strong>:';
+      }
+      populateQuickAssignSelects(ord ? ord.penjahit_summary : '', ord ? ord.petugas_packing : '');
+      document.getElementById('modal-quick-assign').classList.add('active');
+    }
+
+    function openMassQuickAssignModal() {
+      var sns = Object.keys(selectedOrderSns);
+      if (!sns.length) {
+        showToast('Pilih sekurangnya 1 pesanan untuk alokasi massal.', 'warn');
+        return;
+      }
+      activeQuickAssignOrderSns = sns;
+      var desc = document.getElementById('quick-assign-desc');
+      if (desc) {
+        desc.innerHTML = 'Alokasikan penjahit &amp; packing untuk <strong>' + sns.length + ' pesanan terpilih</strong>:';
+      }
+      populateQuickAssignSelects('', '');
+      document.getElementById('modal-quick-assign').classList.add('active');
+    }
+
+    function populateQuickAssignSelects(currentPenjahitVal, currentPackingVal) {
+      var sPj = document.getElementById('qa-select-penjahit');
+      if (sPj) {
+        sPj.innerHTML = '<option value="">(Jangan Ubah / Kosongkan)</option>';
+        masterPenjahitList.forEach(function(p) {
+          sPj.innerHTML += '<option value="' + p + '">' + p + '</option>';
+        });
+        if (currentPenjahitVal && currentPenjahitVal !== '-') sPj.value = currentPenjahitVal;
+      }
+      var sPk = document.getElementById('qa-select-packing');
+      if (sPk) {
+        sPk.innerHTML = '<option value="">(Jangan Ubah / Kosongkan)</option>';
+        masterPackingList.forEach(function(pk) {
+          sPk.innerHTML += '<option value="' + pk + '">' + pk + '</option>';
+        });
+        if (currentPackingVal && currentPackingVal !== '-') sPk.value = currentPackingVal;
+      }
+    }
+
+    function submitQuickAssign() {
+      if (!activeQuickAssignOrderSns.length) return;
+      var sPj = document.getElementById('qa-select-penjahit');
+      var sPk = document.getElementById('qa-select-packing');
+      var penjahit = sPj ? sPj.value : '';
+      var packing = sPk ? sPk.value : '';
+
+      if (!penjahit && !packing) {
+        showToast('Pilih sekurangnya Penjahit atau Petugas Packing.', 'warn');
+        return;
+      }
+
+      setProgress(true);
+      showToast('Menyimpan alokasi tim ke Spreadsheet...', 'warn');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            setProgress(false);
+            closeModal('modal-quick-assign');
+            if (res && res.success) {
+              showToast(res.message, 'success');
+              activeQuickAssignOrderSns.forEach(function(sn) {
+                var ord = rawOrders.find(function(o) { return o.order_sn === sn; });
+                if (ord) {
+                  if (penjahit) {
+                    ord.penjahit_summary = penjahit;
+                    (ord.items || []).forEach(function(it) { it.penjahit = penjahit; });
+                  }
+                  if (packing) ord.petugas_packing = packing;
+                }
+              });
+              applyFilterAndRender();
+            } else {
+              showToast(res ? res.message : 'Gagal menyimpan alokasi.', 'danger');
+            }
+          })
+          .withFailureHandler(function(err) {
+            setProgress(false);
+            showToast('Galat alokasi: ' + (err.message || err), 'danger');
+          })
+          .quickAssignTimPengirimanRpc(activeQuickAssignOrderSns, penjahit, packing);
+      } else {
+        setProgress(false);
+        closeModal('modal-quick-assign');
+        activeQuickAssignOrderSns.forEach(function(sn) {
+          var ord = rawOrders.find(function(o) { return o.order_sn === sn; });
+          if (ord) {
+            if (penjahit) {
+              ord.penjahit_summary = penjahit;
+              (ord.items || []).forEach(function(it) { it.penjahit = penjahit; });
+            }
+            if (packing) ord.petugas_packing = packing;
+          }
+        });
+        applyFilterAndRender();
+        showToast('Alokasi tim berhasil diperbarui (mode lokal).', 'success');
+      }
     }
 
     /**
@@ -1862,6 +2085,7 @@
                 ((o.petugas_packing && o.petugas_packing !== '-')
                   ? '<span style="background: #f1f5f9; color: #0f172a; padding: 1px 5px; border-radius: 3px; font-weight: 600;" title="Petugas Packing"><i class="fa-solid fa-box-open" style="font-size: 8.5px; margin-right: 3px;"></i>' + o.petugas_packing + '</span>'
                   : '<span style="background: #f8fafc; color: #94a3b8; padding: 1px 5px; border-radius: 3px; font-weight: 500; border: 1px dashed #cbd5e1;" title="Belum diset"><i class="fa-solid fa-box-open" style="font-size: 8.5px; margin-right: 3px;"></i>Belum diset</span>') +
+                '<button class="btn btn-sm btn-ghost" style="padding: 1px 5px; font-size: 9.5px; border: 1px solid #cbd5e1; border-radius: 3px; color: #475569;" title="Alokasikan Penjahit &amp; Petugas Packing" onclick="openQuickAssignModal(\'' + o.order_sn + '\')"><i class="fa-solid fa-user-pen" style="margin-right:2px;"></i>Set Tim</button>' +
               '</div>' +
               (o.notes ? '<div style="font-size: 11px; color: #b45309; margin-top: 3px;"><i class="fa-regular fa-comment-dots" style="margin-right: 4px;"></i>' + o.notes + '</div>' : '') +
             '</td>' +
@@ -2040,7 +2264,8 @@
      * Helper untuk membuat markup kartu label thermal A6 lengkap (Opsi A)
      * Memuat barcode Shopee, data penerima, tabel checklist QC, penjahit, kelengkapan, & petugas packing
      */
-    function buildThermalLabelHtml(order, barcodeId) {
+    function buildThermalLabelHtml(order, barcodeId, orderSnBarcodeId) {
+      var snBcId = orderSnBarcodeId || (barcodeId + '-sn');
       var trackingNum = order.tracking_number || order.order_sn;
       var nowWIB = new Date().toLocaleDateString('id-ID', {
         day: '2-digit', month: '2-digit', year: 'numeric',
@@ -2091,16 +2316,28 @@
               '<div class="thermal-resi-text">' + trackingNum + '</div>' +
             '</div>' +
 
-            '<div class="thermal-grid">' +
+            '<div class="thermal-grid" style="display:grid; grid-template-columns: 1fr 140px; gap: 8px; align-items: start;">' +
               '<div>' +
-                '<div style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">Penerima:</div>' +
-                '<div style="font-weight: 800; font-size: 11px; line-height: 1.2;">' + (order.buyer_name || '-') + '</div>' +
-                '<div style="font-size: 9px; color: #334155; margin-top: 2px; line-height: 1.2;">' + (order.city || '-') + '</div>' +
+                '<div style="font-size: 8.5px; line-height: 1.3;">' +
+                  '<span style="font-weight: 700; color: #475569;">Username:</span> ' +
+                  '<strong style="color: #0f172a; font-size: 9.5px;">' + (order.buyer_username || '-') + '</strong>' +
+                '</div>' +
+                '<div style="font-size: 8.5px; margin-top: 2px; line-height: 1.3;">' +
+                  '<span style="font-weight: 700; color: #475569;">Nama Penerima:</span> ' +
+                  '<strong style="color: #0f172a; font-size: 10px;">' + (order.recipient_name || order.buyer_name || '-') + '</strong>' +
+                '</div>' +
+                '<div style="font-size: 8.5px; margin-top: 2px; line-height: 1.25;">' +
+                  '<span style="font-weight: 700; color: #475569;">Alamat:</span> ' +
+                  '<span style="color: #1e293b;">' + (order.recipient_address || order.city || '-') + '</span>' +
+                '</div>' +
               '</div>' +
-              '<div style="text-align: right;">' +
+              '<div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">' +
                 '<div style="font-size: 8px; font-weight: 700; text-transform: uppercase; color: #64748b;">No. Pesanan:</div>' +
-                '<div class="mono-cell" style="font-size: 9.5px; font-weight: 800;">' + order.order_sn + '</div>' +
-                '<div style="font-size: 8.5px; color: #475569; margin-top: 2px;">Total: <strong>' + order.total_qty + ' Pcs</strong> (~500g)</div>' +
+                '<div class="mono-cell" style="font-size: 9px; font-weight: 800; line-height: 1.1;">' + order.order_sn + '</div>' +
+                '<div style="margin-top: 2px; background: #fff; padding: 1px 0;">' +
+                  '<svg id="' + snBcId + '"></svg>' +
+                '</div>' +
+                '<div style="font-size: 8.5px; color: #475569; margin-top: 2px;">Total: <strong>' + order.total_qty + ' Pcs</strong></div>' +
               '</div>' +
             '</div>' +
 
@@ -2134,7 +2371,7 @@
     }
 
     /**
-     * Render Barcode Code128 menggunakan JsBarcode
+     * Render Barcode Code128 menggunakan JsBarcode (No. Resi Kurir)
      */
     function renderBarcodeForSn(elementId, value) {
       try {
@@ -2150,6 +2387,26 @@
         });
       } catch (err) {
         console.warn('JsBarcode render error for #' + elementId + ':', err);
+      }
+    }
+
+    /**
+     * Render Barcode Code128 menggunakan JsBarcode (No. Pesanan / Order SN)
+     */
+    function renderBarcodeForOrderSn(elementId, value) {
+      try {
+        var el = document.getElementById(elementId);
+        if (!el) return;
+        JsBarcode('#' + elementId, String(value).trim(), {
+          format: 'CODE128',
+          lineColor: '#000000',
+          width: 1.1,
+          height: 24,
+          displayValue: false,
+          margin: 0
+        });
+      } catch (err) {
+        console.warn('JsBarcode order SN render error for #' + elementId + ':', err);
       }
     }
 
@@ -2205,9 +2462,10 @@
           '</div>';
       }
 
-      container.innerHTML = warningHtml + unassignedNoticeHtml + buildThermalLabelHtml(order, 'prev-barcode-svg');
+      container.innerHTML = warningHtml + unassignedNoticeHtml + buildThermalLabelHtml(order, 'prev-barcode-svg', 'prev-sn-barcode-svg');
 
       renderBarcodeForSn('prev-barcode-svg', order.tracking_number || order.order_sn);
+      renderBarcodeForOrderSn('prev-sn-barcode-svg', order.order_sn);
 
       var btnShopeePdf = document.getElementById('btn-dl-pdf-shopee');
       if (btnShopeePdf) {
@@ -2274,8 +2532,9 @@
       if (!activePreviewOrder) return;
 
       var printBox = document.getElementById('thermal-batch-print-container');
-      printBox.innerHTML = buildThermalLabelHtml(activePreviewOrder, 'direct-barcode-' + activePreviewOrder.order_sn);
+      printBox.innerHTML = buildThermalLabelHtml(activePreviewOrder, 'direct-barcode-' + activePreviewOrder.order_sn, 'direct-sn-barcode-' + activePreviewOrder.order_sn);
       renderBarcodeForSn('direct-barcode-' + activePreviewOrder.order_sn, activePreviewOrder.tracking_number || activePreviewOrder.order_sn);
+      renderBarcodeForOrderSn('direct-sn-barcode-' + activePreviewOrder.order_sn, activePreviewOrder.order_sn);
 
       window.print();
 
@@ -2404,12 +2663,13 @@
 
       for (var i = 0; i < ordersToPrint.length; i++) {
         var ord = ordersToPrint[i];
-        printBox.innerHTML += buildThermalLabelHtml(ord, 'batch-bc-' + ord.order_sn);
+        printBox.innerHTML += buildThermalLabelHtml(ord, 'batch-bc-' + ord.order_sn, 'batch-sn-bc-' + ord.order_sn);
       }
 
       for (var j = 0; j < ordersToPrint.length; j++) {
         var oItem = ordersToPrint[j];
         renderBarcodeForSn('batch-bc-' + oItem.order_sn, oItem.tracking_number || oItem.order_sn);
+        renderBarcodeForOrderSn('batch-sn-bc-' + oItem.order_sn, oItem.order_sn);
       }
 
       // Dialog cetak thermal native browser
